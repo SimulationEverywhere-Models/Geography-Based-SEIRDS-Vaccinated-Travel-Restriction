@@ -1,8 +1,8 @@
-Cell-DEVS Geographical SEIRDS Pandemic Model
+Cell-DEVS Geographical SEIRDS-Vaccinated Pandemic Model
 ===
 Overview
 ----
-This model is an extension of a previous SIRDS model found here:
+This model is an extension of a previous SEIRDS model found here:
 https://github.com/SimulationEverywhere-Models/Geography-Based-SEIRDS
 
 The inital model was based on the Zhong model:
