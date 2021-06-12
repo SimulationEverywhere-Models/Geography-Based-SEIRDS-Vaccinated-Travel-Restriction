@@ -97,25 +97,32 @@ int main(int argc, char ** argv) {
         std::shared_ptr<cadmium::dynamic::modeling::coupled < TIME>>
         t = std::make_shared<geographical_coupled<TIME>>(test);
 
+        // Lambda function that displays the loading animation
         auto lm = []()
         {
             std::cout << "\033[33m-" << std::flush;
+            // Loop forever
             for (;;)
             {
+                // Loop through all the different animation cycles
                 for (char loading : {'\\', '|', '/', '-'})
                 {
                     std::this_thread::sleep_for(0.1s);
+                    // '\r' replaces the last printed line in the terminal
                     std::cout << "\rcomputing " << loading << std::flush;
                 }
             }
         };
 
+        // Start the thread
         std::thread th_obj(lm);
 
         cadmium::dynamic::engine::runner<TIME, logger_top>
             r(t, {0});
         float sim_time = (argc > 2) ? atof(argv[2]) : 500;
         r.run_until(sim_time);
+
+        // Stop the thread when the sim is done running
         th_obj.detach();
         std::cout << "\r\033[32mDone.       \033[0m" << std::endl;
     }

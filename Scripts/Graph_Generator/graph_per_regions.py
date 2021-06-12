@@ -10,16 +10,24 @@ import os
 import re
 import itertools, threading, time, sys
 
+# Loading animation
+import itertools, threading, time, sys
 done = False
 def animate():
+    # Loop through the animation cycles
     for c in itertools.cycle(['|', '/', '-', '\\']):
+        # When the global variable is set at the eof
+        #  then the infinite loop will break
         if done:
             break
-        sys.stdout.write('\r\033[33mgenerating graphs ' + c + '\033[0m')
+        # Using stdout makes it easier to deal with the newlines inherent in print()
+        # '\r' replaces the previous line so we don't crowd the terminal
+        sys.stdout.write('\r\033[33maggregating graphs ' + c + '\033[0m')
         sys.stdout.flush()
         time.sleep(0.1)
-    sys.stdout.write('\r\033[32mDone.               \033[0m')
+    sys.stdout.write('\r\033[32mDone.                   \033[0m\n')
 
+# Don't forget to thread it!
 t = threading.Thread(target=animate)
 t.start()
 
