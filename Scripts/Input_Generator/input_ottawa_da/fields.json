@@ -3,6 +3,8 @@
         "Population",
         "Susceptible",
         "Exposed",
+        "VaccinatedD1",
+        "VaccinatedD2",
         "Infected",
         "Recovered",
         "New Exposed",
