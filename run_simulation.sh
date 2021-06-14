@@ -101,22 +101,21 @@ Clean()
 # Displays the help
 Help()
 {
-    echo -e "\033[1mUsage:\033[0m"
-    echo -e " ./run_simulation.sh \033[3m<Area>\033[0m"
-    echo -e " where \033[3m<Area>\033[0m is either Ottawa \033[1mOR\033[0m Ontario"
-    echo -e " example: ./run_simulation.sh Ottawa"
-    echo -e "Use \033[1;33m--flags\033[0m to see a list of all the flags and their meanings"
-}
-
-# Display the flags
-Flags()
-{
-    echo -e "\033[1mFlags:\033[0m"
-    echo -e " \033[33m--flags, -f\033[0m \t\t\t Displays all flags"
-    echo -e " \033[33m--Help, -h\033[0m \t\t\t Displays the help"
-    echo -e " \033[33m--Ottawa, --ottawa, -Ot, -ot\033[0m \t Runs a simulation in Ottawa"
-    echo -e " \033[33m--Ontario, --ontario, -On, -on\033[0m  Runs a simulation in Ontario"
-    echo -e "\033[33m --rebuild, -r\033[0m \t\t\t Rebuilds the model"
+    if [[ $1 == 1 ]]; then
+        echo -e "\033[1mFlags:\033[0m"
+        echo -e " \033[33m--clean|-c|--clean=#|-c=#\033[0m \t Cleans all simulation runs for the selected area if no # is set, \n \t\t\t\t otherwise cleans the specified run using the # inputed such as 'clean=1'"
+        echo -e " \033[33m--flags, -f\033[0m \t\t\t Displays all flags"
+        echo -e " \033[33m--help, -h\033[0m \t\t\t Displays the help"
+        echo -e " \033[33m--Ontario, --ontario, -On, -on\033[0m  Runs a simulation in Ontario"
+        echo -e " \033[33m--Ottawa, --ottawa, -Ot, -ot\033[0m \t Runs a simulation in Ottawa"
+        echo -e " \033[33m--rebuild, -r\033[0m \t\t\t Rebuilds the model"
+    else
+        echo -e "\033[1mUsage:\033[0m"
+        echo -e " ./run_simulation.sh \033[3m<area flag>\033[0m"
+        echo -e " where \033[3m<area flag>\033[0m is either --Ottawa \033[1mOR\033[0m --Ontario"
+        echo -e " example: ./run_simulation.sh --Ottawa"
+        echo -e "Use \033[1;33m--flags\033[0m to see a list of all the flags and their meanings"
+    fi
 }
 
 # Displays the help if no flags were set
@@ -127,14 +126,6 @@ else
     # Loop through the flags
     while test $# -gt 0; do
         case "$1" in
-            --help|-h)
-                Help;
-                exit 1;
-            ;;
-            --flags|-f)
-                Flags;
-                exit 1;
-            ;;
             --clean*|-c*)
                 if [[ $1 == *"="* ]]; then
                     RUN=`echo $1 | sed -e 's/^[^=]*=//g'`; # Get the run to remove
@@ -142,16 +133,24 @@ else
                 CLEAN=Y
                 shift
             ;;
-            --Ottawa|--ottawa|-Ot|-ot)
-                # Set the global variables used in other parts of the script like Main()
-                AREA="ottawa"
-                AREA_FILE="${AREA}_da"
-                shift
+            --flags|-f)
+                Help 1;
+                exit 1;
+            ;;
+            --help|-h)
+                Help;
+                exit 1;
             ;;
             --Ontario|--ontario|-On|-on)
                 AREA="ontario"
                 AREA_FILE="${AREA}_phu"
                 shift;
+            ;;
+            --Ottawa|--ottawa|-Ot|-ot)
+                # Set the global variables used in other parts of the script like Main()
+                AREA="ottawa"
+                AREA_FILE="${AREA}_da"
+                shift
             ;;
             --rebuild|-r)
                 # Delete old model and it will be built further down
