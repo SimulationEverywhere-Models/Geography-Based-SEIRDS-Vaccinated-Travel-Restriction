@@ -9,7 +9,7 @@
 #include <nlohmann/json.hpp>
 #include "hysteresis_factor.hpp"
 
-struct seird {
+struct sevirds {
     std::vector<double> age_group_proportions;
     std::vector<double> susceptible;
     std::vector<std::vector<double>> exposed;
@@ -25,9 +25,9 @@ struct seird {
 
     // Required for the JSON library, as types used with it must be default-constructable.
     // The overloaded constructor results in a default constructor having to be manually written.
-    seird() = default;
+    sevirds() = default;
 
-    seird(std::vector<double> sus, std::vector<double> exp, std::vector<double> inf, std::vector<double> rec,
+    sevirds(std::vector<double> sus, std::vector<double> exp, std::vector<double> inf, std::vector<double> rec,
         double fat, double dis, double hcap, double fatm) :
             susceptible{std::move(sus)}, exposed{std::move(exp)}, infected{std::move(inf)},
             recovered{std::move(rec)}, fatalities{fat}, disobedient{dis},
@@ -93,34 +93,34 @@ struct seird {
         return total_susceptible;
     }
 
-    bool operator!=(const seird &other) const {
+    bool operator!=(const sevirds &other) const {
         return (susceptible != other.susceptible) || (exposed != other.exposed) || (infected != other.infected) || (recovered != other.recovered);
     }
 };
 
-bool operator<(const seird &lhs, const seird &rhs) { return true; }
+bool operator<(const sevirds &lhs, const sevirds &rhs) { return true; }
 
 
 // outputs <population, S, E, I, R, new I, new E, new R, D>
-std::ostream &operator<<(std::ostream &os, const seird &seird) {
+std::ostream &operator<<(std::ostream &os, const sevirds &sevirds) {
 
     double new_exposed = 0.0f;
     double new_infections = 0.0f;
     double new_recoveries = 0.0f;
 
-    for(int i = 0; i < seird.age_group_proportions.size(); ++i) {
-        new_exposed += seird.exposed.at(i).at(0) * seird.age_group_proportions.at(i);
-        new_infections += seird.infected.at(i).at(0) * seird.age_group_proportions.at(i);
-        new_recoveries += seird.recovered.at(i).at(0) * seird.age_group_proportions.at(i);
+    for(int i = 0; i < sevirds.age_group_proportions.size(); ++i) {
+        new_exposed += sevirds.exposed.at(i).at(0) * sevirds.age_group_proportions.at(i);
+        new_infections += sevirds.infected.at(i).at(0) * sevirds.age_group_proportions.at(i);
+        new_recoveries += sevirds.recovered.at(i).at(0) * sevirds.age_group_proportions.at(i);
     }
 
-    os << "<" << seird.population << "," << seird.get_total_susceptible()
-        << "," << seird.get_total_exposed() << "," << seird.get_total_infections() << "," << seird.get_total_recovered() << "," 
-        << new_exposed << "," << new_infections << "," << new_recoveries << "," << seird.get_total_fatalities() << ">";
+    os << "<" << sevirds.population << "," << sevirds.get_total_susceptible()
+        << "," << sevirds.get_total_exposed() << "," << sevirds.get_total_infections() << "," << sevirds.get_total_recovered() << "," 
+        << new_exposed << "," << new_infections << "," << new_recoveries << "," << sevirds.get_total_fatalities() << ">";
     return os;
 }
 
-void from_json(const nlohmann::json &json, seird &current_seird) {
+void from_json(const nlohmann::json &json, sevirds &current_seird) {
     json.at("age_group_proportions").get_to(current_seird.age_group_proportions);
     json.at("infected").get_to(current_seird.infected);
     json.at("recovered").get_to(current_seird.recovered);

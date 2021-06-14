@@ -10,11 +10,11 @@
 #include "cells/geographical_cell.hpp"
 
 template <typename T>
-class geographical_coupled : public cadmium::celldevs::cells_coupled<T, std::string, seird, vicinity>
+class geographical_coupled : public cadmium::celldevs::cells_coupled<T, std::string, sevirds, vicinity>
 {
     public:
 
-        explicit geographical_coupled(std::string const &id) : cells_coupled<T, std::string, seird, vicinity>(id)
+        explicit geographical_coupled(std::string const &id) : cells_coupled<T, std::string, sevirds, vicinity>(id)
         {}
 
         template<typename X>
@@ -22,7 +22,7 @@ class geographical_coupled : public cadmium::celldevs::cells_coupled<T, std::str
 
         void add_cell_json(std::string const &cell_type, std::string const &cell_id,
                            cell_unordered<vicinity> const &neighborhood,
-                           seird initial_state,
+                           sevirds initial_state,
                            std::string const &delay_id,
                            nlohmann::json const &config) override
         {

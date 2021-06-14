@@ -11,23 +11,23 @@
 #include <cadmium/celldevs/cell/cell.hpp>
 #include <iomanip>
 #include "vicinity.hpp"
-#include "seird.hpp"
+#include "sevirds.hpp"
 #include "simulation_config.hpp"
 
 using namespace std;
 using namespace cadmium::celldevs;
 
 template <typename T>
-class geographical_cell : public cell<T, std::string, seird, vicinity> {
+class geographical_cell : public cell<T, std::string, sevirds, vicinity> {
 public:
 
     template <typename X>
     using cell_unordered = std::unordered_map<std::string, X>;
 
-    using cell<T, std::string, seird, vicinity>::simulation_clock;
-    using cell<T, std::string, seird, vicinity>::state;
-    using cell<T, std::string, seird, vicinity>::neighbors;
-    using cell<T, std::string, seird, vicinity>::cell_id;
+    using cell<T, std::string, sevirds, vicinity>::simulation_clock;
+    using cell<T, std::string, sevirds, vicinity>::state;
+    using cell<T, std::string, sevirds, vicinity>::neighbors;
+    using cell<T, std::string, sevirds, vicinity>::cell_id;
 
     using config_type = simulation_config;
 
@@ -48,11 +48,11 @@ public:
     int prec_divider;
     bool SIIRS_model = true;
 
-    geographical_cell() : cell<T, std::string, seird, vicinity>() {}
+    geographical_cell() : cell<T, std::string, sevirds, vicinity>() {}
 
     geographical_cell(std::string const &cell_id, cell_unordered<vicinity> const &neighborhood,
-                      seird const &initial_state, std::string const &delay_id, simulation_config config) :
-    cell<T, std::string, seird, vicinity>(cell_id, neighborhood, initial_state, delay_id) {
+                      sevirds const &initial_state, std::string const &delay_id, simulation_config config) :
+    cell<T, std::string, sevirds, vicinity>(cell_id, neighborhood, initial_state, delay_id) {
 
         for(const auto &i : neighborhood) {
             state.current_state.hysteresis_factors.insert({i.first, hysteresis_factor{}});
@@ -74,11 +74,11 @@ public:
 
     // Whenever referring to a "population", it is meant the current age group's population.
     // The state of each age group's population is calculated individually.
-    seird local_computation() const override {
+    sevirds local_computation() const override {
 
-        seird res = state.current_state;
+        sevirds res = state.current_state;
 
-        // calculate the next new SEIRD variables for each age group
+        // calculate the next new sevirds variables for each age group
         for(int age_segment_index = 0; age_segment_index < res.get_num_age_segments(); ++age_segment_index) {
 
             // Note: Remember that these recoveries and fatalities are from the previous simulation cycle. Thus there is an ordering
@@ -203,13 +203,13 @@ public:
     }
 
     // It returns the delay to communicate cell's new state.
-    T output_delay(seird const &cell_state) const override {
+    T output_delay(sevirds const &cell_state) const override {
         return 1;
     }
     
-    double new_exposed(unsigned int age_segment_index, seird &current_seird) const {
+    double new_exposed(unsigned int age_segment_index, sevirds &current_seird) const {
         double expos = 0;
-        seird const cstate = state.current_state;
+        sevirds const cstate = state.current_state;
 
         // calculate the correction factor of the current cell
         // The current cell must be part of its own neighborhood for this to work!
@@ -221,7 +221,7 @@ public:
 
         // external exposed
         for(auto neighbor: neighbors) {
-            seird const nstate = state.neighbors_state.at(neighbor);
+            sevirds const nstate = state.neighbors_state.at(neighbor);
             vicinity v = state.neighbors_vicinity.at(neighbor);
 
             // disobedient people have a correction factor of 1. The rest of the population is affected by the movement_correction_factor
@@ -243,9 +243,9 @@ public:
         return std::min(cstate.susceptible.at(age_segment_index), expos);
     }
 
-    double new_infections(unsigned int age_segment_index, seird &current_seird) const {
+    double new_infections(unsigned int age_segment_index, sevirds &current_seird) const {
         double inf = 0;
-        seird const cstate = state.current_state;
+        sevirds const cstate = state.current_state;
         inf = cstate.exposed.at(age_segment_index).back();
 
         // scan through all exposed day except last and calculate exposed.at(asi).at(i)
@@ -256,7 +256,7 @@ public:
         return inf;
     }
 
-    std::vector<double> new_recoveries(const seird &current_state, unsigned int age_segment_index, const std::vector<double> &fatalities) const {
+    std::vector<double> new_recoveries(const sevirds &current_state, unsigned int age_segment_index, const std::vector<double> &fatalities) const {
         std::vector<double> recovered(current_state.get_num_infected_phases(), 0.0f);
 
         // Assume that any individuals that are not fatalities on the last stage of infection recover
@@ -275,7 +275,7 @@ public:
         return recovered;
     }
 
-    std::vector<double> new_fatalities(const seird &current_state, unsigned int age_segment_index) const {
+    std::vector<double> new_fatalities(const sevirds &current_state, unsigned int age_segment_index) const {
         std::vector<double> fatalities(current_state.get_num_infected_phases(), 0.0f);
 
         // Calculate all those who have died during an infection stage.
