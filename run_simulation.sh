@@ -40,12 +40,32 @@ Main()
     echo ${SIMULATE}
     ${SIMULATE}
 
+    # Catch any build errors
+    if [ "$?" -ne 0 ]; then
+        cd ..
+        echo -e "\033[31mBuild Failed\033[0m"
+        exit -1 # And exit if any exist
+    fi
+
     # Generate SIRDS graphs
     echo
     echo "Generating graphs and stats (will be found in logs folder):"
     cd ../Scripts/Graph_Generator/
     python3 graph_per_regions.py
+
+    if [ "$?" -ne 0 ]; then
+        cd ../..
+        echo -e "\033[31mBuild Failed\033[0m"
+        exit -1 # And exit if any exist
+    fi
+
     python3 graph_aggregates.py
+    if [ "$?" -ne 0 ]; then
+        cd ../..
+        echo -e "\033[31mBuild Failed\033[0m"
+        exit -1 # And exit if any exist
+    fi
+
     cd ../..
 
     # Copy the message log + scenario to message log parser's input
@@ -165,9 +185,6 @@ else
         esac
     done
 
-    # If not are is set or is set incorrectly, then exit
-    if [[ ${AREA} == "" || ${AREA_FILE} == "" ]]; then echo -e "\033[31mPlease set a valid area flag..\033[0m Use \033[33m--flags\033[0m to see them"; exit -1; fi
-
     # Compile the model if it does not exist
     if [[ ! -f "bin/pandemic-geographical_model" ]]; then
         cmake CMakeLists.txt
@@ -181,7 +198,12 @@ else
         fi
 
         echo -e "\033[32mBuild Completed\033[0m"
+
+        if [[ ${AREA} == "" && ${AREA_FILE} == "" ]]; then exit 1; fi
     fi
+
+    # If not are is set or is set incorrectly, then exit
+    if [[ ${AREA} == "" || ${AREA_FILE} == "" ]]; then echo -e "\033[31mPlease set a valid area flag..\033[0m Use \033[33m--flags\033[0m to see them"; exit -1; fi
 
     # Used both in Clean() and Main() so we set it here
     VISUALIZATION_DIR="GIS_Viewer/${AREA}/simulation_runs/"

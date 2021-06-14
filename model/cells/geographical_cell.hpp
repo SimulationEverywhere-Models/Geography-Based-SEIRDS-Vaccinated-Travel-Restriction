@@ -46,7 +46,7 @@ public:
                                                              // The second one is the hysteresis factor.
 
     int prec_divider;
-    bool SIIRS_model = true;
+    bool SIIRS_model;
 
     geographical_cell() : cell<T, std::string, sevirds, vicinity>() {}
 

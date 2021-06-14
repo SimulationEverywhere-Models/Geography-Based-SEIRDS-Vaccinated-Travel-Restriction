@@ -5,6 +5,8 @@
         "state": {
             "population": 1,
             "age_group_proportions": [0.216, 0.279, 0.268, 0.193, 0.044],
+            "vaccinatedD1": [0.5, 0, 0, 0, 0],
+            "vaccinatedD2": [0.2, 0, 0, 0, 0],
             "susceptible": [1, 1, 1, 1, 1],
             "exposed": [
             	[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],

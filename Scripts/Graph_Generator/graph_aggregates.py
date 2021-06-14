@@ -1,6 +1,7 @@
 # Original author: Kevin
 # Modified by: Binyamin
 # Modified further by : Glenn - 24/03/2021
+# And even further by: Eric - 14/Jun/2021
 
 #!/usr/bin/env python
 # coding: utf-8
@@ -45,67 +46,75 @@ regex_model_id = "_\w+"
 regex_state = "<.+>"
 
 # state log structure
-sIndex = 1
-eIndex = 2
-iIndex = 3
-rIndex = 4
-neweIndex = 5
-newiIndex = 6
-newrIndex = 7
-dIndex = 8
-
+sIndex      = 1
+eIndex      = 2
+vd1Index    = 3
+vd2Index    = 4
+iIndex      = 5
+rIndex      = 6
+neweIndex   = 7
+newiIndex   = 8
+newrIndex   = 9
+dIndex      = 10
 
 # In[3]:
 
-COLOR_SUSCEPTIBLE = 'xkcd:blue'
-COLOR_INFECTED = 'xkcd:red'
-COLOR_EXPOSED = 'xkcd:sienna'
-COLOR_RECOVERED = 'xkcd:green'
-COLOR_DEAD = 'xkcd:black'
+COLOR_SUSCEPTIBLE   = 'xkcd:blue'
+COLOR_INFECTED      = 'xkcd:red'
+COLOR_EXPOSED       = 'xkcd:sienna'
+COLOR_DOSE1         = '#42b395' # xkcd:greenyblue
+COLOR_DOSE2         = '#0b8b87' # xkcd:greenishblue
+COLOR_RECOVERED     = 'xkcd:green'
+COLOR_DEAD          = 'xkcd:black'
 
 # In[4]:
 
 def curr_states_to_df_row(sim_time, curr_states, total_pop, line_num):
-    total_S = 0
-    total_E = 0
-    total_I = 0
-    total_R = 0
-    total_D = 0
-    new_E = 0
-    new_I = 0
-    new_R = 0
+    total_S     = 0
+    total_E     = 0
+    total_VD1   = 0
+    total_VD2   = 0
+    total_I     = 0
+    total_R     = 0
+    total_D     = 0
+    new_E       = 0
+    new_I       = 0
+    new_R       = 0
 
     # sum the number of S,E,I,R,D persons in all cells
     for key in curr_states:
         cell_population = curr_states[key][0]
-        total_S += round(cell_population*(curr_states[key][sIndex]))
-        total_E += round(cell_population*(curr_states[key][eIndex]))
-        total_I += round(cell_population*(curr_states[key][iIndex]))
-        total_R += round(cell_population*(curr_states[key][rIndex]))
-        total_D += round(cell_population*(curr_states[key][dIndex]))
+        total_S     += round(cell_population*(curr_states[key][sIndex]))
+        total_E     += round(cell_population*(curr_states[key][eIndex]))
+        total_VD1   += round(cell_population*(curr_states[key][vd1Index]))
+        total_VD2   += round(cell_population*(curr_states[key][vd2Index]))
+        total_I     += round(cell_population*(curr_states[key][iIndex]))
+        total_R     += round(cell_population*(curr_states[key][rIndex]))
+        total_D     += round(cell_population*(curr_states[key][dIndex]))
 
         new_E += round(cell_population*(curr_states[key][neweIndex]))
         new_I += round(cell_population*(curr_states[key][newiIndex]))
         new_R += round(cell_population*(curr_states[key][newrIndex]))
-            
+
     # then divide each by the total population to get the percentage of population in each state
-    percent_S = total_S / total_pop
-    percent_E = total_E / total_pop
-    percent_I = total_I / total_pop
-    percent_R = total_R / total_pop
-    percent_D = total_D / total_pop
+    percent_S   = total_S / total_pop
+    percent_E   = total_E / total_pop
+    percent_VD1 = total_VD1 / total_pop
+    percent_VD2 = total_VD2 / total_pop
+    percent_I   = total_I / total_pop
+    percent_R   = total_R / total_pop
+    percent_D   = total_D / total_pop
 
     percent_new_E = new_E / total_pop
     percent_new_I = new_I / total_pop
     percent_new_R = new_R / total_pop
     psum = percent_S + percent_E + percent_I + percent_R + percent_D
-    
+
     assert 0.95 <= psum < 1.05, ("at time" + str(curr_time))
-    
-    return [int(sim_time), percent_S, percent_E, percent_I, percent_R, percent_new_E, percent_new_I, percent_new_R, percent_D, psum]
+
+    return [int(sim_time), percent_S, percent_E, percent_VD1, percent_VD2, percent_I, percent_R, percent_new_E, percent_new_I, percent_new_R, percent_D, psum]
 
 # In[5]:
-
 
 states = ["sus", "expos", "infec", "rec"]
 data = []
@@ -118,16 +127,14 @@ total_pop = 0
 # read the initial populations of all regions and their names in time step 0
 with open(log_filename, "r") as log_file:
     line_num = 0
-    
+
     # for each line, read a line then:
     for line in log_file:
-        
         # strip leading and trailing spaces
         line = line.strip()
-        
+
         # if a time marker is found that is not the current time
         if line.isnumeric() and line != curr_time:
-            
             # if time step 1 is found, then break
             if curr_time == "1":
                 break
@@ -141,14 +148,14 @@ with open(log_filename, "r") as log_file:
         if not (state_match and id_match):
             #print(line)
             continue
-            
+
         # parse the state and id and insert into initial_pop
         cid = id_match.group().lstrip('_')
         state = state_match.group().strip("<>")
         state = state.split(",")
         initial_pop[cid] = float(state[0])
         line_num += 1
-        
+
 # iterate over all regions found and sum their initial populations
 for region_id in initial_pop:
     total_pop += initial_pop[region_id]
@@ -157,16 +164,14 @@ for region_id in initial_pop:
 
 with open(log_filename, "r") as log_file:
     line_num = 0
-    
+
     # for each line, read a line then:
     for line in log_file:
-        
         # strip leading and trailing spaces
         line = line.strip()
-        
+
         # if a time marker is found that is not the current time
         if line.isnumeric() and line != curr_time:
-            
             # if state is ready to write - write it to data before new time step
             if curr_states:
                 data.append(curr_states_to_df_row(curr_time, curr_states, total_pop, line_num))
@@ -180,14 +185,14 @@ with open(log_filename, "r") as log_file:
         if not (state_match and id_match):
             #print(line)
             continue
-            
+
         # parse the state and id and insert into curr_states
         cid = id_match.group().lstrip('_')
         state = state_match.group().strip("<>")
         state = list(map(float,state.split(",")))
         curr_states[cid] = state
         line_num += 1
-        
+
     data.append(curr_states_to_df_row(curr_time, curr_states, total_pop, line_num))
 
 # In[7]:
@@ -220,13 +225,13 @@ base_name = path + "/"
 
 # In[6]:
 with open(base_name+"aggregate_timeseries.csv", "w") as out_file:
-    out_file.write("sim_time, S, E, I, R, New_E, New_I, New_R, D, pop_sum\n")
+    out_file.write("sim_time, S, E, V, I, R, New_E, New_I, New_R, D, pop_sum\n")
     for timestep in data:
         out_file.write(str(timestep).strip("[]")+"\n")
     
 # In[9]:
 
-columns = ["time", "susceptible", "exposed", "infected", "recovered", "new_exposed", "new_infected", "new_recovered", "deaths", "error"]
+columns = ["time", "susceptible", "exposed", "infected", "vaccinatedD1", "vaccinatedD2", "recovered", "new_exposed", "new_infected", "new_recovered", "deaths", "error"]
 df_vis = pd.DataFrame(data, columns=columns)
 df_vis = df_vis.set_index("time")
 df_vis.to_csv("states.csv")
@@ -234,7 +239,7 @@ df_vis.head()
 
 # In[ ]:
 
-# draw SEIR lines
+### --- SEIR --- ###
 fig, ax = plt.subplots(figsize=(15,6))
 linewidth = 2
 
@@ -252,7 +257,7 @@ plt.savefig(base_name + "SEIR.png")
 
 # In[ ]:
 
-# draw new EIR
+### --- EIR --- ###
 fig, ax = plt.subplots(figsize=(15,6))
 linewidth = 2
 
@@ -269,8 +274,7 @@ plt.savefig(base_name + "New_EIR.png")
 
 # In[ ]:
 
-# draw SEIRD
-
+### --- SEIRD --- ###
 fig, axs = plt.subplots(2, figsize=(15,6))
 linewidth = 2
 
@@ -292,6 +296,31 @@ axs[1].legend()
 axs[1].margins(0,0)
 
 plt.savefig(base_name + "SEIR+D.png")
+
+### --- SEVIRD --- ###
+fig, axs = plt.subplots(2, figsize=(15,6))
+linewidth = 2
+
+x = list(df_vis.index)
+axs[0].plot(x, 100*df_vis["susceptible"], label="Susceptible", color=COLOR_SUSCEPTIBLE, linewidth=linewidth)
+axs[0].plot(x, 100*df_vis["exposed"], label="Exposed", color=COLOR_EXPOSED, linewidth=linewidth)
+axs[0].plot(x, 100*df_vis["vaccinatedD1"], label="Vaccinated 1 Dose", color=COLOR_DOSE1, linewidth=linewidth)
+axs[0].plot(x, 100*df_vis["vaccinatedD2"], label="Vaccinated 2 Dose", color=COLOR_DOSE2, linewidth=linewidth)
+axs[0].plot(x, 100*df_vis["infected"], label="Infected", color=COLOR_INFECTED, linewidth=linewidth)
+axs[0].plot(x, 100*df_vis["recovered"], label="Recovered", color=COLOR_RECOVERED, linewidth=linewidth)
+axs[0].set_ylabel("Population (%)")
+axs[0].legend()
+axs[0].margins(0,0)
+axs[0].set_title('Epidemic Aggregate SEVIRD Percentages')
+
+axs[1].plot(x, 100*df_vis["deaths"], label="Deaths", color=COLOR_DEAD, linewidth=linewidth)
+axs[1].set_xlabel("Time (days)")
+axs[1].set_ylabel("Population (%)")
+axs[1].set_ylim([0,6])
+axs[1].legend()
+axs[1].margins(0,0)
+
+plt.savefig(base_name + "SEVIR+D.png")
 
 # In[ ]:
 
