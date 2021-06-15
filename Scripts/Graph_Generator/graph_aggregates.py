@@ -81,7 +81,7 @@ def curr_states_to_df_row(sim_time, curr_states, total_pop, line_num):
     new_I       = 0
     new_R       = 0
 
-    # sum the number of S,E,I,R,D persons in all cells
+    # sum the number of S,E,V,I,R,D persons in all cells
     for key in curr_states:
         cell_population = curr_states[key][0]
         total_S     += round(cell_population*(curr_states[key][sIndex]))
@@ -225,13 +225,13 @@ base_name = path + "/"
 
 # In[6]:
 with open(base_name+"aggregate_timeseries.csv", "w") as out_file:
-    out_file.write("sim_time, S, E, V, I, R, New_E, New_I, New_R, D, pop_sum\n")
+    out_file.write("sim_time, S, E, VD1, VD2, I, R, New_E, New_I, New_R, D, pop_sum\n")
     for timestep in data:
         out_file.write(str(timestep).strip("[]")+"\n")
     
 # In[9]:
 
-columns = ["time", "susceptible", "exposed", "infected", "vaccinatedD1", "vaccinatedD2", "recovered", "new_exposed", "new_infected", "new_recovered", "deaths", "error"]
+columns = ["time", "susceptible", "exposed", "vaccinatedD1", "vaccinatedD2", "infected", "recovered", "new_exposed", "new_infected", "new_recovered", "deaths", "error"]
 df_vis = pd.DataFrame(data, columns=columns)
 df_vis = df_vis.set_index("time")
 df_vis.to_csv("states.csv")
@@ -305,7 +305,7 @@ x = list(df_vis.index)
 axs[0].plot(x, 100*df_vis["susceptible"], label="Susceptible", color=COLOR_SUSCEPTIBLE, linewidth=linewidth)
 axs[0].plot(x, 100*df_vis["exposed"], label="Exposed", color=COLOR_EXPOSED, linewidth=linewidth)
 axs[0].plot(x, 100*df_vis["vaccinatedD1"], label="Vaccinated 1 Dose", color=COLOR_DOSE1, linewidth=linewidth)
-axs[0].plot(x, 100*df_vis["vaccinatedD2"], label="Vaccinated 2 Dose", color=COLOR_DOSE2, linewidth=linewidth)
+axs[0].plot(x, 100*df_vis["vaccinatedD2"], label="Vaccinated 2 Doses", color=COLOR_DOSE2, linewidth=linewidth)
 axs[0].plot(x, 100*df_vis["infected"], label="Infected", color=COLOR_INFECTED, linewidth=linewidth)
 axs[0].plot(x, 100*df_vis["recovered"], label="Recovered", color=COLOR_RECOVERED, linewidth=linewidth)
 axs[0].set_ylabel("Population (%)")
