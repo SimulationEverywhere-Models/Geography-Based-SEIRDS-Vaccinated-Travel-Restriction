@@ -2,3 +2,4 @@ Input_Generator/output
 Msg_Log_Parser/input
 Msg_Log_Parser/output
 Msg_Log_Parser/*.zip
+Graph_Generator/*.csv
