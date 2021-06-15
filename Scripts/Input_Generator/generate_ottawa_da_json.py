@@ -15,6 +15,7 @@ import geopandas as gpd
 from collections import defaultdict, OrderedDict
 from copy import deepcopy
 import json
+import math
 
 def shared_boundaries(gdf, id1, id2):
     g1 = gdf[gdf["dauid"] == str(id1)].geometry.iloc[0]
@@ -113,7 +114,9 @@ for ind, row in df_adj.iterrows():  # Iterate the different pair of adjacent ter
     adj_full[str(row["dauid"])][str(row["dauid"])]["neighborhood"][str(row["Neighbor_dauid"])]=expr
     
     if ind % 1000 == 0:
-        print(ind, "%.2f%%" % (100*ind/len(df_adj)))
+        print("\033[1;33m", ind, "\t\033[0;33m%.2f%%" % (100*ind/len(df_adj)), "\033[0m")
+
+print("\033[1;32m", ind, "\t\033[0;32m%.1f%%" % math.ceil(100*ind/len(df_adj)), "\033[0m")
 
 for key, value in adj_full.items():
     # insert every cell into its own neighborhood, a cell is -> cell = adj_full[key][key]
