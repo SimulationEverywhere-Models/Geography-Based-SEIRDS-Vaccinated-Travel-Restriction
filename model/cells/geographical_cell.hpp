@@ -80,7 +80,6 @@ public:
 
         // calculate the next new sevirds variables for each age group
         for(int age_segment_index = 0; age_segment_index < res.get_num_age_segments(); ++age_segment_index) {
-
             // Note: Remember that these recoveries and fatalities are from the previous simulation cycle. Thus there is an ordering
             // issue- recovery rate and fatality rates specify a percentage of the infected at a certain stage. As a result
             // the code cannot for example, calculate recovery, change the infected stage population, and then calculate
@@ -250,7 +249,7 @@ public:
 
         // scan through all exposed day except last and calculate exposed.at(asi).at(i)
         for(int i = 0; i < cstate.exposed.at(age_segment_index).size() - 1 ; i++){
-            inf += cstate.exposed.at(age_segment_index).at(i) * incubation_rates.at(age_segment_index).at(i);
+            inf += cstate.exposed.at(age_segment_index).at(i) * incubation_rates.at(age_segment_index).at(i); // / (cstate.vaccinatedD1.at(age_segment_index) * cstate.immunityD1_rate);
         }
         inf = std::round(inf * prec_divider) / prec_divider;
         return inf;

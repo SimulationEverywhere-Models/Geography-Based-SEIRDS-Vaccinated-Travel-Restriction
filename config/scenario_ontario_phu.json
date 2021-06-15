@@ -13,14 +13,14 @@
                     0.044
                 ],
                 "vaccinatedD1": [
-                    0.5,
-                    0,
-                    0,
-                    0,
-                    0
+                    1.0,
+                    1.0,
+                    1.0,
+                    1.0,
+                    1.0
                 ],
                 "vaccinatedD2": [
-                    0.2,
+                    0,
                     0,
                     0,
                     0,
@@ -368,7 +368,9 @@
                 ],
                 "disobedient": 0.1,
                 "hospital_capacity": 0.2,
-                "fatality_modifier": 1.5
+                "fatality_modifier": 1.5,
+                "immunityD1": 0.685,
+                "immunityD2": 1
             },
             "config": {
                 "precision": 100000,
@@ -792,14 +794,14 @@
                     0.044
                 ],
                 "vaccinatedD1": [
-                    0.5,
-                    0,
-                    0,
-                    0,
-                    0
+                    1.0,
+                    1.0,
+                    1.0,
+                    1.0,
+                    1.0
                 ],
                 "vaccinatedD2": [
-                    0.2,
+                    0,
                     0,
                     0,
                     0,
@@ -1147,7 +1149,9 @@
                 ],
                 "disobedient": 0.1,
                 "hospital_capacity": 0.2,
-                "fatality_modifier": 1.5
+                "fatality_modifier": 1.5,
+                "immunityD1": 0.685,
+                "immunityD2": 1
             },
             "neighborhood": {
                 "2253": {
@@ -1328,14 +1332,14 @@
                     0.044
                 ],
                 "vaccinatedD1": [
-                    0.5,
-                    0,
-                    0,
-                    0,
-                    0
+                    1.0,
+                    1.0,
+                    1.0,
+                    1.0,
+                    1.0
                 ],
                 "vaccinatedD2": [
-                    0.2,
+                    0,
                     0,
                     0,
                     0,
@@ -1683,7 +1687,9 @@
                 ],
                 "disobedient": 0.1,
                 "hospital_capacity": 0.2,
-                "fatality_modifier": 1.5
+                "fatality_modifier": 1.5,
+                "immunityD1": 0.685,
+                "immunityD2": 1
             },
             "neighborhood": {
                 "2265": {
@@ -1930,14 +1936,14 @@
                     0.044
                 ],
                 "vaccinatedD1": [
-                    0.5,
-                    0,
-                    0,
-                    0,
-                    0
+                    1.0,
+                    1.0,
+                    1.0,
+                    1.0,
+                    1.0
                 ],
                 "vaccinatedD2": [
-                    0.2,
+                    0,
                     0,
                     0,
                     0,
@@ -2285,7 +2291,9 @@
                 ],
                 "disobedient": 0.1,
                 "hospital_capacity": 0.2,
-                "fatality_modifier": 1.5
+                "fatality_modifier": 1.5,
+                "immunityD1": 0.685,
+                "immunityD2": 1
             },
             "neighborhood": {
                 "5183": {
@@ -2499,14 +2507,14 @@
                     0.044
                 ],
                 "vaccinatedD1": [
-                    0.5,
-                    0,
-                    0,
-                    0,
-                    0
+                    1.0,
+                    1.0,
+                    1.0,
+                    1.0,
+                    1.0
                 ],
                 "vaccinatedD2": [
-                    0.2,
+                    0,
                     0,
                     0,
                     0,
@@ -2854,7 +2862,9 @@
                 ],
                 "disobedient": 0.1,
                 "hospital_capacity": 0.2,
-                "fatality_modifier": 1.5
+                "fatality_modifier": 1.5,
+                "immunityD1": 0.685,
+                "immunityD2": 1
             },
             "neighborhood": {
                 "5183": {
@@ -3101,14 +3111,14 @@
                     0.044
                 ],
                 "vaccinatedD1": [
-                    0.5,
-                    0,
-                    0,
-                    0,
-                    0
+                    1.0,
+                    1.0,
+                    1.0,
+                    1.0,
+                    1.0
                 ],
                 "vaccinatedD2": [
-                    0.2,
+                    0,
                     0,
                     0,
                     0,
@@ -3456,7 +3466,9 @@
                 ],
                 "disobedient": 0.1,
                 "hospital_capacity": 0.2,
-                "fatality_modifier": 1.5
+                "fatality_modifier": 1.5,
+                "immunityD1": 0.685,
+                "immunityD2": 1
             },
             "neighborhood": {
                 "2265": {
@@ -3703,14 +3715,14 @@
                     0.044
                 ],
                 "vaccinatedD1": [
-                    0.5,
-                    0,
-                    0,
-                    0,
-                    0
+                    1.0,
+                    1.0,
+                    1.0,
+                    1.0,
+                    1.0
                 ],
                 "vaccinatedD2": [
-                    0.2,
+                    0,
                     0,
                     0,
                     0,
@@ -4058,7 +4070,9 @@
                 ],
                 "disobedient": 0.1,
                 "hospital_capacity": 0.2,
-                "fatality_modifier": 1.5
+                "fatality_modifier": 1.5,
+                "immunityD1": 0.685,
+                "immunityD2": 1
             },
             "neighborhood": {
                 "2249": {
@@ -4206,14 +4220,14 @@
                     0.044
                 ],
                 "vaccinatedD1": [
-                    0.5,
-                    0,
-                    0,
-                    0,
-                    0
+                    1.0,
+                    1.0,
+                    1.0,
+                    1.0,
+                    1.0
                 ],
                 "vaccinatedD2": [
-                    0.2,
+                    0,
                     0,
                     0,
                     0,
@@ -4561,7 +4575,9 @@
                 ],
                 "disobedient": 0.1,
                 "hospital_capacity": 0.2,
-                "fatality_modifier": 1.5
+                "fatality_modifier": 1.5,
+                "immunityD1": 0.685,
+                "immunityD2": 1
             },
             "neighborhood": {
                 "2270": {
@@ -4775,14 +4791,14 @@
                     0.044
                 ],
                 "vaccinatedD1": [
-                    0.5,
-                    0,
-                    0,
-                    0,
-                    0
+                    1.0,
+                    1.0,
+                    1.0,
+                    1.0,
+                    1.0
                 ],
                 "vaccinatedD2": [
-                    0.2,
+                    0,
                     0,
                     0,
                     0,
@@ -5130,7 +5146,9 @@
                 ],
                 "disobedient": 0.1,
                 "hospital_capacity": 0.2,
-                "fatality_modifier": 1.5
+                "fatality_modifier": 1.5,
+                "immunityD1": 0.685,
+                "immunityD2": 1
             },
             "neighborhood": {
                 "5183": {
@@ -5278,14 +5296,14 @@
                     0.044
                 ],
                 "vaccinatedD1": [
-                    0.5,
-                    0,
-                    0,
-                    0,
-                    0
+                    1.0,
+                    1.0,
+                    1.0,
+                    1.0,
+                    1.0
                 ],
                 "vaccinatedD2": [
-                    0.2,
+                    0,
                     0,
                     0,
                     0,
@@ -5633,7 +5651,9 @@
                 ],
                 "disobedient": 0.1,
                 "hospital_capacity": 0.2,
-                "fatality_modifier": 1.5
+                "fatality_modifier": 1.5,
+                "immunityD1": 0.685,
+                "immunityD2": 1
             },
             "neighborhood": {
                 "5183": {
@@ -5913,14 +5933,14 @@
                     0.044
                 ],
                 "vaccinatedD1": [
-                    0.5,
-                    0,
-                    0,
-                    0,
-                    0
+                    1.0,
+                    1.0,
+                    1.0,
+                    1.0,
+                    1.0
                 ],
                 "vaccinatedD2": [
-                    0.2,
+                    0,
                     0,
                     0,
                     0,
@@ -6268,7 +6288,9 @@
                 ],
                 "disobedient": 0.1,
                 "hospital_capacity": 0.2,
-                "fatality_modifier": 1.5
+                "fatality_modifier": 1.5,
+                "immunityD1": 0.685,
+                "immunityD2": 1
             },
             "neighborhood": {
                 "2265": {
@@ -6449,14 +6471,14 @@
                     0.044
                 ],
                 "vaccinatedD1": [
-                    0.5,
-                    0,
-                    0,
-                    0,
-                    0
+                    1.0,
+                    1.0,
+                    1.0,
+                    1.0,
+                    1.0
                 ],
                 "vaccinatedD2": [
-                    0.2,
+                    0,
                     0,
                     0,
                     0,
@@ -6804,7 +6826,9 @@
                 ],
                 "disobedient": 0.1,
                 "hospital_capacity": 0.2,
-                "fatality_modifier": 1.5
+                "fatality_modifier": 1.5,
+                "immunityD1": 0.685,
+                "immunityD2": 1
             },
             "neighborhood": {
                 "5183": {
@@ -6985,14 +7009,14 @@
                     0.044
                 ],
                 "vaccinatedD1": [
-                    0.5,
-                    0,
-                    0,
-                    0,
-                    0
+                    1.0,
+                    1.0,
+                    1.0,
+                    1.0,
+                    1.0
                 ],
                 "vaccinatedD2": [
-                    0.2,
+                    0,
                     0,
                     0,
                     0,
@@ -7340,7 +7364,9 @@
                 ],
                 "disobedient": 0.1,
                 "hospital_capacity": 0.2,
-                "fatality_modifier": 1.5
+                "fatality_modifier": 1.5,
+                "immunityD1": 0.685,
+                "immunityD2": 1
             },
             "neighborhood": {
                 "2247": {
@@ -7521,14 +7547,14 @@
                     0.044
                 ],
                 "vaccinatedD1": [
-                    0.5,
-                    0,
-                    0,
-                    0,
-                    0
+                    1.0,
+                    1.0,
+                    1.0,
+                    1.0,
+                    1.0
                 ],
                 "vaccinatedD2": [
-                    0.2,
+                    0,
                     0,
                     0,
                     0,
@@ -7876,7 +7902,9 @@
                 ],
                 "disobedient": 0.1,
                 "hospital_capacity": 0.2,
-                "fatality_modifier": 1.5
+                "fatality_modifier": 1.5,
+                "immunityD1": 0.685,
+                "immunityD2": 1
             },
             "neighborhood": {
                 "2255": {
@@ -8090,14 +8118,14 @@
                     0.044
                 ],
                 "vaccinatedD1": [
-                    0.5,
-                    0,
-                    0,
-                    0,
-                    0
+                    1.0,
+                    1.0,
+                    1.0,
+                    1.0,
+                    1.0
                 ],
                 "vaccinatedD2": [
-                    0.2,
+                    0,
                     0,
                     0,
                     0,
@@ -8445,7 +8473,9 @@
                 ],
                 "disobedient": 0.1,
                 "hospital_capacity": 0.2,
-                "fatality_modifier": 1.5
+                "fatality_modifier": 1.5,
+                "immunityD1": 0.685,
+                "immunityD2": 1
             },
             "neighborhood": {
                 "2237": {
@@ -8560,14 +8590,14 @@
                     0.044
                 ],
                 "vaccinatedD1": [
-                    0.5,
-                    0,
-                    0,
-                    0,
-                    0
+                    1.0,
+                    1.0,
+                    1.0,
+                    1.0,
+                    1.0
                 ],
                 "vaccinatedD2": [
-                    0.2,
+                    0,
                     0,
                     0,
                     0,
@@ -8915,7 +8945,9 @@
                 ],
                 "disobedient": 0.1,
                 "hospital_capacity": 0.2,
-                "fatality_modifier": 1.5
+                "fatality_modifier": 1.5,
+                "immunityD1": 0.685,
+                "immunityD2": 1
             },
             "neighborhood": {
                 "4913": {
@@ -9096,14 +9128,14 @@
                     0.044
                 ],
                 "vaccinatedD1": [
-                    0.5,
-                    0,
-                    0,
-                    0,
-                    0
+                    1.0,
+                    1.0,
+                    1.0,
+                    1.0,
+                    1.0
                 ],
                 "vaccinatedD2": [
-                    0.2,
+                    0,
                     0,
                     0,
                     0,
@@ -9451,7 +9483,9 @@
                 ],
                 "disobedient": 0.1,
                 "hospital_capacity": 0.2,
-                "fatality_modifier": 1.5
+                "fatality_modifier": 1.5,
+                "immunityD1": 0.685,
+                "immunityD2": 1
             },
             "neighborhood": {
                 "2243": {
@@ -9599,14 +9633,14 @@
                     0.044
                 ],
                 "vaccinatedD1": [
-                    0.5,
-                    0,
-                    0,
-                    0,
-                    0
+                    1.0,
+                    1.0,
+                    1.0,
+                    1.0,
+                    1.0
                 ],
                 "vaccinatedD2": [
-                    0.2,
+                    0,
                     0,
                     0,
                     0,
@@ -9954,7 +9988,9 @@
                 ],
                 "disobedient": 0.1,
                 "hospital_capacity": 0.2,
-                "fatality_modifier": 1.5
+                "fatality_modifier": 1.5,
+                "immunityD1": 0.685,
+                "immunityD2": 1
             },
             "neighborhood": {
                 "2240": {
@@ -10036,14 +10072,14 @@
                     0.044
                 ],
                 "vaccinatedD1": [
-                    0.5,
-                    0,
-                    0,
-                    0,
-                    0
+                    1.0,
+                    1.0,
+                    1.0,
+                    1.0,
+                    1.0
                 ],
                 "vaccinatedD2": [
-                    0.2,
+                    0,
                     0,
                     0,
                     0,
@@ -10391,7 +10427,9 @@
                 ],
                 "disobedient": 0.1,
                 "hospital_capacity": 0.2,
-                "fatality_modifier": 1.5
+                "fatality_modifier": 1.5,
+                "immunityD1": 0.685,
+                "immunityD2": 1
             },
             "neighborhood": {
                 "2235": {
@@ -10539,14 +10577,14 @@
                     0.044
                 ],
                 "vaccinatedD1": [
-                    0.5,
-                    0,
-                    0,
-                    0,
-                    0
+                    1.0,
+                    1.0,
+                    1.0,
+                    1.0,
+                    1.0
                 ],
                 "vaccinatedD2": [
-                    0.2,
+                    0,
                     0,
                     0,
                     0,
@@ -10894,7 +10932,9 @@
                 ],
                 "disobedient": 0.1,
                 "hospital_capacity": 0.2,
-                "fatality_modifier": 1.5
+                "fatality_modifier": 1.5,
+                "immunityD1": 0.685,
+                "immunityD2": 1
             },
             "neighborhood": {
                 "5183": {
@@ -11042,14 +11082,14 @@
                     0.044
                 ],
                 "vaccinatedD1": [
-                    0.5,
-                    0,
-                    0,
-                    0,
-                    0
+                    1.0,
+                    1.0,
+                    1.0,
+                    1.0,
+                    1.0
                 ],
                 "vaccinatedD2": [
-                    0.2,
+                    0,
                     0,
                     0,
                     0,
@@ -11397,7 +11437,9 @@
                 ],
                 "disobedient": 0.1,
                 "hospital_capacity": 0.2,
-                "fatality_modifier": 1.5
+                "fatality_modifier": 1.5,
+                "immunityD1": 0.685,
+                "immunityD2": 1
             },
             "neighborhood": {
                 "2251": {
@@ -11512,14 +11554,14 @@
                     0.044
                 ],
                 "vaccinatedD1": [
-                    0.5,
-                    0,
-                    0,
-                    0,
-                    0
+                    1.0,
+                    1.0,
+                    1.0,
+                    1.0,
+                    1.0
                 ],
                 "vaccinatedD2": [
-                    0.2,
+                    0,
                     0,
                     0,
                     0,
@@ -11867,7 +11909,9 @@
                 ],
                 "disobedient": 0.1,
                 "hospital_capacity": 0.2,
-                "fatality_modifier": 1.5
+                "fatality_modifier": 1.5,
+                "immunityD1": 0.685,
+                "immunityD2": 1
             },
             "neighborhood": {
                 "2261": {
@@ -12048,14 +12092,14 @@
                     0.044
                 ],
                 "vaccinatedD1": [
-                    0.5,
-                    0,
-                    0,
-                    0,
-                    0
+                    1.0,
+                    1.0,
+                    1.0,
+                    1.0,
+                    1.0
                 ],
                 "vaccinatedD2": [
-                    0.2,
+                    0,
                     0,
                     0,
                     0,
@@ -12403,7 +12447,9 @@
                 ],
                 "disobedient": 0.1,
                 "hospital_capacity": 0.2,
-                "fatality_modifier": 1.5
+                "fatality_modifier": 1.5,
+                "immunityD1": 0.685,
+                "immunityD2": 1
             },
             "neighborhood": {
                 "2258": {
@@ -12551,14 +12597,14 @@
                     0.044
                 ],
                 "vaccinatedD1": [
-                    0.5,
-                    0,
-                    0,
-                    0,
-                    0
+                    1.0,
+                    1.0,
+                    1.0,
+                    1.0,
+                    1.0
                 ],
                 "vaccinatedD2": [
-                    0.2,
+                    0,
                     0,
                     0,
                     0,
@@ -12906,7 +12952,9 @@
                 ],
                 "disobedient": 0.1,
                 "hospital_capacity": 0.2,
-                "fatality_modifier": 1.5
+                "fatality_modifier": 1.5,
+                "immunityD1": 0.685,
+                "immunityD2": 1
             },
             "neighborhood": {
                 "2241": {
@@ -13087,14 +13135,14 @@
                     0.044
                 ],
                 "vaccinatedD1": [
-                    0.5,
-                    0,
-                    0,
-                    0,
-                    0
+                    1.0,
+                    1.0,
+                    1.0,
+                    1.0,
+                    1.0
                 ],
                 "vaccinatedD2": [
-                    0.2,
+                    0,
                     0,
                     0,
                     0,
@@ -13442,7 +13490,9 @@
                 ],
                 "disobedient": 0.1,
                 "hospital_capacity": 0.2,
-                "fatality_modifier": 1.5
+                "fatality_modifier": 1.5,
+                "immunityD1": 0.685,
+                "immunityD2": 1
             },
             "neighborhood": {
                 "2262": {
@@ -13524,14 +13574,14 @@
                     0.044
                 ],
                 "vaccinatedD1": [
-                    0.5,
-                    0,
-                    0,
-                    0,
-                    0
+                    1.0,
+                    1.0,
+                    1.0,
+                    1.0,
+                    1.0
                 ],
                 "vaccinatedD2": [
-                    0.2,
+                    0,
                     0,
                     0,
                     0,
@@ -13879,7 +13929,9 @@
                 ],
                 "disobedient": 0.1,
                 "hospital_capacity": 0.2,
-                "fatality_modifier": 1.5
+                "fatality_modifier": 1.5,
+                "immunityD1": 0.685,
+                "immunityD2": 1
             },
             "neighborhood": {
                 "4913": {
@@ -14060,14 +14112,14 @@
                     0.044
                 ],
                 "vaccinatedD1": [
-                    0.5,
-                    0,
-                    0,
-                    0,
-                    0
+                    1.0,
+                    1.0,
+                    1.0,
+                    1.0,
+                    1.0
                 ],
                 "vaccinatedD2": [
-                    0.2,
+                    0,
                     0,
                     0,
                     0,
@@ -14415,7 +14467,9 @@
                 ],
                 "disobedient": 0.1,
                 "hospital_capacity": 0.2,
-                "fatality_modifier": 1.5
+                "fatality_modifier": 1.5,
+                "immunityD1": 0.685,
+                "immunityD2": 1
             },
             "neighborhood": {
                 "2261": {
@@ -14563,14 +14617,14 @@
                     0.044
                 ],
                 "vaccinatedD1": [
-                    0.5,
-                    0,
-                    0,
-                    0,
-                    0
+                    1.0,
+                    1.0,
+                    1.0,
+                    1.0,
+                    1.0
                 ],
                 "vaccinatedD2": [
-                    0.2,
+                    0,
                     0,
                     0,
                     0,
@@ -14918,7 +14972,9 @@
                 ],
                 "disobedient": 0.1,
                 "hospital_capacity": 0.2,
-                "fatality_modifier": 1.5
+                "fatality_modifier": 1.5,
+                "immunityD1": 0.685,
+                "immunityD2": 1
             },
             "neighborhood": {
                 "2235": {
@@ -15198,14 +15254,14 @@
                     0.044
                 ],
                 "vaccinatedD1": [
-                    0.5,
-                    0,
-                    0,
-                    0,
-                    0
+                    1.0,
+                    1.0,
+                    1.0,
+                    1.0,
+                    1.0
                 ],
                 "vaccinatedD2": [
-                    0.2,
+                    0,
                     0,
                     0,
                     0,
@@ -15553,7 +15609,9 @@
                 ],
                 "disobedient": 0.1,
                 "hospital_capacity": 0.2,
-                "fatality_modifier": 1.5
+                "fatality_modifier": 1.5,
+                "immunityD1": 0.685,
+                "immunityD2": 1
             },
             "neighborhood": {
                 "2270": {
@@ -15701,14 +15759,14 @@
                     0.044
                 ],
                 "vaccinatedD1": [
-                    0.5,
-                    0,
-                    0,
-                    0,
-                    0
+                    1.0,
+                    1.0,
+                    1.0,
+                    1.0,
+                    1.0
                 ],
                 "vaccinatedD2": [
-                    0.2,
+                    0,
                     0,
                     0,
                     0,
@@ -16056,7 +16114,9 @@
                 ],
                 "disobedient": 0.1,
                 "hospital_capacity": 0.2,
-                "fatality_modifier": 1.5
+                "fatality_modifier": 1.5,
+                "immunityD1": 0.685,
+                "immunityD2": 1
             },
             "neighborhood": {
                 "2237": {
@@ -16204,14 +16264,14 @@
                     0.044
                 ],
                 "vaccinatedD1": [
-                    0.5,
-                    0,
-                    0,
-                    0,
-                    0
+                    1.0,
+                    1.0,
+                    1.0,
+                    1.0,
+                    1.0
                 ],
                 "vaccinatedD2": [
-                    0.2,
+                    0,
                     0,
                     0,
                     0,
@@ -16559,7 +16619,9 @@
                 ],
                 "disobedient": 0.1,
                 "hospital_capacity": 0.2,
-                "fatality_modifier": 1.5
+                "fatality_modifier": 1.5,
+                "immunityD1": 0.685,
+                "immunityD2": 1
             },
             "neighborhood": {
                 "2235": {
@@ -16740,14 +16802,14 @@
                     0.044
                 ],
                 "vaccinatedD1": [
-                    0.5,
-                    0,
-                    0,
-                    0,
-                    0
+                    1.0,
+                    1.0,
+                    1.0,
+                    1.0,
+                    1.0
                 ],
                 "vaccinatedD2": [
-                    0.2,
+                    0,
                     0,
                     0,
                     0,
@@ -17095,7 +17157,9 @@
                 ],
                 "disobedient": 0.1,
                 "hospital_capacity": 0.2,
-                "fatality_modifier": 1.5
+                "fatality_modifier": 1.5,
+                "immunityD1": 0.685,
+                "immunityD2": 1
             },
             "neighborhood": {
                 "2270": {
@@ -17408,14 +17472,14 @@
                     0.044
                 ],
                 "vaccinatedD1": [
-                    0.5,
-                    0,
-                    0,
-                    0,
-                    0
+                    1.0,
+                    1.0,
+                    1.0,
+                    1.0,
+                    1.0
                 ],
                 "vaccinatedD2": [
-                    0.2,
+                    0,
                     0,
                     0,
                     0,
@@ -17763,7 +17827,9 @@
                 ],
                 "disobedient": 0.1,
                 "hospital_capacity": 0.2,
-                "fatality_modifier": 1.5
+                "fatality_modifier": 1.5,
+                "immunityD1": 0.685,
+                "immunityD2": 1
             },
             "neighborhood": {
                 "2270": {
@@ -17977,14 +18043,14 @@
                     0.044
                 ],
                 "vaccinatedD1": [
-                    0.5,
-                    0,
-                    0,
-                    0,
-                    0
+                    1.0,
+                    1.0,
+                    1.0,
+                    1.0,
+                    1.0
                 ],
                 "vaccinatedD2": [
-                    0.2,
+                    0,
                     0,
                     0,
                     0,
@@ -18332,7 +18398,9 @@
                 ],
                 "disobedient": 0.1,
                 "hospital_capacity": 0.2,
-                "fatality_modifier": 1.5
+                "fatality_modifier": 1.5,
+                "immunityD1": 0.685,
+                "immunityD2": 1
             },
             "neighborhood": {
                 "2262": {
@@ -18513,14 +18581,14 @@
                     0.044
                 ],
                 "vaccinatedD1": [
-                    0.5,
-                    0,
-                    0,
-                    0,
-                    0
+                    1.0,
+                    1.0,
+                    1.0,
+                    1.0,
+                    1.0
                 ],
                 "vaccinatedD2": [
-                    0.2,
+                    0,
                     0,
                     0,
                     0,
@@ -18868,7 +18936,9 @@
                 ],
                 "disobedient": 0.1,
                 "hospital_capacity": 0.2,
-                "fatality_modifier": 1.5
+                "fatality_modifier": 1.5,
+                "immunityD1": 0.685,
+                "immunityD2": 1
             },
             "neighborhood": {
                 "2262": {

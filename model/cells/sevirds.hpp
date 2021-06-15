@@ -18,6 +18,8 @@ struct sevirds {
     std::vector<std::vector<double>> infected;
     std::vector<std::vector<double>> recovered;
     std::vector<double> fatalities;
+    float immunityD1_rate;
+    float immunityD2_rate;
     std::unordered_map<std::string, hysteresis_factor> hysteresis_factors;
     double population;
 
@@ -158,6 +160,8 @@ void from_json(const nlohmann::json &json, sevirds &current_sevirds) {
     json.at("hospital_capacity").get_to(current_sevirds.hospital_capacity);
     json.at("fatality_modifier").get_to(current_sevirds.fatality_modifier);
     json.at("population").get_to(current_sevirds.population);
+    json.at("immunityD1").get_to(current_sevirds.immunityD1_rate);
+    json.at("immunityD2").get_to(current_sevirds.immunityD2_rate);
 
     assert(current_sevirds.age_group_proportions.size() == current_sevirds.susceptible.size() && current_sevirds.age_group_proportions.size() == current_sevirds.exposed.size() &&
             current_sevirds.age_group_proportions.size() == current_sevirds.infected.size() && current_sevirds.age_group_proportions.size() == current_sevirds.recovered.size() &&
