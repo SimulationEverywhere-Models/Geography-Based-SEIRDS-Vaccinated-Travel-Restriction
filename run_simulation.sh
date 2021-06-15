@@ -99,6 +99,16 @@ Main()
         cp GIS_Viewer/${AREA}/${AREA_FILE}.geojson ${VISUALIZATION_DIR}; fi
     cp GIS_Viewer/${AREA}/visualization.json ${VISUALIZATION_DIR}
 
+    finishTime=$SECONDS
+    echo -en "\033[32mSimulation Complete and it took "
+    if [[ $finishTime -ge 3600 ]]; then
+        echo -en "$((finishTime / 3600))h";
+        finishTime=$(($finishTime % 3600))
+    fi
+    if [[ $finishTime -ge 60 ]]; then echo -en "$(($finishTime / 60))m"; fi
+    if [[ $(($finishTime % 60)) > 0 ]]; then echo -en "$(($finishTime % 60))s"; fi
+    echo -e " to complete\033[0m"
+
     echo -e "View results using the files in \033[1;32mrun1\033[0m and this web viewer: \033[1;36mhttp://206.12.94.204:8080/arslab-web/1.3/app-gis-v2/index.html\033[0m"
 }
 
