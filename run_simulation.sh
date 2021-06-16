@@ -31,7 +31,8 @@ Main()
     cd Scripts/Input_Generator
     python3 generate_${AREA_FILE}_json.py
     ErrorCheck $? # Check for build errors
-    cp output/scenario_${AREA_FILE}.json ../../config
+    mv output/scenario_${AREA_FILE}.json ../../config
+    rm -rf output
     cd ../..
 
     # Run the model
