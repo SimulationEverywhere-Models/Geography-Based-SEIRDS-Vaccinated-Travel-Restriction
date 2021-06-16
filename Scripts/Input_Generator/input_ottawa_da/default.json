@@ -34,7 +34,7 @@
             "hospital_capacity": 0.2,
             "fatality_modifier": 1.5,
             "immunityD1": 0.685,
-            "immunutyD2": 1
+            "immunityD2": 1
         },
         "config": {
             "precision": 100000,

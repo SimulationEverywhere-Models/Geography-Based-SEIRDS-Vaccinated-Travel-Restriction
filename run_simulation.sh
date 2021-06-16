@@ -29,7 +29,8 @@ Main()
     # Generate a scenario json file for model input, save it in the config folder
     echo "Generating Scenario:"
     cd Scripts/Input_Generator
-    python3 generate_${AREA_FILE}_json.py
+    # python3 generate_${AREA_FILE}_json.py
+    python3 generate_json.py $AREA
     ErrorCheck $? # Check for build errors
     mv output/scenario_${AREA_FILE}.json ../../config
     rm -rf output
