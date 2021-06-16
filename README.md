@@ -100,3 +100,29 @@ This project uses several python scripts that are dependent on the libraries: ge
 5.  ```conda create --name geo_env```
 6.  ```conda activate geo_env```
 7.  ```conda install geopandas numpy matplotlib ```
+
+Configuring VSCode
+---
+As the project references files in the Cadmium directory it's nice to let VSCode know where they are so it doesn't throw a bunch of errors (note: the code still compiles fine regardless because the makefiles are set to be aware of Cadmium's location, provided it's saved in the correct spot. 
+* You'll need the C++ extension provided by Microsoft
+* In the Explorer pane add ```.vscode``` as a new folder if it doesn't already exist
+* In this folder add ```c_cpp_properties.json```
+* In the file paste the following ***if you are using Linux***
+```
+{
+  "configurations": [
+    {
+      "name": "GCC",
+      "includePath": [
+      "~/Documents/cadmium/**"
+      ],
+      "compilerPath": "/usr/bin/gcc",
+      "cStandard": "gnu17",
+      "cppStandard": "gnu++14",
+      "intelliSenseMode": "gcc-x64"
+    }
+  ],
+  "version": 4
+}
+```
+For those not on Linux you'll have to do a bit of digging online for what to set the other parameter but the important one is "includePath". That's where you set where cadmium is located and don't forget the ```**``` at the end as that tells VS to search all the subdirectories. This should remove errors shown in the problems pane at the bottom such as "could not located this header file".
