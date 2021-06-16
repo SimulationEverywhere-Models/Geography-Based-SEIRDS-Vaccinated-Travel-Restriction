@@ -1,2 +1,0 @@
-python graph_per_regions.py
-python graph_aggregates.py
