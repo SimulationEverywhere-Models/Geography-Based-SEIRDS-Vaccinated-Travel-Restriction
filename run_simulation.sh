@@ -5,7 +5,7 @@
 Main()
 {
     # Defining commands used
-    SIMULATE="./pandemic-geographical_model ../config/scenario_${AREA_FILE}.json 500"
+    SIMULATE="./pandemic-geographical_model ../config/scenario_${AREA_FILE}.json 500 $PROGRESS"
     PARSE_MSG_LOGS="java -jar sim.converter.glenn.jar "input" "output""
 
     # Defining directory to save results
@@ -40,7 +40,7 @@ Main()
     echo "Executing model:"
     echo $SIMULATE
     $SIMULATE
-    ErrorCheck $? log # Check for build errors
+    ErrorCheck $? # Check for build errors
 
     # Generate SIRDS graphs
     echo
@@ -134,6 +134,7 @@ Help()
         echo -e " \033[33m--Ontario, --ontario, -On, -on\033[0m  Runs a simulation in Ontario"
         echo -e " \033[33m--Ottawa, --ottawa, -Ot, -ot\033[0m \t Runs a simulation in Ottawa"
         echo -e " \033[33m--rebuild, -r\033[0m \t\t\t Rebuilds the model"
+        echo -e " \033[33m--no-progress, -np\033[0m \t\t Turns off the progress bars and loading animations"
     else
         echo -e "\033[1mUsage:\033[0m"
         echo -e " ./run_simulation.sh \033[3m<area flag>\033[0m"
@@ -181,6 +182,10 @@ else
                 # Delete old model and it will be built further down
                 rm -f bin/pandemic-geographical_model
                 shift;
+            ;;
+            --no-progress|-np)
+                PROGRESS=N
+                shift
             ;;
             *)
                 echo -e "\033[31mUnknown parameter: \033[33m${1}\033[0m"

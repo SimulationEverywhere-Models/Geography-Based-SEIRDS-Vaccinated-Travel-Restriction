@@ -97,25 +97,36 @@ int main(int argc, char ** argv) {
         std::shared_ptr<cadmium::dynamic::modeling::coupled < TIME>>
         t = std::make_shared<geographical_coupled<TIME>>(test);
 
+        bool done = false;
+
         // Lambda function that displays the loading animation
-        auto lm = []()
+        auto lm = [](bool* isDone)
         {
-            std::cout << "\033[33m-" << std::flush;
-            // Loop forever
-            for (;;)
+            if (!*isDone)
             {
-                // Loop through all the different animation cycles
-                for (char loading : {'\\', '|', '/', '-'})
+                std::cout << "\033[33m-" << std::flush;
+                // Loop till bool changes
+                while(!*isDone)
                 {
-                    std::this_thread::sleep_for(0.1s);
-                    // '\r' replaces the last printed line in the terminal
-                    std::cout << "\rcomputing " << loading << std::flush;
+                    // Loop through all the different animation cycles
+                    for (char loading : {'\\', '|', '/', '-'})
+                    {
+                        std::this_thread::sleep_for(0.1s);
+                        // '\r' replaces the last printed line in the terminal
+                        std::cout << "\rcomputing " << loading << std::flush;
+                    }
                 }
             }
         };
 
+        bool noProgress = argc > 3 && *(argv[3]) == 'N';
+
+        if (noProgress)
+            done = true; // Stops the thread
+
         // Start the thread
-        std::thread th_obj(lm);
+        thread th_obj(lm, &done);
+        th_obj.detach();
 
         cadmium::dynamic::engine::runner<TIME, logger_top>
             r(t, {0});
@@ -123,8 +134,12 @@ int main(int argc, char ** argv) {
         r.run_until(sim_time);
 
         // Stop the thread when the sim is done running
-        th_obj.detach();
-        std::cout << "\r\033[32mDone.       \033[0m" << std::endl;
+        if (!noProgress)
+        {
+            done = true;
+            cout << "\r";
+        }
+        cout << "\033[32mDone.       \033[0m" << endl;
     }
     catch(std::exception &e) {
         // With cygwin, an exception that terminates the program may not be printed to the screen, making it unclear
