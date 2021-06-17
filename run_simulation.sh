@@ -33,6 +33,7 @@ Main()
 
     # Make directories if they don't exist
     mkdir -p Scripts/Input_Generator/output
+    mkdir -p logs
     mkdir -p $VISUALIZATION_DIR
 
     # Generate a scenario json file for model input, save it in the config folder
