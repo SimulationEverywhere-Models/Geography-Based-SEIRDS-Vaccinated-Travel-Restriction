@@ -39,7 +39,7 @@ Main()
     echo "Generating Scenario:"
     cd Scripts/Input_Generator
     # python3 generate_${AREA_FILE}_json.py
-    python3 generate_json.py $AREA
+    python3 generateScenario.py $AREA
     ErrorCheck $? # Check for build errors
     mv output/scenario_${AREA_FILE}.json ../../config
     rm -rf output
