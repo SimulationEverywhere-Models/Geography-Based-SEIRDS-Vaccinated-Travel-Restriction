@@ -139,7 +139,7 @@ int main(int argc, char ** argv) {
             done = true;
             cout << "\r";
         }
-        cout << "\033[32mDone.       \033[0m" << endl;
+        cout << "\033[1;32mDone.       \033[0m" << endl;
     }
     catch(std::exception &e) {
         // With cygwin, an exception that terminates the program may not be printed to the screen, making it unclear

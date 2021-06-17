@@ -39,8 +39,7 @@ Main()
     # Generate a scenario json file for model input, save it in the config folder
     echo "Generating Scenario:"
     cd Scripts/Input_Generator
-    # python3 generate_${AREA_FILE}_json.py
-    python3 generateScenario.py $AREA
+    python3 generateScenario.py $AREA $PROGRESS
     ErrorCheck $? # Check for build errors
     mv output/scenario_${AREA_FILE}.json ../../config
     rm -rf output
@@ -56,9 +55,9 @@ Main()
     # Generate SIRDS graphs
     echo; echo "Generating graphs and stats (will be found in logs folder):"
     cd ../Scripts/Graph_Generator/
-    python3 graph_per_regions.py
+    python3 graph_per_regions.py $PROGRESS
     ErrorCheck $? # Check for build errors
-    python3 graph_aggregates.py
+    python3 graph_aggregates.py $PROGRESS
     ErrorCheck $? # Check for build errors
     cd ../..
 
@@ -117,7 +116,7 @@ Main()
             rm -rfdv ${VISUALIZATION_DIR}run${RUN}
         fi
 
-        echo -en $RESET # Reset the colors
+        echo -e "${BOLD}${GREEN}Done.${RESET}" # Reset the colors
     }
 
     # Checks and handles build errors

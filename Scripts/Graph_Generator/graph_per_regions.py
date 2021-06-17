@@ -11,6 +11,8 @@ import os
 import re
 import itertools, threading, time, sys
 
+no_progress = len(sys.argv) > 1 and sys.argv[1] == "N"
+
 # Loading animation
 import itertools, threading, time, sys
 done = False
@@ -26,11 +28,12 @@ def animate():
         sys.stdout.write('\r\033[33mgenerating graphs ' + c + '\033[0m')
         sys.stdout.flush()
         time.sleep(0.1)
-    sys.stdout.write('\r\033[32mDone.                   \033[0m\n')
+    sys.stdout.write('\r\033[1;32mDone.                   \033[0m\n')
 
 # Don't forget to thread it!
-t = threading.Thread(target=animate)
-t.start()
+if not no_progress:
+    t = threading.Thread(target=animate)
+    t.start()
 
 # In[2]:
 
@@ -146,9 +149,7 @@ with open(log_filename, "r") as log_file:
         # create an re match objects from the current line
         state_match = re.search(regex_state,line)
         id_match = re.search(regex_model_id,line)
-        if not (state_match and id_match):
-            #print(line)
-            continue
+        if not (state_match and id_match):            continue
             
         # parse the state and id and insert into initial_pop
         cid = id_match.group().lstrip('_')
@@ -424,3 +425,6 @@ for region_key in data_percents:
     plt.close(fig)
 
 done = True
+
+if no_progress:
+    print("\033[1;32mDone.\033[0m")

@@ -15,14 +15,20 @@ from copy import deepcopy
 import json
 import math
 
+if (len(sys.argv) < 2):
+    print("\033[33mgenerateScenario -- Usage")
+    print(" \033[36m$ python3 generateScenario <area> <progress=Y>\033[33m")
+    print(" where \033[3m<area>\033[0;33m is either \033[1mOttawa\033[0;33m OR \033[1mOntario\033[0;33m")
+    print(" and \033[3m<progress=Y>\033[0;33m is a toggle for the progress updates (it defaults to on and a 'N' turns them off\033[0m")
+    sys.exit(-1)
+
+no_progress = len(sys.argv) > 2 and sys.argv[2] == "N"
+
 # Setup variables that handle the area
 input_area  = str(sys.argv[1]).lower()
 cadmium_dir = "../../cadmium_gis/"
 input_dir   = "input_"
 output_json = "output/scenario_"
-# area_id     = " ", adj_csv         = " ", gpkg_file       = " "
-# rows        = " ", region_id_type  = " ", region_id       = " "
-# neighbor_id = " ", rel_row_col     = " ", progress_freq   = " "
 
 # Set the data based on the area passed in
 if input_area == "ottawa":
@@ -57,7 +63,7 @@ elif input_area == "ontario":
 else:
     print("\033[31mOnly accepts 'Ottawa' or 'Ontario' as input areas\033[0m")
     print("\033[33m" + input_area + "\033[0m")
-    exit -1
+    sys.exit(-1)
 
 def shared_boundaries(gdf, id1, id2):
     g1 = gdf[gdf[area_id] == str(id1)].geometry.iloc[0]
@@ -139,10 +145,13 @@ for ind, row, in df_adj.iterrows():
     expr = {"correlation": correlation, "infection_correction_factors": default_correction_factors}
     adj_full[row_region_id_str][row_region_id_str]["neighborhood"][row_neighborhood_id_str]=expr
 
-    if ind % progress_freq == 0:
+    if not(no_progress) and ind % progress_freq == 0:
         print("\033[1;33m", ind, "\t\033[0;33m%.2f%%" % (100*ind/len(df_adj)), "\033[0m")
 
-print("\033[1;32m", ind, "\t\033[0;32m%.1f%%" % math.ceil(100*ind/len(df_adj)), "\033[0m")
+if not no_progress:
+    print("\033[1;32m", ind, "\t\033[0;32m%.1f%%" % math.ceil(100*ind/len(df_adj)), "\033[0m")
+else:
+    print("\033[1;32mDone.\033[0m")
 
 for key, value in adj_full.items():
     # Insert every cell into its own neighborhood, a cell is -> cell = adj_full[key][key]

@@ -8,11 +8,13 @@
 
 # In[1]:
 
-
+import sys
 import os
 import re
 from collections import defaultdict
 from copy import copy
+
+no_progress = len(sys.argv) > 1 and sys.argv[1] == "N"
 
 # Loading animation
 import itertools, threading, time, sys
@@ -29,11 +31,12 @@ def animate():
         sys.stdout.write('\r\033[33maggregating graphs ' + c + '\033[0m')
         sys.stdout.flush()
         time.sleep(0.1)
-    sys.stdout.write('\r\033[32mDone.                   \033[0m\n')
+    sys.stdout.write('\r\033[1;32mDone.                   \033[0m\n')
 
 # Don't forget to thread it!
-t = threading.Thread(target=animate)
-t.start()
+if not no_progress:
+    t = threading.Thread(target=animate)
+    t.start()
 
 # In[2]:
 
@@ -339,3 +342,6 @@ plt.ylabel("Population (%)")
 plt.savefig(base_name + "Deaths.png")
 
 done = True # Stops the loading animation
+
+if no_progress:
+    print("\033[1;32mDone.\033[0m")
