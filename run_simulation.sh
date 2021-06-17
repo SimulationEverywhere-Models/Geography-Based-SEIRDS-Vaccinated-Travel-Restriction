@@ -87,6 +87,7 @@ Main()
     rm -f Scripts/Msg_Log_Parser/*.zip
     cp GIS_Viewer/${AREA}/${AREA_FILE}.geojson $VISUALIZATION_DIR
     cp GIS_Viewer/${AREA}/visualization.json $VISUALIZATION_DIR
+    mv logs GIS_Viewer/${AREA}/
 
     BUILD_TIME=$SECONDS
     echo -en "${GREEN}Simulation Complete and it took "
