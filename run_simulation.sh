@@ -101,54 +101,57 @@ Main()
     echo -e "View results using the files in ${BOLD}${BLUE}run${RUN_INDEX}${RESET} and this web viewer: ${BOLD}${BLUE}http://206.12.94.204:8080/arslab-web/1.3/app-gis-v2/index.html${RESET}"
 }
 
-# Helps clean up past simulation runs
-Clean()
-{
-    # Delete all the sims for the selected area if no number specified
-    if [[ $RUN == -1 ]]; then
-        echo -e "Removing ${YELLOW}all${RESET} runs for ${YELLOW}${AREA}${RED}"
-        rm -rfv $VISUALIZATION_DIR
-    # Otherwise delete the run that matches the number passed in
-    else
-        echo -e "Removing ${YELLOW}run${RUN}${RESET} for ${YELLOW}${AREA}${RED}"
-        rm -rfdv ${VISUALIZATION_DIR}run${RUN}
-    fi
+# <Helpers>  #
+    # Helps clean up past simulation runs
+    Clean()
+    {
+        # Delete all the sims for the selected area if no number specified
+        if [[ $RUN == -1 ]]; then
+            echo -e "Removing ${YELLOW}all${RESET} runs for ${YELLOW}${AREA}${RED}"
+            rm -rfv $VISUALIZATION_DIR
+        # Otherwise delete the run that matches the number passed in
+        else
+            echo -e "Removing ${YELLOW}run${RUN}${RESET} for ${YELLOW}${AREA}${RED}"
+            rm -rfdv ${VISUALIZATION_DIR}run${RUN}
+        fi
 
-    echo -en $RESET # Reset the colors
-}
+        echo -en $RESET # Reset the colors
+    }
 
-ErrorCheck()
-{
-    # Catch any build errors
-    if [[ "$1" -ne 0 ]]; then
-        if [[ "$2" == "log" ]]; then cat $2; fi # Print any error messages
-        echo -e "${RED}Build Failed${RESET}"
-        exit -1 # And exit if any exist
-    fi
+    # Checks and handles build errors
+    ErrorCheck()
+    {
+        # Catch any build errors
+        if [[ "$1" -ne 0 ]]; then
+            if [[ "$2" == "log" ]]; then cat $2; fi # Print any error messages
+            echo -e "${RED}Build Failed${RESET}"
+            exit -1 # And exit if any exist
+        fi
 
-    if [[ -f "log" ]]; then rm -f log; fi
-}
+        if [[ -f "log" ]]; then rm -f log; fi
+    }
 
-# Displays the help
-Help()
-{
-    if [[ $1 == 1 ]]; then
-        echo -e "${YELLOW}Flags:${RESET}"
-        echo -e " ${YELLOW}--clean|-c|--clean=#|-c=#${RESET} \t Cleans all simulation runs for the selected area if no # is set, \n \t\t\t\t otherwise cleans the specified run using the # inputed such as 'clean=1'"
-        echo -e " ${YELLOW}--flags, -f${RESET}\t\t\t Displays all flags"
-        echo -e " ${YELLOW}--help, -h${RESET}\t\t\t Displays the help"
-        echo -e " ${YELLOW}--Ontario, --ontario, -On, -on${RESET} Runs a simulation in Ontario"
-        echo -e " ${YELLOW}-Ottawa, --ottawa, -Ot, -ot${RESET}\t Runs a simulation in Ottawa"
-        echo -e " ${YELLOW}--rebuild, -r${RESET}\t\t\t Rebuilds the model"
-        echo -e " ${YELLOW}--no-progress, -np${RESET}\t\t Turns off the progress bars and loading animations"
-    else
-        echo -e "${BOLD}Usage:${RESET}"
-        echo -e " ./run_simulation.sh ${ITALIC}<area flag>${RESET}"
-        echo -e " where ${ITALIC}<area flag>${RESET}is either --Ottawa ${BOLD}OR${RESET}--Ontario"
-        echo -e " example: ./run_simulation.sh --Ottawa"
-        echo -e "Use \033[1;33m--flags${RESET}to see a list of all the flags and their meanings"
-    fi
-}
+    # Displays the help
+    Help()
+    {
+        if [[ $1 == 1 ]]; then
+            echo -e "${YELLOW}Flags:${RESET}"
+            echo -e " ${YELLOW}--clean|-c|--clean=#|-c=#${RESET} \t Cleans all simulation runs for the selected area if no # is set, \n \t\t\t\t otherwise cleans the specified run using the # inputed such as 'clean=1'"
+            echo -e " ${YELLOW}--flags, -f${RESET}\t\t\t Displays all flags"
+            echo -e " ${YELLOW}--help, -h${RESET}\t\t\t Displays the help"
+            echo -e " ${YELLOW}--Ontario, --ontario, -On, -on${RESET} Runs a simulation in Ontario"
+            echo -e " ${YELLOW}-Ottawa, --ottawa, -Ot, -ot${RESET}\t Runs a simulation in Ottawa"
+            echo -e " ${YELLOW}--rebuild, -r${RESET}\t\t\t Rebuilds the model"
+            echo -e " ${YELLOW}--no-progress, -np${RESET}\t\t Turns off the progress bars and loading animations"
+        else
+            echo -e "${BOLD}Usage:${RESET}"
+            echo -e " ./run_simulation.sh ${ITALIC}<area flag>${RESET}"
+            echo -e " where ${ITALIC}<area flag>${RESET}is either --Ottawa ${BOLD}OR${RESET}--Ontario"
+            echo -e " example: ./run_simulation.sh --Ottawa"
+            echo -e "Use \033[1;33m--flags${RESET}to see a list of all the flags and their meanings"
+        fi
+    }
+# </Helpers> #
 
 # Displays the help if no flags were set
 if [[ $1 == "" ]]; then Help;
