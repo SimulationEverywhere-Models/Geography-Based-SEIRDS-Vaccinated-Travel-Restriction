@@ -80,10 +80,7 @@ Main()
     echo "Copying converted files to: $VISUALIZATION_DIR"
     cp Scripts/Msg_Log_Parser/output/messages.log $VISUALIZATION_DIR
     cp Scripts/Msg_Log_Parser/output/structure.json $VISUALIZATION_DIR
-    if [[ $AREA == "ottawa" ]]; then
-        cp GIS_Viewer/${AREA}/ottawaDA.geojson $VISUALIZATION_DIR
-    else
-        cp GIS_Viewer/${AREA}/${AREA_FILE}.geojson $VISUALIZATION_DIR; fi
+    cp GIS_Viewer/${AREA}/${AREA_FILE}.geojson $VISUALIZATION_DIR
     cp GIS_Viewer/${AREA}/visualization.json $VISUALIZATION_DIR
 
     BUILD_TIME=$SECONDS

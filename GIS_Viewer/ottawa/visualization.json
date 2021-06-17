@@ -12,7 +12,7 @@
 	"layers":	[{
 			"id":	"DA",
 			"type":	"polygon",
-			"file":	"ottawaDA.geojson",
+			"file":	"ottawa_da.geojson",
 			"label": "Ottawa DA SIRD",
 			"style": "default",
 			"model": "pandemic",
