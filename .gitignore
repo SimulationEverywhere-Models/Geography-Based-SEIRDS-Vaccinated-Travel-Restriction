@@ -59,6 +59,7 @@ Makefile
 # Build files
 bin/
 logs/
+build/
 
 # MacOS
 .DS_Store
