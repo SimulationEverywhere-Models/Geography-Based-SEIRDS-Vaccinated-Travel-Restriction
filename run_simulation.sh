@@ -9,7 +9,6 @@
     BLUE="\033[36m"
     BOLD="\033[1m"
     ITALIC="\033[3m"
-
 # </Colors> #
 
 # Runs the model and saves the results in the GIS_Viewer directory
@@ -129,7 +128,12 @@ Main()
             exit -1 # And exit if any exist
         fi
 
-        if [[ -f "log" ]]; then rm -f log; fi
+        if [[ -f "log" ]]; then
+            echo -en "$YELLOW"
+            cat $2;
+            echo -en "$RESET"
+            rm -f log;
+        fi
     }
 
     # Displays the help
@@ -205,9 +209,17 @@ else
         esac
     done
 
+    # Check for Cadmium
+    if [[ ${cadmium} == "" && ! -d "../cadmium" ]]; then
+        echo -e "${RED}Could not find Cadmium. Make sure it's in the parent folder${RESET}"
+        exit -1
+    fi
+
     # Compile the model if it does not exist
     if [[ ! -f "bin/pandemic-geographical_model" ]]; then
-        cmake CMakeLists.txt
+        echo "Building Model"
+        cmake CMakeLists.txt > log 2>&1
+        ErrorCheck $? log
         make > log 2>&1
         ErrorCheck $? log # Check for build errors
 
