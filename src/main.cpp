@@ -71,21 +71,21 @@ int main(int argc, char** argv)
 
         // A check to see if the file exists / can be accessed because the error message the JSON library gives if the
         // file does not exist is not informative (at the time of this writing).
-        std::ifstream file_existence_checker{argv[1]};
+        ifstream file_existence_checker{argv[1]};
 
         if (!file_existence_checker.is_open())
-            throw std::runtime_error{"Unable to open the file: " + std::string{argv[1]}};
+            throw runtime_error{"Unable to open the file: " + string{argv[1]}};
 
         // Note: At the time of this writing, the web viewer that consumes the log files of this simulator relies on the
         // the input to geographical_coupled parameter (param name: id) to be empty; this changes how the IDs of cells
         // in the log files are printed.
         geographical_coupled<TIME> test = geographical_coupled<TIME>("");
-        std::string scenario_config_file_path = argv[1];
+        string scenario_config_file_path = argv[1];
         test.add_cells_json(scenario_config_file_path);
         test.couple_cells();
 
-        std::shared_ptr<cadmium::dynamic::modeling::coupled < TIME>>
-        t = std::make_shared<geographical_coupled<TIME>>(test);
+        shared_ptr<cadmium::dynamic::modeling::coupled < TIME>>
+        t = make_shared<geographical_coupled<TIME>>(test);
 
         bool done = false;
 
@@ -94,16 +94,16 @@ int main(int argc, char** argv)
         {
             if (!*isDone)
             {
-                std::cout << "\033[33m-" << std::flush;
+                cout << "\033[33m-" << flush;
                 // Loop till bool changes
                 while(!*isDone)
                 {
                     // Loop through all the different animation cycles
                     for (char loading : {'\\', '|', '/', '-'})
                     {
-                        std::this_thread::sleep_for(0.1s);
+                        this_thread::sleep_for(0.1s);
                         // '\r' replaces the last printed line in the terminal
-                        std::cout << "\rcomputing " << loading << std::flush;
+                        cout << "\rcomputing " << loading << flush;
                     }
                 }
             }
@@ -130,12 +130,12 @@ int main(int argc, char** argv)
         }
         cout << "\033[1;32mDone.       \033[0m" << endl;
     } //try{}
-    catch(std::exception &e)
+    catch(exception &e)
     {
         // With cygwin, an exception that terminates the program may not be printed to the screen, making it unclear
         // if an error occurred. Thus an explicit print is done, along with a rethrowing of the exception to keep
         // the original termination logic the same.
-        std::cerr << "A fatal error occurred: " << e.what() << std::endl;
+        cerr << "A fatal error occurred: " << e.what() << endl;
         throw;
     }
 

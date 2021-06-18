@@ -8,19 +8,21 @@
 #include <nlohmann/json.hpp>
 #include "hysteresis_factor.hpp"
 
+using namespace std;
+
 struct sevirds
 {
-    std::vector<double> age_group_proportions;
-    std::vector<double> susceptible;
-    std::vector<std::vector<double>> exposed;
-    std::vector<double> vaccinatedD1;
-    std::vector<double> vaccinatedD2;
-    std::vector<std::vector<double>> infected;
-    std::vector<std::vector<double>> recovered;
-    std::vector<double> fatalities;
+    vector<double> age_group_proportions;
+    vector<double> susceptible;
+    vector<vector<double>> exposed;
+    vector<double> vaccinatedD1;
+    vector<double> vaccinatedD2;
+    vector<vector<double>> infected;
+    vector<vector<double>> recovered;
+    vector<double> fatalities;
     float immunityD1_rate;
     float immunityD2_rate;
-    std::unordered_map<std::string, hysteresis_factor> hysteresis_factors;
+    unordered_map<string, hysteresis_factor> hysteresis_factors;
     double population;
 
     double disobedient;
@@ -31,10 +33,10 @@ struct sevirds
     // The overloaded constructor results in a default constructor having to be manually written.
     sevirds() = default;
 
-    sevirds(std::vector<double> sus, std::vector<double> exp, double vac1, double vac2, std::vector<double> inf, std::vector<double> rec,
+    sevirds(vector<double> sus, vector<double> exp, double vac1, double vac2, vector<double> inf, vector<double> rec,
         double fat, double dis, double hcap, double fatm) :
-            susceptible{std::move(sus)}, exposed{std::move(exp)}, vaccinatedD1{vac1}, vaccinatedD2{vac2},
-            infected{std::move(inf)}, recovered{std::move(rec)}, fatalities{fat}, disobedient{dis},
+            susceptible{move(sus)}, exposed{move(exp)}, vaccinatedD1{vac1}, vaccinatedD2{vac2},
+            infected{move(inf)}, recovered{move(rec)}, fatalities{fat}, disobedient{dis},
             hospital_capacity{hcap}, fatality_modifier{fatm} { }
 
     unsigned int get_num_age_segments() const       { return susceptible.size();        }
@@ -42,8 +44,8 @@ struct sevirds
     unsigned int get_num_infected_phases() const    { return infected.front().size();   }
     unsigned int get_num_recovered_phases() const   { return recovered.front().size();  }
 
-    static double sum_state_vector(const std::vector<double>& state_vector) {
-        return std::accumulate(state_vector.begin(), state_vector.end(), 0.0f);
+    static double sum_state_vector(const vector<double>& state_vector) {
+        return accumulate(state_vector.begin(), state_vector.end(), 0.0f);
     }
 
     double get_total_fatalities() const
@@ -136,7 +138,7 @@ struct sevirds
 bool operator<(const sevirds& lhs, const sevirds& rhs) { return true; }
 
 // outputs <population, S, E, VD1, VD2, I, R, new E, new I, new R, D>
-std::ostream &operator<<(std::ostream& os, const sevirds& sevirds) {
+ostream &operator<<(ostream& os, const sevirds& sevirds) {
 
     double new_exposed = 0.0f;
     double new_infections = 0.0f;
@@ -180,7 +182,7 @@ void from_json(const nlohmann::json &json, sevirds &current_sevirds)
     for (int i = 0; i < current_sevirds.age_group_proportions.size(); ++i)
         if ( !(current_sevirds.vaccinatedD1.at(i) + current_sevirds.vaccinatedD2.at(i) <= 1.0f) )
         {
-            std::cout << "\033[1;31mASSERT: \033[0;31mPeople can only be in one of three groups: Unvaccinated, Vaccinated-Dose1, or Vaccinated-Dose2. The proportion of people with dose 1 plus those with dose 2 cannot be greater then 1\033[0m" << std::endl;
+            cout << "\033[1;31mASSERT: \033[0;31mPeople can only be in one of three groups: Unvaccinated, Vaccinated-Dose1, or Vaccinated-Dose2. The proportion of people with dose 1 plus those with dose 2 cannot be greater then 1\033[0m" << endl;
             assert(false);
         }
 }

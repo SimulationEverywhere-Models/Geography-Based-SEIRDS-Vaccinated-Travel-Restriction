@@ -9,25 +9,25 @@
 #include "cells/geographical_cell.hpp"
 
 template <typename T>
-class geographical_coupled : public cadmium::celldevs::cells_coupled<T, std::string, sevirds, vicinity>
+class geographical_coupled : public cadmium::celldevs::cells_coupled<T, string, sevirds, vicinity>
 {
     public:
-        explicit geographical_coupled(std::string const &id) : cells_coupled<T, std::string, sevirds, vicinity>(id) { }
+        explicit geographical_coupled(string const &id) : cells_coupled<T, string, sevirds, vicinity>(id) { }
 
         template<typename X>
-        using cell_unordered = std::unordered_map<std::string, X>;
+        using cell_unordered = unordered_map<string, X>;
 
-        void add_cell_json(std::string const& cell_type, std::string const& cell_id,
+        void add_cell_json(string const& cell_type, string const& cell_id,
                             cell_unordered<vicinity> const& neighborhood,
                             sevirds initial_state,
-                            std::string const& delay_id,
+                            string const& delay_id,
                             nlohmann::json const& config) override
         {
             if (cell_type == "zhong")
             {
                 auto conf = config.get<typename geographical_cell<T>::config_type>();
                 this->template add_cell<geographical_cell>(cell_id, neighborhood, initial_state, delay_id, conf);
-            } else throw std::bad_typeid();
+            } else throw bad_typeid();
         }
 };
 
