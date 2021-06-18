@@ -201,6 +201,15 @@ else
                 PROGRESS=N
                 shift
             ;;
+            --valgrind|-v)
+                VALGRIND="valgrind --leak-check=yes"
+                shift
+            ;;
+            --profile|-p)
+                gprof bin/pandemic-geographical_model bin/gmon.out > bin/performance.txt
+                echo -e "${GREEN}${BOLD}Done.${RESET}"
+                exit 1;
+            ;;
             *)
                 echo -e "${RED}Unknown parameter: ${YELLOW}${1}${RESET}"
                 Help;
