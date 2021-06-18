@@ -29,6 +29,8 @@ struct sevirds
     double hospital_capacity;
     double fatality_modifier;
 
+    unsigned int num_age_groups;
+
     // Required for the JSON library, as types used with it must be default-constructable.
     // The overloaded constructor results in a default constructor having to be manually written.
     sevirds() = default;
@@ -37,7 +39,7 @@ struct sevirds
         double fat, double dis, double hcap, double fatm) :
             susceptible{move(sus)}, exposed{move(exp)}, vaccinatedD1{vac1}, vaccinatedD2{vac2},
             infected{move(inf)}, recovered{move(rec)}, fatalities{fat}, disobedient{dis},
-            hospital_capacity{hcap}, fatality_modifier{fatm} { }
+            hospital_capacity{hcap}, fatality_modifier{fatm} { num_age_groups = age_group_proportions.size(); }
 
     unsigned int get_num_age_segments() const       { return susceptible.size();        }
     unsigned int get_num_exposed_phases() const     { return exposed.front().size();    }
@@ -174,12 +176,14 @@ void from_json(const nlohmann::json &json, sevirds &current_sevirds)
     json.at("immunityD1").get_to(current_sevirds.immunityD1_rate);
     json.at("immunityD2").get_to(current_sevirds.immunityD2_rate);
 
+    current_sevirds.num_age_groups = current_sevirds.age_group_proportions.size();
+
     assert(current_sevirds.age_group_proportions.size() == current_sevirds.susceptible.size() && current_sevirds.age_group_proportions.size() == current_sevirds.exposed.size() &&
             current_sevirds.age_group_proportions.size() == current_sevirds.infected.size() && current_sevirds.age_group_proportions.size() == current_sevirds.recovered.size() &&
             "There must be an equal number of age groups between age_group_proportions, susceptible, exposed, infected, and recovered!\n");
 
     // Three options: unvaccinated, dose 1 or dose 2. Can only be in one of those groups
-    for (int i = 0; i < current_sevirds.age_group_proportions.size(); ++i)
+    for (unsigned int i = 0; i < current_sevirds.num_age_groups; ++i)
         if ( !(current_sevirds.vaccinatedD1.at(i) + current_sevirds.vaccinatedD2.at(i) <= 1.0f) )
         {
             cout << "\033[1;31mASSERT: \033[0;31mPeople can only be in one of three groups: Unvaccinated, Vaccinated-Dose1, or Vaccinated-Dose2. The proportion of people with dose 1 plus those with dose 2 cannot be greater then 1\033[0m" << endl;

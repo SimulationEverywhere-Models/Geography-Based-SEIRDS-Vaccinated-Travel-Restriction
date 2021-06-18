@@ -8,6 +8,8 @@
 #include <cadmium/celldevs/coupled/cells_coupled.hpp>
 #include "cells/geographical_cell.hpp"
 
+using namespace std;
+
 template <typename T>
 class geographical_coupled : public cadmium::celldevs::cells_coupled<T, string, sevirds, vicinity>
 {

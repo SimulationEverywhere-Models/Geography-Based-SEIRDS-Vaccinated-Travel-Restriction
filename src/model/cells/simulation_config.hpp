@@ -17,7 +17,7 @@ struct simulation_config
     phase_rates mobility_rates;
     phase_rates fatality_rates;
 
-    bool SIIRS_model = true;
+    bool SIIRS_model;
 };
 
 void from_json(const nlohmann::json& json, simulation_config& v)
@@ -30,14 +30,20 @@ void from_json(const nlohmann::json& json, simulation_config& v)
     json.at("fatality_rates").get_to(v.fatality_rates);
     json.at("SIIRS_model").get_to(v.SIIRS_model);
 
-    for (int i = 0; i < v.recovery_rates.size(); ++i)
-    {
-        for (int k = 0; k < v.recovery_rates.at(i).size(); ++k)
-            // A sum of greater than one refers to more than the entire population of an infection stage.
-            assert(v.recovery_rates.at(i).at(k) + v.fatality_rates.at(i).at(k) <= 1.0f && "The recovery rate + fatality rate cannot exceed 1!");
+    unsigned int age_groups     = v.recovery_rates.size();
+    unsigned int recovery_days  = v.recovery_rates.at(0).size();
 
-        assert(v.fatality_rates.at(i).back() <= 1.0f && "The fatality rate cannot exceed one!");    // Assert because the recovery rate has
-                                                                                                    // one less entry than the fatality rates.
+    for (int i = 0; i < age_groups; ++i)
+    {
+        std::vector<double>& v_recovery_rates = v.recovery_rates.at(i);
+        std::vector<double>& v_fatality_rates = v.fatality_rates.at(i);
+
+        for (int k = 0; k < recovery_days; ++k)
+            // A sum of greater than one refers to more than the entire population of an infection stage.
+            assert(v_recovery_rates.at(k) + v_fatality_rates.at(k) <= 1.0f && "The recovery rate + fatality rate cannot exceed 1!");
+
+        assert(v_fatality_rates.back() <= 1.0f && "The fatality rate cannot exceed one!"); // Assert because the recovery rate has
+                                                                                           // one less entry than the fatality rates.
     }
 }
 

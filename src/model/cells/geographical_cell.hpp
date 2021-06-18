@@ -30,8 +30,8 @@ class geographical_cell : public cell<T, string, sevirds, vicinity>
 
         using config_type = simulation_config;
 
-        using phase_rates = vector<            // The age sub_division
-                            vector<double>>;   // The stage of infection
+        using phase_rates = vector<             // The age sub_division
+                            vector<double>>;    // The stage of infection
 
         phase_rates virulence_rates;
         phase_rates incubation_rates;
@@ -45,26 +45,27 @@ class geographical_cell : public cell<T, string, sevirds, vicinity>
                                                                     // The second one is the hysteresis factor.
 
         int prec_divider;
+        double one_over_prec_divider;
         bool SIIRS_model;
 
         geographical_cell() : cell<T, string, sevirds, vicinity>() {}
 
         geographical_cell(string const& cell_id, cell_unordered<vicinity> const& neighborhood,
-                        sevirds const& initial_state, string const& delay_id, simulation_config config) :
-        cell<T, string, sevirds, vicinity>(cell_id, neighborhood, initial_state, delay_id)
+                            sevirds const& initial_state, string const& delay_id, simulation_config config) :
+            cell<T, string, sevirds, vicinity>(cell_id, neighborhood, initial_state, delay_id)
         {
-
-            for(const auto &i : neighborhood)
+            for (const auto& i : neighborhood)
                 state.current_state.hysteresis_factors.insert({i.first, hysteresis_factor{}});
 
-            virulence_rates = move(config.virulence_rates);
-            incubation_rates = move(config.incubation_rates);
-            recovery_rates = move(config.recovery_rates);
-            mobility_rates = move(config.mobility_rates);
-            fatality_rates = move(config.fatality_rates);
+            virulence_rates     = move(config.virulence_rates);
+            incubation_rates    = move(config.incubation_rates);
+            recovery_rates      = move(config.recovery_rates);
+            mobility_rates      = move(config.mobility_rates);
+            fatality_rates      = move(config.fatality_rates);
 
-            prec_divider = config.prec_divider;
-            SIIRS_model = config.SIIRS_model;
+            one_over_prec_divider   = 1.0 / (double)config.prec_divider; // Multiplication is always faster then division so set this up to be 1/prec_divider to be multiplied later
+            prec_divider            = config.prec_divider;
+            SIIRS_model             = config.SIIRS_model;
 
             assert(virulence_rates.size() == recovery_rates.size() && virulence_rates.size() == mobility_rates.size() &&
                 virulence_rates.size() == incubation_rates.size() &&
@@ -77,8 +78,17 @@ class geographical_cell : public cell<T, string, sevirds, vicinity>
         {
             sevirds res = state.current_state;
 
+            vector<double> fatalities, recovered;
+            double new_e, new_i, new_s, curr_expos, curr_inf, res_fatalities;
+            unsigned int recovered_index    = res.get_num_recovered_phases() - 1;
+            unsigned int age_segments       = res.get_num_age_segments();
+            unsigned int exposed_phases     = res.get_num_exposed_phases();
+            unsigned int infected_phases    = res.get_num_infected_phases();
+            unsigned int recovered_phases  = res.get_num_recovered_phases();
+
+
             // Calculate the next new sevirds variables for each age group
-            for (int age_segment_index = 0; age_segment_index < res.get_num_age_segments(); ++age_segment_index)
+            for (unsigned int age_segment_index = 0; age_segment_index < age_segments; ++age_segment_index)
             {
                 /* Note: Remember that these recoveries and fatalities are from the previous simulation cycle. Thus there is an ordering
                     issue- recovery rate and fatality rates specify a percentage of the infected at a certain stage. As a result
@@ -95,50 +105,58 @@ class geographical_cell : public cell<T, string, sevirds, vicinity>
                     was already set to the population of last stage of infected- meaning fatalities is always 0 for the last stage).
                 */
 
-                // cauculate the total number of new exposed entering exposed(0)
-                double new_e = round(new_exposed(age_segment_index, res) * prec_divider) / prec_divider;
+                // Get these ahead of time for performance
+                res_fatalities                              = res.fatalities.at(age_segment_index);
+                vector<double>& res_exposed                 = res.exposed.at(age_segment_index);
+                vector<double>& res_infected                = res.infected.at(age_segment_index);
+                vector<double>& res_recovered               = res.recovered.at(age_segment_index);
+                const vector<double>& res_incubation_rates  = incubation_rates.at(age_segment_index);
 
-                // calculate the total number new infected, exposed last day + exposed other days becoming infected
-                double new_i = round(new_infections(age_segment_index, res) * prec_divider) / prec_divider;
 
-                // calculate the vector of fatalities entered from each infection day
-                vector<double> fatalities = new_fatalities(res, age_segment_index);
+                // Calculate the total number of new exposed entering exposed(0)
+                new_e = precision_correction(new_exposed(age_segment_index, res));
 
-                // calculate the vector of new recoveries entering from each infection day 1:num_infection_phases,
-                vector<double> recovered = new_recoveries(res, age_segment_index, fatalities);
+                // Calculate the total number new infected, exposed last day + exposed other days becoming infected
+                new_i = precision_correction(new_infections(age_segment_index, res));
 
-                res.fatalities.at(age_segment_index) += accumulate(fatalities.begin(), fatalities.end(), 0.0f);
+                // Calculate the vector of fatalities entered from each infection day
+                fatalities = new_fatalities(res, age_segment_index);
+
+                // Calculate the vector of new recoveries entering from each infection day 1:num_infection_phases,
+                recovered = new_recoveries(res, age_segment_index, fatalities);
+
+                res_fatalities += accumulate(fatalities.begin(), fatalities.end(), 0.0f);
 
                 // The susceptible population is smaller due to previous deaths
-                double new_s = 1 - res.fatalities.at(age_segment_index);
+                new_s = 1 - res_fatalities;
 
                 // So far, it was assumed that on the last day of infection, all recovered. But this is not true- have to account
-                // for those who died on the last day of infection.
+                //  for those who died on the last day of infection.
                 recovered.back() -= fatalities.back();
 
                 // Advance all exposed forward a day, with some proportion leaving exposed(q-1) and entering infected(1)
-                for (int i = res.get_num_exposed_phases() - 1; i > 0; --i)
+                for (unsigned int i = exposed_phases - 1; i > 0; --i)
                 {
-                    // calculate new exposed based on the incubation rate and the previous days exposed
-                    double curr_expos = round(res.exposed.at(age_segment_index).at(i - 1)
-                        *(1-incubation_rates.at(age_segment_index).at(i-1))*prec_divider) / prec_divider;
+                    // Calculate new exposed based on the incubation rate and the previous days exposed
+                    curr_expos = precision_correction(res_exposed.at(i - 1) * (1 - res_incubation_rates.at(i - 1)));
 
                     // The susceptible population does not include the exposed population
                     new_s -= curr_expos;
 
-                    res.exposed.at(age_segment_index).at(i) = curr_expos;
+                    res_exposed.at(i) = curr_expos;
                 }
-                res.exposed.at(age_segment_index).at(0) = new_e;
+
+                res_exposed.at(0) = new_e;
                 new_s -= new_e;
 
                 // Equation 6d
                 // Advance all infected q = 0 to q = Ti-1 one day forward
-                for (int i = res.get_num_infected_phases() - 1; i > 0; --i)
+                for (unsigned int i = infected_phases - 1; i > 0; --i)
                 {
                     // *** Calculate proportion of infected on a given day of the infection ***
 
                     // The previous day of infection
-                    double curr_inf = res.infected.at(age_segment_index).at(i - 1);
+                    curr_inf = res_infected.at(i - 1);
 
                     // The number of people in a stage of infection moving to the new infection stage do not include those
                     // who have died or recovered. Note: A subtraction must be done here as the recovery and mortality rates
@@ -148,30 +166,28 @@ class geographical_cell : public cell<T, string, sevirds, vicinity>
                     curr_inf -= recovered.at(i - 1);
                     curr_inf -= fatalities.at(i - 1);
 
-                    curr_inf = round(curr_inf * prec_divider) / prec_divider;
+                    curr_inf = precision_correction(curr_inf);
 
                     // The amount of susceptible does not include the infected population
                     new_s -= curr_inf;
 
-                    res.infected.at(age_segment_index).at(i) = curr_inf;
+                    res_infected.at(i) = curr_inf;
                 }
 
                 // The people on the first day of infection
-                res.infected.at(age_segment_index).at(0) = new_i;
+                res_infected.at(0) = new_i;
 
                 // The susceptible population does not include those that just became exposed
                 new_s -= new_i;
 
-                int recovered_index = res.get_num_recovered_phases() - 1;
-
-                if(!SIIRS_model)
+                if (!SIIRS_model)
                 {
                     // Add the population on the second last day of recovery to the population on the last day of recovery.
                     // This entire population on the last day of recovery is then subtracted from the susceptible population
                     // to take into account that the population on the last day of recovery will not be subtracted from the susceptible
                     // population in the Equation 6a for loop.
-                    res.recovered.at(age_segment_index).back() += res.recovered.at(age_segment_index).at(res.get_num_recovered_phases() - 2);
-                    new_s -= res.recovered.at(age_segment_index).back();
+                    res_recovered.back() += res_recovered.at(recovered_phases - 2);
+                    new_s -= res_recovered.back();
                     // Avoid processing the population on the last day of recovery in the equation 6a for loop. This will
                     // update all stages of recovery population except the last one, which grows with every time step
                     // as it is only added to from the population on the second last day of recovery.
@@ -179,18 +195,18 @@ class geographical_cell : public cell<T, string, sevirds, vicinity>
                 }
 
                 // Equation 6a
-                for(int i = recovered_index; i > 0; --i)
+                for(unsigned int i = recovered_index; i > 0; --i)
                 {
                     // Each day of the recovered is the value of the previous day. The population on the last day is
                     // now susceptible (assuming a SIIRS model); this is implicitly done already as the susceptible value was set to 1.0 and the
                     // population on the last day of recovery is never subtracted from the susceptible value.
-                    res.recovered.at(age_segment_index).at(i) = res.recovered.at(age_segment_index).at(i - 1);
-                    new_s -= res.recovered.at(age_segment_index).at(i);
+                    res_recovered.at(i) = res_recovered.at(i - 1);
+                    new_s -= res_recovered.at(i);
                 }
 
                 // The people on the first day of recovery are those that were on the last stage of infection (minus those who died;
                 // already accounted for) in the previous time step plus those that recovered early during an infection stage.
-                res.recovered.at(age_segment_index).at(0) = accumulate(recovered.begin(), recovered.end(), 0.0f);
+                res_recovered.at(0) = accumulate(recovered.begin(), recovered.end(), 0.0f);
 
                 // The susceptible population does not include the recovered population
                 new_s -= accumulate(recovered.begin(), recovered.end(), 0.0f);
@@ -199,15 +215,15 @@ class geographical_cell : public cell<T, string, sevirds, vicinity>
                 assert(new_s >= 0);
 
                 res.susceptible.at(age_segment_index) = new_s;
-            }
+            } // for (age_groups)
 
             return res;
-        } //local_compute()
+        } // local_computation()
 
         // It returns the delay to communicate cell's new state.
-        T output_delay(sevirds const& cell_state) const override { return 1; }
+        T output_delay(sevirds const &cell_state) const override { return 1; }
 
-        double new_exposed(unsigned int age_segment_index, sevirds& current_seird) const
+        double new_exposed(unsigned int age_segment_index, sevirds &current_seird) const
         {
             double expos = 0;
             sevirds const cstate = state.current_state;
@@ -220,14 +236,21 @@ class geographical_cell : public cell<T, string, sevirds, vicinity>
                                                         state.neighbors_state.at(cell_id).get_total_infections(),
                                                         current_seird.hysteresis_factors.at(cell_id));
 
+            double neighbor_correction;
+            unsigned int infected_phases;
+
+            const vector<double>& res_mobility_rates  = mobility_rates.at(age_segment_index);
+            const vector<double>& res_virulance_rates = virulence_rates.at(age_segment_index);
+            double cstate_susceptible           = cstate.susceptible.at(age_segment_index);
+
             // External exposed
             for(auto neighbor: neighbors)
             {
-                sevirds const nstate    = state.neighbors_state.at(neighbor);
-                vicinity v              = state.neighbors_vicinity.at(neighbor);
+                sevirds const nstate = state.neighbors_state.at(neighbor);
+                vicinity v = state.neighbors_vicinity.at(neighbor);
 
-                // Disobedient people have a correction factor of 1. The rest of the population is affected by the movement_correction_factor
-                double neighbor_correction = nstate.disobedient + (1 - nstate.disobedient) * movement_correction_factor(v.correction_factors,
+                // disobedient people have a correction factor of 1. The rest of the population is affected by the movement_correction_factor
+                neighbor_correction = nstate.disobedient + (1 - nstate.disobedient) * movement_correction_factor(v.correction_factors,
                                                                                                         nstate.get_total_infections(),
                                                                                                         current_seird.hysteresis_factors.at(neighbor));
 
@@ -235,46 +258,56 @@ class geographical_cell : public cell<T, string, sevirds, vicinity>
                 // in place in the current cell if the current cell has a more restrictive movement.
                 neighbor_correction = min(current_cell_correction_factor, neighbor_correction);
 
-                for (int i = 0; i < nstate.get_num_infected_phases(); ++i)
+                infected_phases = nstate.get_num_infected_phases();
+                double total_infections = nstate.get_total_infections();
+
+                for (unsigned int i = 0; i < infected_phases; ++i)
                 {
-                    expos += v.correlation * mobility_rates.at(age_segment_index).at(i) * // variable Cij
-                        virulence_rates.at(age_segment_index).at(i) * // variable lambda
-                        cstate.susceptible.at(age_segment_index) * nstate.get_total_infections() * // variables Si and Ij, respectively
-                        neighbor_correction;  // New exposed may be slightly fewer if there are mobility restrictions
+                    expos += v.correlation * res_mobility_rates.at(i) * // Variable Cij
+                             res_virulance_rates.at(i) *                // Variable lambda
+                             cstate_susceptible * total_infections *    // Variables Si and Ij, respectively
+                             neighbor_correction;                       // New exposed may be slightly fewer if there are mobility restrictions
                 }
             }
-
             return min(cstate.susceptible.at(age_segment_index), expos);
-        } //new_exposed()
+        }
 
-        double new_infections(unsigned int age_segment_index, sevirds& current_seird) const
+        double new_infections(unsigned int age_segment_index, sevirds &current_seird) const
         {
             double inf = 0;
             sevirds const cstate = state.current_state;
-            inf = cstate.exposed.at(age_segment_index).back();
+            const vector<double>& cstate_exposed = cstate.exposed.at(age_segment_index);
+            inf = cstate_exposed.back();
+            unsigned int exposed_size = cstate_exposed.size();
+            const vector<double>& res_incubation_rates = incubation_rates.at(age_segment_index);
 
-            // scan through all exposed day except last and calculate exposed.at(asi).at(i)
-            for (int i = 0; i < cstate.exposed.at(age_segment_index).size() - 1 ; i++)
-                inf += cstate.exposed.at(age_segment_index).at(i) * incubation_rates.at(age_segment_index).at(i); // / (cstate.vaccinatedD1.at(age_segment_index) * cstate.immunityD1_rate);
+            // Scan through all exposed day except last and calculate exposed.at(asi).at(i)
+            for (unsigned int i = 0; i < exposed_size - 1 ; i++)
+                inf += cstate_exposed.at(i) * res_incubation_rates.at(i);
 
-            inf = round(inf * prec_divider) / prec_divider;
+            inf = precision_correction((double)inf);
             return inf;
         }
 
-        vector<double> new_recoveries(const sevirds& current_state, unsigned int age_segment_index, const vector<double>& fatalities) const
+        vector<double> new_recoveries(const sevirds &current_state, unsigned int age_segment_index, const vector<double> &fatalities) const
         {
-            vector<double> recovered(current_state.get_num_infected_phases(), 0.0f);
+            unsigned int infected_phases = current_state.get_num_infected_phases();
+            vector<double> recovered(infected_phases, 0.0f);
+
+            const vector<double>& cstate_infected = current_state.infected.at(age_segment_index);
+            const vector<double>& res_recovery_rates = recovery_rates.at(age_segment_index);
 
             // Assume that any individuals that are not fatalities on the last stage of infection recover
-            recovered.back() = current_state.infected.at(age_segment_index).back() - fatalities.back();
+            recovered.back() = cstate_infected.back() - fatalities.back();
+            double new_recoveries, maximum_possible_recoveries;
 
-            for (int i = 0; i < current_state.get_num_infected_phases() - 1; ++i)
+            for (unsigned int i = 0; i < infected_phases - 1; ++i)
             {
                 // Calculate all of the new recovered- for every day that a population is infected, some recover.
-                float new_recoveries = round(current_state.infected.at(age_segment_index).at(i) * recovery_rates.at(age_segment_index).at(i) * prec_divider) / prec_divider;
+                new_recoveries = precision_correction(cstate_infected.at(i) * res_recovery_rates.at(i));
 
                 // There can't be more recoveries than those who have died
-                float maximum_possible_recoveries = current_state.infected.at(age_segment_index).at(i) - fatalities.at(i);
+                maximum_possible_recoveries = cstate_infected.at(i) - fatalities.at(i);
 
                 recovered.at(i) = min(new_recoveries, maximum_possible_recoveries);
             }
@@ -282,28 +315,31 @@ class geographical_cell : public cell<T, string, sevirds, vicinity>
             return recovered;
         }
 
-        vector<double> new_fatalities(const sevirds &current_state, unsigned int age_segment_index) const
-        {
+        vector<double> new_fatalities(const sevirds &current_state, unsigned int age_segment_index) const {
             vector<double> fatalities(current_state.get_num_infected_phases(), 0.0f);
 
-            // Calculate all those who have died during an infection stage.
-            for(int i = 0; i < current_state.get_num_infected_phases(); ++i)
-            {
-                fatalities.at(i) += round(current_state.infected.at(age_segment_index).at(i) * fatality_rates.at(age_segment_index).at(i) * prec_divider) / prec_divider;
+            const vector<double>& cstate_infected       = current_state.infected.at(age_segment_index);
+            const vector<double>& res_fatality_rates    = fatality_rates.at(age_segment_index);
 
-                if(current_state.get_total_infections() > current_state.hospital_capacity)
+            unsigned int infected_phases = current_state.get_num_infected_phases();
+
+            // Calculate all those who have died during an infection stage.
+            for (unsigned int i = 0; i < infected_phases; ++i) {
+                fatalities.at(i) += precision_correction(cstate_infected.at(i) * res_fatality_rates.at(i));
+
+                if (current_state.get_total_infections() > current_state.hospital_capacity)
                     fatalities.at(i) *= current_state.fatality_modifier;
 
                 // There can't be more fatalities than the number of people who are infected at a stage
-                fatalities.at(i) = min(fatalities.at(i), current_state.infected.at(age_segment_index).at(i));
+                fatalities.at(i) = min(fatalities.at(i), cstate_infected.at(i));
             }
 
             return fatalities;
         }
 
         float movement_correction_factor(const map<infection_threshold, mobility_correction_factor> &mobility_correction_factors,
-                                        float infectious_population, hysteresis_factor &hysteresisFactor) const
-        {
+                                        float infectious_population, hysteresis_factor &hysteresisFactor) const {
+
             // For example, assume a correction factor of "0.4": [0.2, 0.1]. If the infection goes above 0.4, then the
             // correction factor of 0.2 will now be applied to total infection values above 0.3, no longer 0.4 as the
             // hysteresis is in effect.
@@ -334,18 +370,20 @@ class geographical_cell : public cell<T, string, sevirds, vicinity>
                     assert(next_pair_iterator != mobility_correction_factors.end());
 
                     // If there is a next correction factor (for a higher total infection), then use it's total infection threshold
-                    if (distance(mobility_correction_factors.begin(), next_pair_iterator) != mobility_correction_factors.size() - 1)
+                    if ((long unsigned int) distance(mobility_correction_factors.begin(), next_pair_iterator) != mobility_correction_factors.size() - 1)
                         ++next_pair_iterator;
 
-                    hysteresisFactor.in_effect = true;
-                    hysteresisFactor.infections_higher_bound = next_pair_iterator->first;
-                    hysteresisFactor.infections_lower_bound = pair.first - pair.second.back();
+                    hysteresisFactor.in_effect                  = true;
+                    hysteresisFactor.infections_higher_bound    = next_pair_iterator->first;
+                    hysteresisFactor.infections_lower_bound     = pair.first - pair.second.back();
                     hysteresisFactor.mobility_correction_factor = pair.second.front();
                 } else
                     break;
             }
             return correction;
         } //movement_correction_factor()
+
+        double precision_correction(double proportion) const { return round(proportion * prec_divider) * one_over_prec_divider; }
 }; //class geographical_cell{}
 
 #endif //PANDEMIC_HOYA_2002_ZHONG_CELL_HPP

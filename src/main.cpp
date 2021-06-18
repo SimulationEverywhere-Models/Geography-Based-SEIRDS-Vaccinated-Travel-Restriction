@@ -84,19 +84,17 @@ int main(int argc, char** argv)
         test.add_cells_json(scenario_config_file_path);
         test.couple_cells();
 
-        shared_ptr<cadmium::dynamic::modeling::coupled < TIME>>
+        shared_ptr<cadmium::dynamic::modeling::coupled <TIME>>
         t = make_shared<geographical_coupled<TIME>>(test);
-
-        bool done = false;
 
         // Lambda function that displays the loading animation
         auto lm = [](bool* isDone)
         {
-            if (!*isDone)
+            if (! *isDone)
             {
                 cout << "\033[33m-" << flush;
                 // Loop till bool changes
-                while(!*isDone)
+                while(! *isDone)
                 {
                     // Loop through all the different animation cycles
                     for (char loading : {'\\', '|', '/', '-'})
@@ -111,11 +109,8 @@ int main(int argc, char** argv)
 
         bool noProgress = argc > 3 && *(argv[3]) == 'N';
 
-        if (noProgress)
-            done = true; // Stops the thread
-
         // Start the thread
-        thread th_obj(lm, &done);
+        thread th_obj(lm, &noProgress);
         th_obj.detach();
 
         cadmium::dynamic::engine::runner<TIME, logger_top> r(t, {0});
@@ -125,7 +120,7 @@ int main(int argc, char** argv)
         // Stop the thread when the sim is done running
         if (!noProgress)
         {
-            done = true;
+            noProgress = true;
             cout << "\r";
         }
         cout << "\033[1;32mDone.       \033[0m" << endl;
