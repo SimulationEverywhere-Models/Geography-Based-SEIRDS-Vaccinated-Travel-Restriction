@@ -32,7 +32,7 @@
 #include <cadmium/modeling/dynamic_coupled.hpp>
 #include <cadmium/engine/pdevs_dynamic_runner.hpp>
 #include <cadmium/logger/common_loggers.hpp>
-#include "../model/geographical_coupled.hpp"
+#include "model/geographical_coupled.hpp"
 #include <thread>
 #include <chrono>
 
