@@ -24,9 +24,8 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  */
- 
- // Modified by Glenn 02/07/20
- // changed message log file to be called pandemic_messages.txt
+
+ // Modified by Glenn - 02/07/20
 
 #include <fstream>
 #include <cadmium/modeling/dynamic_coupled.hpp>
@@ -44,35 +43,27 @@ using TIME = float;
 
 /*************** Loggers *******************/
 static ofstream out_messages("../logs/pandemic_messages.txt");
-struct oss_sink_messages{
-    static ostream& sink(){
-        return out_messages;
-    }
-};
+struct oss_sink_messages { static ostream& sink(){ return out_messages; } };
 static ofstream out_state("../logs/pandemic_state.txt");
-struct oss_sink_state{
-    static ostream& sink(){
-        return out_state;
-    }
-};
+struct oss_sink_state { static ostream& sink() { return out_state; } };
 
-using state=logger::logger<logger::logger_state, dynamic::logger::formatter<TIME>, oss_sink_state>;
-using log_messages=logger::logger<logger::logger_messages, dynamic::logger::formatter<TIME>, oss_sink_messages>;
-using global_time_mes=logger::logger<logger::logger_global_time, dynamic::logger::formatter<TIME>, oss_sink_messages>;
-using global_time_sta=logger::logger<logger::logger_global_time, dynamic::logger::formatter<TIME>, oss_sink_state>;
+using state             = logger::logger<logger::logger_state,          dynamic::logger::formatter<TIME>,   oss_sink_state>;
+using log_messages      = logger::logger<logger::logger_messages,       dynamic::logger::formatter<TIME>,   oss_sink_messages>;
+using global_time_mes   = logger::logger<logger::logger_global_time,    dynamic::logger::formatter<TIME>,   oss_sink_messages>;
+using global_time_sta   = logger::logger<logger::logger_global_time,    dynamic::logger::formatter<TIME>,   oss_sink_state>;
+using logger_top        = logger::multilogger<state,                    log_messages,                       global_time_mes, global_time_sta>;
 
-using logger_top=logger::multilogger<state, log_messages, global_time_mes, global_time_sta>;
-
-
-int main(int argc, char ** argv) {
-    if (argc < 2) {
+int main(int argc, char** argv)
+{
+    if (argc < 2)
+    {
         cout << "Program used with wrong parameters. The program must be invoked as follows:";
         cout << argv[0] << " SCENARIO_CONFIG.json [MAX_SIMULATION_TIME (default: 500)]" << endl;
         return -1;
     }
 
-    try {
-        
+    try
+    {
         // The C++ standard filesystem library is not used as it may require an additional linker flag (-std=c++17),
         // but more importantly that in certain versions of GCC the filesystem is contained in an experimental folder (GCC 7).
         // Newer versions of GCC doesn't have this problem (apparently GCC 8+ ?). As a result, depending on the version of GCC
@@ -82,9 +73,8 @@ int main(int argc, char ** argv) {
         // file does not exist is not informative (at the time of this writing).
         std::ifstream file_existence_checker{argv[1]};
 
-        if(!file_existence_checker.is_open()) {
+        if (!file_existence_checker.is_open())
             throw std::runtime_error{"Unable to open the file: " + std::string{argv[1]}};
-        }
 
         // Note: At the time of this writing, the web viewer that consumes the log files of this simulator relies on the
         // the input to geographical_coupled parameter (param name: id) to be empty; this changes how the IDs of cells
@@ -128,8 +118,7 @@ int main(int argc, char ** argv) {
         thread th_obj(lm, &done);
         th_obj.detach();
 
-        cadmium::dynamic::engine::runner<TIME, logger_top>
-            r(t, {0});
+        cadmium::dynamic::engine::runner<TIME, logger_top> r(t, {0});
         float sim_time = (argc > 2) ? atof(argv[2]) : 500;
         r.run_until(sim_time);
 
@@ -140,8 +129,9 @@ int main(int argc, char ** argv) {
             cout << "\r";
         }
         cout << "\033[1;32mDone.       \033[0m" << endl;
-    }
-    catch(std::exception &e) {
+    } //try{}
+    catch(std::exception &e)
+    {
         // With cygwin, an exception that terminates the program may not be printed to the screen, making it unclear
         // if an error occurred. Thus an explicit print is done, along with a rethrowing of the exception to keep
         // the original termination logic the same.
@@ -150,4 +140,4 @@ int main(int argc, char ** argv) {
     }
 
     return 0;
-}
+} //main()

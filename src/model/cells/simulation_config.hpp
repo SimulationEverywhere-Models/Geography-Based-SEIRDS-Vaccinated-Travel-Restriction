@@ -1,6 +1,5 @@
-//
-// Created by binybrion on 7/3/20.
-// Modified by Glenn 02/07/20
+// Created by binybrion - 07/03/20
+// Modified by Glenn    - 02/07/20
 
 #ifndef PANDEMIC_HOYA_2002_SIMULATION_CONFIG_HPP
 #define PANDEMIC_HOYA_2002_SIMULATION_CONFIG_HPP
@@ -10,8 +9,7 @@
 struct simulation_config
 {
     int prec_divider;
-    using phase_rates = std::vector<        
-                        std::vector<double>>;
+    using phase_rates = std::vector<std::vector<double>>;
 
     phase_rates virulence_rates;
     phase_rates incubation_rates;
@@ -22,8 +20,8 @@ struct simulation_config
     bool SIIRS_model = true;
 };
 
-void from_json(const nlohmann::json& json, simulation_config &v) {
-
+void from_json(const nlohmann::json& json, simulation_config& v)
+{
     json.at("precision").get_to(v.prec_divider);
     json.at("virulence_rates").get_to(v.virulence_rates);
     json.at("incubation_rates").get_to(v.incubation_rates);
@@ -32,13 +30,14 @@ void from_json(const nlohmann::json& json, simulation_config &v) {
     json.at("fatality_rates").get_to(v.fatality_rates);
     json.at("SIIRS_model").get_to(v.SIIRS_model);
 
-    for(int i = 0; i < v.recovery_rates.size(); ++i) {
-        for(int k = 0; k < v.recovery_rates.at(i).size(); ++k){
+    for (int i = 0; i < v.recovery_rates.size(); ++i)
+    {
+        for (int k = 0; k < v.recovery_rates.at(i).size(); ++k)
             // A sum of greater than one refers to more than the entire population of an infection stage.
             assert(v.recovery_rates.at(i).at(k) + v.fatality_rates.at(i).at(k) <= 1.0f && "The recovery rate + fatality rate cannot exceed 1!");
-        }
-        assert(v.fatality_rates.at(i).back() <= 1.0f && "The fatality rate cannot exceed one!"); // Assert because the recovery rate has
-                                                                                               // one less entry than the fatality rates.
+
+        assert(v.fatality_rates.at(i).back() <= 1.0f && "The fatality rate cannot exceed one!");    // Assert because the recovery rate has
+                                                                                                    // one less entry than the fatality rates.
     }
 }
 
