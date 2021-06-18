@@ -1,6 +1,5 @@
-//
-// Created by binybrion on 6/30/20.
-// Modified by Glenn 02/07/20
+// Created by binybrion - 06/30/20
+// Modified by Glenn    - 02/07/20
 
 #ifndef PANDEMIC_HOYA_2002_SEIRD_HPP
 #define PANDEMIC_HOYA_2002_SEIRD_HPP
@@ -9,7 +8,8 @@
 #include <nlohmann/json.hpp>
 #include "hysteresis_factor.hpp"
 
-struct sevirds {
+struct sevirds
+{
     std::vector<double> age_group_proportions;
     std::vector<double> susceptible;
     std::vector<std::vector<double>> exposed;
@@ -35,110 +35,118 @@ struct sevirds {
         double fat, double dis, double hcap, double fatm) :
             susceptible{std::move(sus)}, exposed{std::move(exp)}, vaccinatedD1{vac1}, vaccinatedD2{vac2},
             infected{std::move(inf)}, recovered{std::move(rec)}, fatalities{fat}, disobedient{dis},
-            hospital_capacity{hcap}, fatality_modifier{fatm} {}
+            hospital_capacity{hcap}, fatality_modifier{fatm} { }
 
-    unsigned int get_num_age_segments() const {
-        return susceptible.size();
-    }
+    unsigned int get_num_age_segments() const       { return susceptible.size();        }
+    unsigned int get_num_exposed_phases() const     { return exposed.front().size();    }
+    unsigned int get_num_infected_phases() const    { return infected.front().size();   }
+    unsigned int get_num_recovered_phases() const   { return recovered.front().size();  }
 
-    unsigned int get_num_exposed_phases() const {
-        return exposed.front().size();
-    }
-
-    unsigned int get_num_infected_phases() const {
-        return infected.front().size();
-    }
-
-    unsigned int get_num_recovered_phases() const {
-        return recovered.front().size();
-    }
-
-    static double sum_state_vector(const std::vector<double> &state_vector) {
+    static double sum_state_vector(const std::vector<double>& state_vector) {
         return std::accumulate(state_vector.begin(), state_vector.end(), 0.0f);
     }
 
-    double get_total_fatalities() const {
+    double get_total_fatalities() const
+    {
         double total_fatalities = 0.0f;
-        for(int i = 0; i < age_group_proportions.size(); ++i) {
+
+        for (int i = 0; i < age_group_proportions.size(); ++i)
             total_fatalities += fatalities.at(i) * age_group_proportions.at(i);
-        }
+
         return total_fatalities;
     }
 
-    double get_total_exposed() const {
+    double get_total_exposed() const
+    {
         float total_exposed = 0.0f;
-        for(int i = 0; i < age_group_proportions.size(); ++i) {
+
+        for (int i = 0; i < age_group_proportions.size(); ++i)
             total_exposed += sum_state_vector(exposed.at(i)) * age_group_proportions.at(i);
-        }
+
         return total_exposed;
     }
 
     // Gets the total of both 1 and 2 doses
-    double get_total_vaccinated() const {
+    double get_total_vaccinated() const
+    {
         float total_vaccinated = 0.0f;
+
         for (int i = 0; i < age_group_proportions.size(); ++i)
             total_vaccinated += get_total_vaccinatedD1() + get_total_vaccinatedD2();
+
         return total_vaccinated;
     }
 
-    double get_total_vaccinatedD1() const {
+    double get_total_vaccinatedD1() const
+    {
         float total_vaccinatedD1 = 0.0f;
+
         for (int i = 0; i < age_group_proportions.size(); ++i)
             total_vaccinatedD1 += vaccinatedD1.at(i) * age_group_proportions.at(i);
+
         return total_vaccinatedD1;
     }
 
-    double get_total_vaccinatedD2() const {
+    double get_total_vaccinatedD2() const
+    {
         float total_vaccinatedD2 = 0.0f;
+
         for (int i = 0; i < age_group_proportions.size(); ++i)
             total_vaccinatedD2 += vaccinatedD2.at(i) * age_group_proportions.at(i);
+
         return total_vaccinatedD2;
     }
 
-    double get_total_infections() const {
+    double get_total_infections() const
+    {
         float total_infections = 0.0f;
-        for(int i = 0; i < age_group_proportions.size(); ++i) {
+
+        for (int i = 0; i < age_group_proportions.size(); ++i)
             total_infections += sum_state_vector(infected.at(i)) * age_group_proportions.at(i);
-        }
+
         return total_infections;
     }
 
-    double get_total_recovered() const {
+    double get_total_recovered() const
+    {
         double total_recoveries = 0.0f;
-        for(int i = 0; i < age_group_proportions.size(); ++i) {
+
+        for(int i = 0; i < age_group_proportions.size(); ++i)
             total_recoveries += sum_state_vector(recovered.at(i)) * age_group_proportions.at(i);
-        }
+
         return total_recoveries;
     }
 
-    double get_total_susceptible() const {
+    double get_total_susceptible() const
+    {
         double total_susceptible = 0.0f;
-        for(int i = 0; i < age_group_proportions.size(); ++i) {
+
+        for(int i = 0; i < age_group_proportions.size(); ++i)
             total_susceptible += susceptible.at(i) * age_group_proportions.at(i);
-        }
+
         return total_susceptible;
     }
 
-    bool operator!=(const sevirds &other) const {
+    bool operator!=(const sevirds& other) const {
         return (susceptible != other.susceptible) || (exposed != other.exposed) || (vaccinatedD1 != other.vaccinatedD1) ||
                 (vaccinatedD2 != other.vaccinatedD2) || (infected != other.infected) || (recovered != other.recovered);
     }
-};
+}; //struct servids{}
 
-bool operator<(const sevirds &lhs, const sevirds &rhs) { return true; }
-
+bool operator<(const sevirds& lhs, const sevirds& rhs) { return true; }
 
 // outputs <population, S, E, VD1, VD2, I, R, new E, new I, new R, D>
-std::ostream &operator<<(std::ostream &os, const sevirds &sevirds) {
+std::ostream &operator<<(std::ostream& os, const sevirds& sevirds) {
 
     double new_exposed = 0.0f;
     double new_infections = 0.0f;
     double new_recoveries = 0.0f;
 
-    for(int i = 0; i < sevirds.age_group_proportions.size(); ++i) {
-        new_exposed += sevirds.exposed.at(i).at(0) * sevirds.age_group_proportions.at(i);
-        new_infections += sevirds.infected.at(i).at(0) * sevirds.age_group_proportions.at(i);
-        new_recoveries += sevirds.recovered.at(i).at(0) * sevirds.age_group_proportions.at(i);
+    for (int i = 0; i < sevirds.age_group_proportions.size(); ++i) 
+    {
+        new_exposed     += sevirds.exposed.at(i).at(0) * sevirds.age_group_proportions.at(i);
+        new_infections  += sevirds.infected.at(i).at(0) * sevirds.age_group_proportions.at(i);
+        new_recoveries  += sevirds.recovered.at(i).at(0) * sevirds.age_group_proportions.at(i);
     }
 
     os << "<" << sevirds.population << "," << sevirds.get_total_susceptible() << "," << sevirds.get_total_exposed() << "," << sevirds.get_total_vaccinatedD1()
@@ -147,7 +155,8 @@ std::ostream &operator<<(std::ostream &os, const sevirds &sevirds) {
     return os;
 }
 
-void from_json(const nlohmann::json &json, sevirds &current_sevirds) {
+void from_json(const nlohmann::json &json, sevirds &current_sevirds)
+{
     json.at("age_group_proportions").get_to(current_sevirds.age_group_proportions);
     json.at("infected").get_to(current_sevirds.infected);
     json.at("recovered").get_to(current_sevirds.recovered);
