@@ -80,11 +80,11 @@ class geographical_cell : public cell<T, string, sevirds, vicinity>
 
             vector<double> fatalities, recovered;
             double new_e, new_i, new_s, curr_expos, curr_inf, res_fatalities;
-            unsigned int recovered_index    = res.get_num_recovered_phases() - 1;
+            unsigned int recovered_index;
             unsigned int age_segments       = res.get_num_age_segments();
             unsigned int exposed_phases     = res.get_num_exposed_phases();
             unsigned int infected_phases    = res.get_num_infected_phases();
-            unsigned int recovered_phases  = res.get_num_recovered_phases();
+            unsigned int recovered_phases   = res.get_num_recovered_phases();
 
 
             // Calculate the next new sevirds variables for each age group
@@ -111,7 +111,6 @@ class geographical_cell : public cell<T, string, sevirds, vicinity>
                 vector<double>& res_infected                = res.infected.at(age_segment_index);
                 vector<double>& res_recovered               = res.recovered.at(age_segment_index);
                 const vector<double>& res_incubation_rates  = incubation_rates.at(age_segment_index);
-
 
                 // Calculate the total number of new exposed entering exposed(0)
                 new_e = precision_correction(new_exposed(age_segment_index, res));
@@ -180,6 +179,8 @@ class geographical_cell : public cell<T, string, sevirds, vicinity>
                 // The susceptible population does not include those that just became exposed
                 new_s -= new_i;
 
+                recovered_index = recovered_phases - 1;
+
                 if (!SIIRS_model)
                 {
                     // Add the population on the second last day of recovery to the population on the last day of recovery.
@@ -195,7 +196,7 @@ class geographical_cell : public cell<T, string, sevirds, vicinity>
                 }
 
                 // Equation 6a
-                for(unsigned int i = recovered_index; i > 0; --i)
+                for (unsigned int i = recovered_index; i > 0; --i)
                 {
                     // Each day of the recovered is the value of the previous day. The population on the last day is
                     // now susceptible (assuming a SIIRS model); this is implicitly done already as the susceptible value was set to 1.0 and the
@@ -215,15 +216,15 @@ class geographical_cell : public cell<T, string, sevirds, vicinity>
                 assert(new_s >= 0);
 
                 res.susceptible.at(age_segment_index) = new_s;
-            } // for (age_groups)
+            } //for(age_groups)
 
             return res;
-        } // local_computation()
+        } //local_computation()
 
         // It returns the delay to communicate cell's new state.
         T output_delay(sevirds const &cell_state) const override { return 1; }
 
-        double new_exposed(unsigned int age_segment_index, sevirds &current_seird) const
+        double new_exposed(unsigned int age_segment_index, sevirds& current_seird) const
         {
             double expos = 0;
             sevirds const cstate = state.current_state;
@@ -269,8 +270,9 @@ class geographical_cell : public cell<T, string, sevirds, vicinity>
                              neighbor_correction;                       // New exposed may be slightly fewer if there are mobility restrictions
                 }
             }
+
             return min(cstate.susceptible.at(age_segment_index), expos);
-        }
+        } //new_exposed()
 
         double new_infections(unsigned int age_segment_index, sevirds &current_seird) const
         {
@@ -315,7 +317,8 @@ class geographical_cell : public cell<T, string, sevirds, vicinity>
             return recovered;
         }
 
-        vector<double> new_fatalities(const sevirds &current_state, unsigned int age_segment_index) const {
+        vector<double> new_fatalities(const sevirds &current_state, unsigned int age_segment_index) const
+        {
             vector<double> fatalities(current_state.get_num_infected_phases(), 0.0f);
 
             const vector<double>& cstate_infected       = current_state.infected.at(age_segment_index);
@@ -338,7 +341,8 @@ class geographical_cell : public cell<T, string, sevirds, vicinity>
         }
 
         float movement_correction_factor(const map<infection_threshold, mobility_correction_factor> &mobility_correction_factors,
-                                        float infectious_population, hysteresis_factor &hysteresisFactor) const {
+                                        float infectious_population, hysteresis_factor &hysteresisFactor) const
+        {
 
             // For example, assume a correction factor of "0.4": [0.2, 0.1]. If the infection goes above 0.4, then the
             // correction factor of 0.2 will now be applied to total infection values above 0.3, no longer 0.4 as the
