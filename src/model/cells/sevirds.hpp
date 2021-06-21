@@ -12,24 +12,26 @@ using namespace std;
 
 struct sevirds
 {
+    using ageGroupVector = vector<vector<double>>;
+
     double population;
     vector<double> age_group_proportions;
 
     vector<double> susceptible;
-    vector<vector<double>> vaccinatedD1;
-    vector<vector<double>> vaccinatedD2;
-    vector<vector<double>> exposed;
-    vector<vector<double>> infected;
-    vector<vector<double>> recovered;
+    ageGroupVector vaccinatedD1;
+    ageGroupVector vaccinatedD2;
+    ageGroupVector exposed;
+    ageGroupVector infected;
+    ageGroupVector recovered;
     vector<double> fatalities;
 
     double disobedient;
     double hospital_capacity;
     double fatality_modifier;
 
-    vector<double> immunityD1_rate;
+    ageGroupVector immunityD1_rate;
     int min_interval_doses;
-    vector<double> immunityD2_rate;
+    ageGroupVector immunityD2_rate;
 
     unordered_map<string, hysteresis_factor> hysteresis_factors;
     unsigned int num_age_groups;
@@ -39,8 +41,8 @@ struct sevirds
     sevirds() = default;
 
     sevirds(vector<double> sus, vector<double> exp, vector<double> vac1, vector<double> vac2, vector<double> inf,
-            vector<double> rec, double fat, double dis, double hcap, double fatm, vector<double> immuD1,
-            int min_interval, vector<double> immuD2) :
+            vector<double> rec, double fat, double dis, double hcap, double fatm, ageGroupVector immuD1,
+            int min_interval, ageGroupVector immuD2) :
             susceptible{move(sus)}, exposed{move(exp)}, vaccinatedD1{vac1}, vaccinatedD2{vac2}, infected{move(inf)},
             recovered{move(rec)}, fatalities{fat}, disobedient{dis}, hospital_capacity{hcap}, fatality_modifier{fatm},
             immunityD1_rate{immuD1}, min_interval_doses{min_interval}, immunityD2_rate{immuD2} 

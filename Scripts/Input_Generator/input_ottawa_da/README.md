@@ -24,9 +24,9 @@ default
 * **disobedient**: Proportion of population that will disobey Covid 19 guidelines and measures
 * **hospital_capacity**: Proportion of population that can be housed in hospitals
 * **fatality_modifiers**: Comes into effect when the hospitals are full and increases fatality rates
-* **immunityD1**: Immunity received from 1 dose. Length represents weeks (i.e., each week the immunity rises)
+* **immunityD1**: Immunity received from 1 dose per age group. Length represents weeks (i.e., each week the immunity rises)
 * **min_interval_between_doses**: Minimum time between dose 1 and dose 2. The average interval is longer due to supply shortage but a small proportion of the population are eligible to receive their second shot sooner (ex: elderly, public health workers...) yet there is still a recommended wait time before the first and second dose
-* **immunityD2**: Immunity received from 2 doses. Lenght represents weeks
+* **immunityD2**: Immunity received from 2 doses per age group. Lenght represents weeks
 
 config
 * **precision**: Used to get cleaner decimal points. Best not to touch this unless you know what you're doing
