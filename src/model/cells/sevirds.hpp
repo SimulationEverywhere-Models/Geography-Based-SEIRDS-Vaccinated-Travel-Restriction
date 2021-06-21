@@ -12,52 +12,79 @@ using namespace std;
 
 struct sevirds
 {
+    double population;
     vector<double> age_group_proportions;
+
     vector<double> susceptible;
+    vector<vector<double>> vaccinatedD1;
+    vector<vector<double>> vaccinatedD2;
     vector<vector<double>> exposed;
-    vector<double> vaccinatedD1;
-    vector<double> vaccinatedD2;
     vector<vector<double>> infected;
     vector<vector<double>> recovered;
     vector<double> fatalities;
-    float immunityD1_rate;
-    float immunityD2_rate;
-    unordered_map<string, hysteresis_factor> hysteresis_factors;
-    double population;
 
     double disobedient;
     double hospital_capacity;
     double fatality_modifier;
 
+    vector<double> immunityD1_rate;
+    int min_interval_doses;
+    vector<double> immunityD2_rate;
+
+    unordered_map<string, hysteresis_factor> hysteresis_factors;
     unsigned int num_age_groups;
 
     // Required for the JSON library, as types used with it must be default-constructable.
     // The overloaded constructor results in a default constructor having to be manually written.
     sevirds() = default;
 
-    sevirds(vector<double> sus, vector<double> exp, double vac1, double vac2, vector<double> inf, vector<double> rec,
-        double fat, double dis, double hcap, double fatm) :
-            susceptible{move(sus)}, exposed{move(exp)}, vaccinatedD1{vac1}, vaccinatedD2{vac2},
-            infected{move(inf)}, recovered{move(rec)}, fatalities{fat}, disobedient{dis},
-            hospital_capacity{hcap}, fatality_modifier{fatm} { num_age_groups = age_group_proportions.size(); }
+    sevirds(vector<double> sus, vector<double> exp, vector<double> vac1, vector<double> vac2, vector<double> inf,
+            vector<double> rec, double fat, double dis, double hcap, double fatm, vector<double> immuD1,
+            int min_interval, vector<double> immuD2) :
+            susceptible{move(sus)}, exposed{move(exp)}, vaccinatedD1{vac1}, vaccinatedD2{vac2}, infected{move(inf)},
+            recovered{move(rec)}, fatalities{fat}, disobedient{dis}, hospital_capacity{hcap}, fatality_modifier{fatm},
+            immunityD1_rate{immuD1}, min_interval_doses{min_interval}, immunityD2_rate{immuD2} 
+    { num_age_groups = age_group_proportions.size(); }
 
-    unsigned int get_num_age_segments() const       { return susceptible.size();        }
-    unsigned int get_num_exposed_phases() const     { return exposed.front().size();    }
-    unsigned int get_num_infected_phases() const    { return infected.front().size();   }
-    unsigned int get_num_recovered_phases() const   { return recovered.front().size();  }
+    unsigned int get_num_age_segments() const       { return susceptible.size();            }
+    unsigned int get_num_exposed_phases() const     { return exposed.front().size();        }
+    unsigned int get_num_infected_phases() const    { return infected.front().size();       }
+    unsigned int get_num_recovered_phases() const   { return recovered.front().size();      }
+    unsigned int get_num_vaccinated1_phases() const { return vaccinatedD1.front().size();   }
+    unsigned int get_num_vaccinated2_phases() const { return vaccinatedD2.front().size();   }
+    unsigned int get_immunity1_num_weeks() const    { return immunityD1_rate.size();        }
+    unsigned int get_immunity2_num_weeks() const    { return immunityD2_rate.size();        }
 
-    static double sum_state_vector(const vector<double>& state_vector) {
-        return accumulate(state_vector.begin(), state_vector.end(), 0.0f);
-    }
+    static double sum_state_vector(const vector<double>& state_vector) { return accumulate(state_vector.begin(), state_vector.end(), 0.0f); }
 
-    double get_total_fatalities() const
+    double get_total_susceptible() const
     {
-        double total_fatalities = 0.0f;
+        double total_susceptible = 0.0f;
 
         for (int i = 0; i < age_group_proportions.size(); ++i)
-            total_fatalities += fatalities.at(i) * age_group_proportions.at(i);
+            total_susceptible += susceptible.at(i) * age_group_proportions.at(i);
 
-        return total_fatalities;
+        return total_susceptible;
+    }
+
+    double get_total_vaccinatedD1() const
+    {
+        double total_vaccinatedD1 = 0.0f;
+
+        for (int i = 0; i < age_group_proportions.size(); ++i)
+            total_vaccinatedD1 += sum_state_vector(vaccinatedD1.at(i)) * age_group_proportions.at(i);
+
+        return total_vaccinatedD1;
+    }
+
+    double get_total_vaccinatedD2() const
+    {
+        double total_vaccinatedD2 = 0.0f;
+
+        for (int i = 0; i < age_group_proportions.size(); ++i)
+            total_vaccinatedD2 += sum_state_vector(vaccinatedD2.at(i)) * age_group_proportions.at(i);
+
+        return total_vaccinatedD2;
     }
 
     double get_total_exposed() const
@@ -68,37 +95,6 @@ struct sevirds
             total_exposed += sum_state_vector(exposed.at(i)) * age_group_proportions.at(i);
 
         return total_exposed;
-    }
-
-    // Gets the total of both 1 and 2 doses
-    double get_total_vaccinated() const
-    {
-        float total_vaccinated = 0.0f;
-
-        for (int i = 0; i < age_group_proportions.size(); ++i)
-            total_vaccinated += get_total_vaccinatedD1() + get_total_vaccinatedD2();
-
-        return total_vaccinated;
-    }
-
-    double get_total_vaccinatedD1() const
-    {
-        float total_vaccinatedD1 = 0.0f;
-
-        for (int i = 0; i < age_group_proportions.size(); ++i)
-            total_vaccinatedD1 += vaccinatedD1.at(i) * age_group_proportions.at(i);
-
-        return total_vaccinatedD1;
-    }
-
-    double get_total_vaccinatedD2() const
-    {
-        float total_vaccinatedD2 = 0.0f;
-
-        for (int i = 0; i < age_group_proportions.size(); ++i)
-            total_vaccinatedD2 += vaccinatedD2.at(i) * age_group_proportions.at(i);
-
-        return total_vaccinatedD2;
     }
 
     double get_total_infections() const
@@ -121,14 +117,14 @@ struct sevirds
         return total_recoveries;
     }
 
-    double get_total_susceptible() const
+    double get_total_fatalities() const
     {
-        double total_susceptible = 0.0f;
+        double total_fatalities = 0.0f;
 
-        for(int i = 0; i < age_group_proportions.size(); ++i)
-            total_susceptible += susceptible.at(i) * age_group_proportions.at(i);
+        for (int i = 0; i < age_group_proportions.size(); ++i)
+            total_fatalities += fatalities.at(i) * age_group_proportions.at(i);
 
-        return total_susceptible;
+        return total_fatalities;
     }
 
     bool operator!=(const sevirds& other) const {
@@ -161,19 +157,23 @@ ostream &operator<<(ostream& os, const sevirds& sevirds) {
 
 void from_json(const nlohmann::json &json, sevirds &current_sevirds)
 {
+    json.at("population").get_to(current_sevirds.population);
     json.at("age_group_proportions").get_to(current_sevirds.age_group_proportions);
-    json.at("infected").get_to(current_sevirds.infected);
-    json.at("recovered").get_to(current_sevirds.recovered);
+
     json.at("susceptible").get_to(current_sevirds.susceptible);
-    json.at("exposed").get_to(current_sevirds.exposed);
     json.at("vaccinatedD1").get_to(current_sevirds.vaccinatedD1);
     json.at("vaccinatedD2").get_to(current_sevirds.vaccinatedD2);
+    json.at("exposed").get_to(current_sevirds.exposed);
+    json.at("infected").get_to(current_sevirds.infected);
+    json.at("recovered").get_to(current_sevirds.recovered);
     json.at("fatalities").get_to(current_sevirds.fatalities);
+
     json.at("disobedient").get_to(current_sevirds.disobedient);
     json.at("hospital_capacity").get_to(current_sevirds.hospital_capacity);
     json.at("fatality_modifier").get_to(current_sevirds.fatality_modifier);
-    json.at("population").get_to(current_sevirds.population);
+
     json.at("immunityD1").get_to(current_sevirds.immunityD1_rate);
+    json.at("min_interval_between_doses").get_to(current_sevirds.min_interval_doses);
     json.at("immunityD2").get_to(current_sevirds.immunityD2_rate);
 
     current_sevirds.num_age_groups = current_sevirds.age_group_proportions.size();
@@ -184,7 +184,7 @@ void from_json(const nlohmann::json &json, sevirds &current_sevirds)
 
     // Three options: unvaccinated, dose 1 or dose 2. Can only be in one of those groups
     for (unsigned int i = 0; i < current_sevirds.num_age_groups; ++i)
-        if ( !(current_sevirds.vaccinatedD1.at(i) + current_sevirds.vaccinatedD2.at(i) <= 1.0f) )
+        if ( current_sevirds.get_total_vaccinatedD1() + current_sevirds.get_total_vaccinatedD2() > 1.0f )
         {
             cout << "\033[1;31mASSERT: \033[0;31mPeople can only be in one of three groups: Unvaccinated, Vaccinated-Dose1, or Vaccinated-Dose2. The proportion of people with dose 1 plus those with dose 2 cannot be greater then 1\033[0m" << endl;
             assert(false);
