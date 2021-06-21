@@ -12,26 +12,27 @@ using namespace std;
 
 struct sevirds
 {
-    using ageGroupVector = vector<vector<double>>;
+    using porportionVector = vector<vector<double>>;    // { doubles}, {doubles},   ......... }
+                                                        //  ageGroup1  ageGroup2    ageGroup#
 
     double population;
     vector<double> age_group_proportions;
 
     vector<double> susceptible;
-    ageGroupVector vaccinatedD1;
-    ageGroupVector vaccinatedD2;
-    ageGroupVector exposed;
-    ageGroupVector infected;
-    ageGroupVector recovered;
+    porportionVector vaccinatedD1;
+    porportionVector vaccinatedD2;
+    porportionVector exposed;
+    porportionVector infected;
+    porportionVector recovered;
     vector<double> fatalities;
 
     double disobedient;
     double hospital_capacity;
     double fatality_modifier;
 
-    ageGroupVector immunityD1_rate;
+    porportionVector immunityD1_rate;
     int min_interval_doses;
-    ageGroupVector immunityD2_rate;
+    porportionVector immunityD2_rate;
 
     unordered_map<string, hysteresis_factor> hysteresis_factors;
     unsigned int num_age_groups;
@@ -40,8 +41,8 @@ struct sevirds
     // The overloaded constructor results in a default constructor having to be manually written.
     sevirds() = default;
 
-    sevirds(vector<double> sus, ageGroupVector exp, ageGroupVector vac1, ageGroupVector vac2, ageGroupVector inf, ageGroupVector rec,
-            vector<double> fat, double dis, double hcap, double fatm, ageGroupVector immuD1, int min_interval, ageGroupVector immuD2) :
+    sevirds(vector<double> sus, porportionVector exp, porportionVector vac1, porportionVector vac2, porportionVector inf, porportionVector rec,
+            vector<double> fat, double dis, double hcap, double fatm, porportionVector immuD1, int min_interval, porportionVector immuD2) :
             susceptible{move(sus)}, vaccinatedD1{move(vac1)}, vaccinatedD2{move(vac2)}, exposed{move(exp)}, infected{move(inf)},
             recovered{move(rec)}, fatalities{move(fat)}, disobedient{dis}, hospital_capacity{hcap}, fatality_modifier{fatm},
             immunityD1_rate{move(immuD1)}, min_interval_doses{min_interval}, immunityD2_rate{move(immuD2)}
