@@ -16,8 +16,8 @@ struct simulation_config
     phase_rates recovery_rates;
     phase_rates mobility_rates;
     phase_rates fatality_rates;
-    std::vector<double> vac_rates_dose1;
-    phase_rates vac_rates_dose2;
+    std::vector<double> vac1_rates;
+    phase_rates vac2_rates;
 
     bool SIIRS_model, is_vaccination;
 };
@@ -30,8 +30,8 @@ void from_json(const nlohmann::json& json, simulation_config& v)
     json.at("recovery_rates").get_to(v.recovery_rates);
     json.at("mobility_rates").get_to(v.mobility_rates);
     json.at("fatality_rates").get_to(v.fatality_rates);
-    json.at("vaccination_rates_dose1").get_to(v.vac_rates_dose1);
-    json.at("vaccination_rates_dose2").get_to(v.vac_rates_dose2);
+    json.at("vaccination_rates_dose1").get_to(v.vac1_rates);
+    json.at("vaccination_rates_dose2").get_to(v.vac2_rates);
     json.at("SIIRS_model").get_to(v.SIIRS_model);
     json.at("Vaccinations").get_to(v.is_vaccination);
 

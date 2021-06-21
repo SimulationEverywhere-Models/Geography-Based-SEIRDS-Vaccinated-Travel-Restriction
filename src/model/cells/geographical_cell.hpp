@@ -39,6 +39,9 @@ class geographical_cell : public cell<T, string, sevirds, vicinity>
         phase_rates mobility_rates;
         phase_rates fatality_rates;
 
+        vector<double>  vac1_rates;
+        phase_rates     vac2_rates;
+
         // To make the parameters of the correction_factors variable more obvious
         using infection_threshold           = float;
         using mobility_correction_factor    = array<float, 2>;    // The first value is the mobility correction factor;
@@ -46,7 +49,7 @@ class geographical_cell : public cell<T, string, sevirds, vicinity>
 
         int prec_divider;
         double one_over_prec_divider;
-        bool SIIRS_model;
+        bool SIIRS_model, is_vaccination;
 
         geographical_cell() : cell<T, string, sevirds, vicinity>() {}
 
@@ -63,9 +66,13 @@ class geographical_cell : public cell<T, string, sevirds, vicinity>
             mobility_rates      = move(config.mobility_rates);
             fatality_rates      = move(config.fatality_rates);
 
+            vac1_rates = move(config.vac1_rates);
+            vac2_rates = move(config.vac2_rates);
+
             one_over_prec_divider   = 1.0 / (double)config.prec_divider; // Multiplication is always faster then division so set this up to be 1/prec_divider to be multiplied later
             prec_divider            = config.prec_divider;
             SIIRS_model             = config.SIIRS_model;
+            is_vaccination          = config.is_vaccination;
 
             assert(virulence_rates.size() == recovery_rates.size() && virulence_rates.size() == mobility_rates.size() &&
                 virulence_rates.size() == incubation_rates.size() &&
@@ -79,13 +86,15 @@ class geographical_cell : public cell<T, string, sevirds, vicinity>
             sevirds res = state.current_state;
 
             vector<double> fatalities, recovered;
-            double new_e, new_i, new_s, curr_expos, curr_inf, res_fatalities;
+            double new_s, new_vac1, new_vac2, new_e, new_i, curr_vac1, curr_vac2;
+            double curr_expos, curr_inf, res_fatalities;
             unsigned int recovered_index;
             unsigned int age_segments       = res.get_num_age_segments();
+            unsigned int vac1_phases        = res.get_num_vaccinated1_phases() - 1;
+            unsigned int vac2_phases        = res.get_num_vaccinated2_phases() - 1;
             unsigned int exposed_phases     = res.get_num_exposed_phases();
             unsigned int infected_phases    = res.get_num_infected_phases();
             unsigned int recovered_phases   = res.get_num_recovered_phases();
-
 
             // Calculate the next new sevirds variables for each age group
             for (unsigned int age_segment_index = 0; age_segment_index < age_segments; ++age_segment_index)
@@ -107,10 +116,23 @@ class geographical_cell : public cell<T, string, sevirds, vicinity>
 
                 // Get these ahead of time for performance
                 res_fatalities                              = res.fatalities.at(age_segment_index);
+                vector<double>& res_vaccinated1             = res.vaccinatedD1.at(age_segment_index);
+                vector<double>& res_vaccinated2             = res.vaccinatedD2.at(age_segment_index);
                 vector<double>& res_exposed                 = res.exposed.at(age_segment_index);
                 vector<double>& res_infected                = res.infected.at(age_segment_index);
                 vector<double>& res_recovered               = res.recovered.at(age_segment_index);
                 const vector<double>& res_incubation_rates  = incubation_rates.at(age_segment_index);
+                const double curr_vac1_rates                = vac1_rates.at(age_segment_index);
+                const vector<double>& curr_vac2_rates       = vac2_rates.at(age_segment_index);
+
+                if (is_vaccination)
+                {
+                    // Calculate the number of new vaccinated dose 1
+                    new_vac1 = precision_correction(new_vaccinated1(age_segment_index, curr_vac1_rates));
+
+                    // Calculate the number of new vaccinated dose 2
+                    new_vac2 = precision_correction(new_vaccinated2(age_segment_index, res));
+                }
 
                 // Calculate the total number of new exposed entering exposed(0)
                 new_e = precision_correction(new_exposed(age_segment_index, res));
@@ -132,6 +154,40 @@ class geographical_cell : public cell<T, string, sevirds, vicinity>
                 // So far, it was assumed that on the last day of infection, all recovered. But this is not true- have to account
                 //  for those who died on the last day of infection.
                 recovered.back() -= fatalities.back();
+
+                if (is_vaccination)
+                {
+                    // Advance all vaccinated dose 1 foward a day, with some moving to dose 2
+                    for (unsigned int i = vac1_phases; i > 0; --i)
+                    {
+                        // Calculate new vaccinated dose 1 base on the previous day minus those who moved to dose 2
+                        curr_vac1 = precision_correction(res_vaccinated1.at(i - 1) - vaccination2_rate(curr_vac2_rates, i - 1, res) * res_vaccinated1.at(i - 1));
+
+                        // While those who are vaccinated are still susceptiple, the moment they are vaccinated
+                        //  they are tracked a differently from those who are not so the variable curr_vac1 can be
+                        //  viewed as 'suscetpible vaccinated with 1 dose'
+                        //new_s -= curr_vac1;
+
+                        res_vaccinated1.at(i) = curr_vac1;
+                    }
+
+                    res_vaccinated1.at(0) = new_vac1;
+                    //new_s -= new_vac1;
+
+                    res_vaccinated2.at(vac2_phases) += res_vaccinated2.at(vac2_phases - 1);
+
+                    for (unsigned int i = vac2_phases - 1; i > 0; --i)
+                    {
+                        curr_vac2 = res_vaccinated2.at(i - 1);
+
+                        //new_s -= curr_vac2;
+
+                        res_vaccinated2.at(i) = curr_vac2;
+                    }
+
+                    res_vaccinated2.at(0) = new_vac2;
+                    //new_s -= new_vac2;
+                }
 
                 // Advance all exposed forward a day, with some proportion leaving exposed(q-1) and entering infected(1)
                 for (unsigned int i = exposed_phases - 1; i > 0; --i)
@@ -223,6 +279,32 @@ class geographical_cell : public cell<T, string, sevirds, vicinity>
 
         // It returns the delay to communicate cell's new state.
         T output_delay(sevirds const &cell_state) const override { return 1; }
+
+        double new_vaccinated1(unsigned int age_segment_index, double curr_vac1_rates) const
+        {
+            return curr_vac1_rates * state.current_state.susceptible.at(age_segment_index);
+        }
+
+        double new_vaccinated2(unsigned int age_segment_index, sevirds& current_sevirds) const
+        {
+            double vac2 = 0;
+
+            // Get the list of vaccinated dose 1
+            vector<double>& vac1 = current_sevirds.vaccinatedD1.at(age_segment_index);
+
+            // The interval is the time between the first dose and when the second dose
+            //  minus 1 because everybody on the last day moves to dose 2 regardless
+            unsigned interval = vac1.size() - current_sevirds.min_interval_doses;
+
+            // Everybody on the last day is moved to dose 2
+            vac2 = vac1.back();
+
+            // Some people are eligible to receive their second dose sooner
+            for (unsigned int phase = 0; phase < interval; ++phase)
+                vac2 += vac2_rates.at(age_segment_index).at(phase) * vac1.at(current_sevirds.min_interval_doses + phase);
+
+            return vac2;
+        }
 
         double new_exposed(unsigned int age_segment_index, sevirds& current_seird) const
         {
@@ -388,6 +470,12 @@ class geographical_cell : public cell<T, string, sevirds, vicinity>
         } //movement_correction_factor()
 
         double precision_correction(double proportion) const { return round(proportion * prec_divider) * one_over_prec_divider; }
+
+        double vaccination2_rate(const vector<double>& curr_vac2_rates, int day, sevirds& current_sevirds) const
+        {
+            if (day < current_sevirds.min_interval_doses) return 0;
+            return curr_vac2_rates.at(day - current_sevirds.min_interval_doses);
+        }
 }; //class geographical_cell{}
 
 #endif //PANDEMIC_HOYA_2002_ZHONG_CELL_HPP
