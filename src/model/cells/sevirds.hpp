@@ -47,7 +47,7 @@ struct sevirds
             immunityD1_rate{move(immuD1)}, min_interval_doses{min_interval}, immunityD2_rate{move(immuD2)}
     { num_age_groups = age_group_proportions.size(); }
 
-    unsigned int get_num_age_segments() const       { return susceptible.size();            }
+    unsigned int get_num_age_segments() const       { return num_age_groups;                }
     unsigned int get_num_exposed_phases() const     { return exposed.front().size();        }
     unsigned int get_num_infected_phases() const    { return infected.front().size();       }
     unsigned int get_num_recovered_phases() const   { return recovered.front().size();      }
