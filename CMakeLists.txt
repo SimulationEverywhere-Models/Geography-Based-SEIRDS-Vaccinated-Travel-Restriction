@@ -33,7 +33,7 @@ find_package(Boost COMPONENTS unit_test_framework system thread REQUIRED)
 file(MAKE_DIRECTORY logs)
 
 #set(CMAKE_CXX_FLAGS "-pg")
-#set(CMAKE_CXX_FLAGS "-Wall")
+set(CMAKE_CXX_FLAGS "-Wall")
 add_executable(pandemic-geographical_model src/main.cpp)
 
 target_link_libraries(pandemic-geographical_model PUBLIC ${Boost_LIBRARIES})
