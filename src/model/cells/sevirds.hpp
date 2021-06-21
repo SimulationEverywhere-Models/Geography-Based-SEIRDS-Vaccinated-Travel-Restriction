@@ -40,12 +40,11 @@ struct sevirds
     // The overloaded constructor results in a default constructor having to be manually written.
     sevirds() = default;
 
-    sevirds(vector<double> sus, vector<double> exp, vector<double> vac1, vector<double> vac2, vector<double> inf,
-            vector<double> rec, double fat, double dis, double hcap, double fatm, ageGroupVector immuD1,
-            int min_interval, ageGroupVector immuD2) :
-            susceptible{move(sus)}, exposed{move(exp)}, vaccinatedD1{vac1}, vaccinatedD2{vac2}, infected{move(inf)},
-            recovered{move(rec)}, fatalities{fat}, disobedient{dis}, hospital_capacity{hcap}, fatality_modifier{fatm},
-            immunityD1_rate{immuD1}, min_interval_doses{min_interval}, immunityD2_rate{immuD2} 
+    sevirds(vector<double> sus, ageGroupVector exp, ageGroupVector vac1, ageGroupVector vac2, ageGroupVector inf, ageGroupVector rec,
+            vector<double> fat, double dis, double hcap, double fatm, ageGroupVector immuD1, int min_interval, ageGroupVector immuD2) :
+            susceptible{move(sus)}, vaccinatedD1{move(vac1)}, vaccinatedD2{move(vac2)}, exposed{move(exp)}, infected{move(inf)},
+            recovered{move(rec)}, fatalities{move(fat)}, disobedient{dis}, hospital_capacity{hcap}, fatality_modifier{fatm},
+            immunityD1_rate{move(immuD1)}, min_interval_doses{min_interval}, immunityD2_rate{move(immuD2)}
     { num_age_groups = age_group_proportions.size(); }
 
     unsigned int get_num_age_segments() const       { return susceptible.size();            }
@@ -63,7 +62,7 @@ struct sevirds
     {
         double total_susceptible = 0.0f;
 
-        for (int i = 0; i < age_group_proportions.size(); ++i)
+        for (unsigned int i = 0; i < num_age_groups; ++i)
             total_susceptible += susceptible.at(i) * age_group_proportions.at(i);
 
         return total_susceptible;
@@ -73,7 +72,7 @@ struct sevirds
     {
         double total_vaccinatedD1 = 0.0f;
 
-        for (int i = 0; i < age_group_proportions.size(); ++i)
+        for (unsigned int i = 0; i < num_age_groups; ++i)
             total_vaccinatedD1 += sum_state_vector(vaccinatedD1.at(i)) * age_group_proportions.at(i);
 
         return total_vaccinatedD1;
@@ -83,7 +82,7 @@ struct sevirds
     {
         double total_vaccinatedD2 = 0.0f;
 
-        for (int i = 0; i < age_group_proportions.size(); ++i)
+        for (unsigned int i = 0; i < num_age_groups; ++i)
             total_vaccinatedD2 += sum_state_vector(vaccinatedD2.at(i)) * age_group_proportions.at(i);
 
         return total_vaccinatedD2;
@@ -93,7 +92,7 @@ struct sevirds
     {
         float total_exposed = 0.0f;
 
-        for (int i = 0; i < age_group_proportions.size(); ++i)
+        for (unsigned int i = 0; i < num_age_groups; ++i)
             total_exposed += sum_state_vector(exposed.at(i)) * age_group_proportions.at(i);
 
         return total_exposed;
@@ -103,7 +102,7 @@ struct sevirds
     {
         float total_infections = 0.0f;
 
-        for (int i = 0; i < age_group_proportions.size(); ++i)
+        for (unsigned int i = 0; i < num_age_groups; ++i)
             total_infections += sum_state_vector(infected.at(i)) * age_group_proportions.at(i);
 
         return total_infections;
@@ -113,7 +112,7 @@ struct sevirds
     {
         double total_recoveries = 0.0f;
 
-        for(int i = 0; i < age_group_proportions.size(); ++i)
+        for(unsigned int i = 0; i < num_age_groups; ++i)
             total_recoveries += sum_state_vector(recovered.at(i)) * age_group_proportions.at(i);
 
         return total_recoveries;
@@ -123,7 +122,7 @@ struct sevirds
     {
         double total_fatalities = 0.0f;
 
-        for (int i = 0; i < age_group_proportions.size(); ++i)
+        for (unsigned int i = 0; i < num_age_groups; ++i)
             total_fatalities += fatalities.at(i) * age_group_proportions.at(i);
 
         return total_fatalities;
@@ -144,7 +143,7 @@ ostream &operator<<(ostream& os, const sevirds& sevirds) {
     double new_infections = 0.0f;
     double new_recoveries = 0.0f;
 
-    for (int i = 0; i < sevirds.age_group_proportions.size(); ++i) 
+    for (unsigned int i = 0; i < sevirds.num_age_groups; ++i) 
     {
         new_exposed     += sevirds.exposed.at(i).at(0) * sevirds.age_group_proportions.at(i);
         new_infections  += sevirds.infected.at(i).at(0) * sevirds.age_group_proportions.at(i);

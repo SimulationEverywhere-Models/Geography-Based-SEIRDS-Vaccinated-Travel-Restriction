@@ -38,12 +38,12 @@ void from_json(const nlohmann::json& json, simulation_config& v)
     unsigned int age_groups     = v.recovery_rates.size();
     unsigned int recovery_days  = v.recovery_rates.at(0).size();
 
-    for (int i = 0; i < age_groups; ++i)
+    for (unsigned int i = 0; i < age_groups; ++i)
     {
         std::vector<double>& v_recovery_rates = v.recovery_rates.at(i);
         std::vector<double>& v_fatality_rates = v.fatality_rates.at(i);
 
-        for (int k = 0; k < recovery_days; ++k)
+        for (unsigned int k = 0; k < recovery_days; ++k)
             // A sum of greater than one refers to more than the entire population of an infection stage.
             assert(v_recovery_rates.at(k) + v_fatality_rates.at(k) <= 1.0f && "The recovery rate + fatality rate cannot exceed 1!");
 
