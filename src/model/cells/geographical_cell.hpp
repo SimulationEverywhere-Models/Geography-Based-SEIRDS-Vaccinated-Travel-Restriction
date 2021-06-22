@@ -85,9 +85,7 @@ class geographical_cell : public cell<T, string, sevirds, vicinity>
         {
             sevirds res = state.current_state;
 
-            vector<double> fatalities, recovered;
-            double new_s, new_vac1, new_vac2, new_e, new_i, curr_vac1, curr_vac2;
-            double curr_expos, curr_inf, res_fatalities;
+            double new_s;
             unsigned int recovered_index;
             unsigned int age_segments       = res.get_num_age_segments();
             unsigned int vac1_phases        = res.get_num_vaccinated1_phases() - 1;
@@ -114,159 +112,12 @@ class geographical_cell : public cell<T, string, sevirds, vicinity>
                     was already set to the population of last stage of infected- meaning fatalities is always 0 for the last stage).
                 */
 
-                // Get these ahead of time for performance
-                res_fatalities                              = res.fatalities.at(age_segment_index);
-                vector<double>& res_vaccinated1             = res.vaccinatedD1.at(age_segment_index);
-                vector<double>& res_vaccinated2             = res.vaccinatedD2.at(age_segment_index);
-                vector<double>& res_exposed                 = res.exposed.at(age_segment_index);
-                vector<double>& res_infected                = res.infected.at(age_segment_index);
-                vector<double>& res_recovered               = res.recovered.at(age_segment_index);
-                const vector<double>& res_incubation_rates  = incubation_rates.at(age_segment_index);
-                const double curr_vac1_rates                = vac1_rates.at(age_segment_index);
-                const vector<double>& curr_vac2_rates       = vac2_rates.at(age_segment_index);
+                new_s = 1;
 
                 if (is_vaccination)
-                {
-                    // Calculate the number of new vaccinated dose 1
-                    new_vac1 = precision_correction(new_vaccinated1(age_segment_index, curr_vac1_rates));
+                    compute_vaccinated(age_segment_index, res, new_s, vac1_phases, vac2_phases);
 
-                    // Calculate the number of new vaccinated dose 2
-                    new_vac2 = precision_correction(new_vaccinated2(age_segment_index, res));
-                }
-
-                // Calculate the total number of new exposed entering exposed(0)
-                new_e = precision_correction(new_exposed(age_segment_index, res));
-
-                // Calculate the total number new infected, exposed last day + exposed other days becoming infected
-                new_i = precision_correction(new_infections(age_segment_index, res));
-
-                // Calculate the vector of fatalities entered from each infection day
-                fatalities = new_fatalities(res, age_segment_index);
-
-                // Calculate the vector of new recoveries entering from each infection day 1:num_infection_phases,
-                recovered = new_recoveries(res, age_segment_index, fatalities);
-
-                res_fatalities += accumulate(fatalities.begin(), fatalities.end(), 0.0f);
-
-                // The susceptible population is smaller due to previous deaths
-                new_s = 1 - res_fatalities;
-
-                // So far, it was assumed that on the last day of infection, all recovered. But this is not true- have to account
-                //  for those who died on the last day of infection.
-                recovered.back() -= fatalities.back();
-
-                if (is_vaccination)
-                {
-                    // Advance all vaccinated dose 1 foward a day, with some moving to dose 2
-                    for (unsigned int i = vac1_phases; i > 0; --i)
-                    {
-                        // Calculate new vaccinated dose 1 base on the previous day minus those who moved to dose 2
-                        curr_vac1 = precision_correction(res_vaccinated1.at(i - 1) - vaccination2_rate(curr_vac2_rates, i - 1, res) * res_vaccinated1.at(i - 1));
-
-                        // While those who are vaccinated are still susceptiple, the moment they are vaccinated
-                        //  they are tracked a differently from those who are not so the variable curr_vac1 can be
-                        //  viewed as 'suscetpible vaccinated with 1 dose'
-                        //new_s -= curr_vac1;
-
-                        res_vaccinated1.at(i) = curr_vac1;
-                    }
-
-                    res_vaccinated1.at(0) = new_vac1;
-                    //new_s -= new_vac1;
-
-                    res_vaccinated2.at(vac2_phases) += res_vaccinated2.at(vac2_phases - 1);
-
-                    for (unsigned int i = vac2_phases - 1; i > 0; --i)
-                    {
-                        curr_vac2 = res_vaccinated2.at(i - 1);
-
-                        //new_s -= curr_vac2;
-
-                        res_vaccinated2.at(i) = curr_vac2;
-                    }
-
-                    res_vaccinated2.at(0) = new_vac2;
-                    //new_s -= new_vac2;
-                }
-
-                // Advance all exposed forward a day, with some proportion leaving exposed(q-1) and entering infected(1)
-                for (unsigned int i = exposed_phases - 1; i > 0; --i)
-                {
-                    // Calculate new exposed based on the incubation rate and the previous days exposed
-                    curr_expos = precision_correction(res_exposed.at(i - 1) * (1 - res_incubation_rates.at(i - 1)));
-
-                    // The susceptible population does not include the exposed population
-                    new_s -= curr_expos;
-
-                    res_exposed.at(i) = curr_expos;
-                }
-
-                res_exposed.at(0) = new_e;
-                new_s -= new_e;
-
-                // Equation 6d
-                // Advance all infected q = 0 to q = Ti-1 one day forward
-                for (unsigned int i = infected_phases - 1; i > 0; --i)
-                {
-                    // *** Calculate proportion of infected on a given day of the infection ***
-
-                    // The previous day of infection
-                    curr_inf = res_infected.at(i - 1);
-
-                    // The number of people in a stage of infection moving to the new infection stage do not include those
-                    // who have died or recovered. Note: A subtraction must be done here as the recovery and mortality rates
-                    // are given for the total population of an infection stage. Multiplying by (1 - respective rate) here will
-                    // NOT work as the second multiplication done will effectively be of the infection stage population after
-                    // the first multiplication, rather than the entire infection state population.
-                    curr_inf -= recovered.at(i - 1);
-                    curr_inf -= fatalities.at(i - 1);
-
-                    curr_inf = precision_correction(curr_inf);
-
-                    // The amount of susceptible does not include the infected population
-                    new_s -= curr_inf;
-
-                    res_infected.at(i) = curr_inf;
-                }
-
-                // The people on the first day of infection
-                res_infected.at(0) = new_i;
-
-                // The susceptible population does not include those that just became exposed
-                new_s -= new_i;
-
-                recovered_index = recovered_phases - 1;
-
-                if (!SIIRS_model)
-                {
-                    // Add the population on the second last day of recovery to the population on the last day of recovery.
-                    // This entire population on the last day of recovery is then subtracted from the susceptible population
-                    // to take into account that the population on the last day of recovery will not be subtracted from the susceptible
-                    // population in the Equation 6a for loop.
-                    res_recovered.back() += res_recovered.at(recovered_phases - 2);
-                    new_s -= res_recovered.back();
-                    // Avoid processing the population on the last day of recovery in the equation 6a for loop. This will
-                    // update all stages of recovery population except the last one, which grows with every time step
-                    // as it is only added to from the population on the second last day of recovery.
-                    recovered_index -= 1;
-                }
-
-                // Equation 6a
-                for (unsigned int i = recovered_index; i > 0; --i)
-                {
-                    // Each day of the recovered is the value of the previous day. The population on the last day is
-                    // now susceptible (assuming a SIIRS model); this is implicitly done already as the susceptible value was set to 1.0 and the
-                    // population on the last day of recovery is never subtracted from the susceptible value.
-                    res_recovered.at(i) = res_recovered.at(i - 1);
-                    new_s -= res_recovered.at(i);
-                }
-
-                // The people on the first day of recovery are those that were on the last stage of infection (minus those who died;
-                // already accounted for) in the previous time step plus those that recovered early during an infection stage.
-                res_recovered.at(0) = accumulate(recovered.begin(), recovered.end(), 0.0f);
-
-                // The susceptible population does not include the recovered population
-                new_s -= accumulate(recovered.begin(), recovered.end(), 0.0f);
+                computer_not_vaccinated(age_segment_index, res, new_s, exposed_phases, infected_phases, recovered_phases);
 
                 if (new_s > -0.001 && new_s < 0) new_s = 0; // double precision issues
                 assert(new_s >= 0);
@@ -468,6 +319,177 @@ class geographical_cell : public cell<T, string, sevirds, vicinity>
             }
             return correction;
         } //movement_correction_factor()
+
+        void compute_vaccinated(int age_segment_index, sevirds& res, double& new_s, unsigned int vac1_phases, unsigned int vac2_phases) const
+        {
+            vector<double>& res_vaccinated1         = res.vaccinatedD1.at(age_segment_index);
+            vector<double>& res_vaccinated2         = res.vaccinatedD2.at(age_segment_index);
+            const double& curr_vac1_rates           = vac1_rates.at(age_segment_index);
+            const vector<double>& curr_vac2_rates   = vac2_rates.at(age_segment_index);
+            double curr_vac1, curr_vac2;
+
+            // Calculate the number of new vaccinated dose 1
+            double new_vac1 = precision_correction(new_vaccinated1(age_segment_index, curr_vac1_rates));
+
+            // Calculate the number of new vaccinated dose 2
+            double new_vac2 = precision_correction(new_vaccinated2(age_segment_index, res));
+
+            // Advance all vaccinated dose 1 foward a day, with some moving to dose 2
+            for (unsigned int i = vac1_phases; i > 0; --i)
+            {
+                // Calculate new vaccinated dose 1 base on the previous day minus those who moved to dose 2
+                curr_vac1 = precision_correction(res_vaccinated1.at(i - 1) - vaccination2_rate(curr_vac2_rates, i - 1, res) * res_vaccinated1.at(i - 1));
+
+                // While those who are vaccinated are still susceptiple, the moment they are vaccinated
+                //  they are tracked a differently from those who are not so the variable curr_vac1 can be
+                //  viewed as 'suscetpible vaccinated with 1 dose'
+                // new_s -= curr_vac1;
+
+                res_vaccinated1.at(i) = curr_vac1;
+            }
+
+            res_vaccinated1.at(0) = new_vac1;
+            //new_s -= new_vac1;
+
+            res_vaccinated2.at(vac2_phases) += res_vaccinated2.at(vac2_phases - 1);
+
+            for (unsigned int i = vac2_phases - 1; i > 0; --i)
+            {
+                curr_vac2 = res_vaccinated2.at(i - 1);
+
+                //new_s -= curr_vac2;
+
+                res_vaccinated2.at(i) = curr_vac2;
+            }
+
+            res_vaccinated2.at(0) = new_vac2;
+            //new_s -= new_vac2;
+
+            return;
+        }
+
+        double computer_not_vaccinated(int age_segment_index, sevirds& res, double& new_s, unsigned int exposed_phases, unsigned int infected_phases,
+                                        unsigned int recovered_phases) const
+        {
+            // Get these ahead of time for performance
+            double res_fatalities                       = res.fatalities.at(age_segment_index);
+            vector<double> &res_exposed                 = res.exposed.at(age_segment_index);
+            vector<double> &res_infected                = res.infected.at(age_segment_index);
+            vector<double> &res_recovered               = res.recovered.at(age_segment_index);
+            const vector<double> &res_incubation_rates  = incubation_rates.at(age_segment_index);
+            double curr_expos, curr_inf;
+
+            // Calculate the vector of fatalities entered from each infection day
+            vector<double> fatalities = new_fatalities(res, age_segment_index);
+
+            // Calculate the vector of new recoveries entering from each infection day 1:num_infection_phases,
+            vector<double> recovered = new_recoveries(res, age_segment_index, fatalities);
+
+            // <EXPOSED>
+                // Calculate the total number of new exposed entering exposed(0)
+                double new_e = precision_correction(new_exposed(age_segment_index, res));
+
+                // Advance all exposed forward a day, with some proportion leaving exposed(q-1) and entering infected(1)
+                for (unsigned int i = exposed_phases - 1; i > 0; --i)
+                {
+                    // Calculate new exposed based on the incubation rate and the previous days exposed
+                    curr_expos = precision_correction(res_exposed.at(i - 1) * (1 - res_incubation_rates.at(i - 1)));
+
+                    // The susceptible population does not include the exposed population
+                    new_s -= curr_expos;
+
+                    res_exposed.at(i) = curr_expos;
+                }
+
+                res_exposed.at(0) = new_e;
+                new_s -= new_e;
+            // </EXPOSED>
+
+            // <INFECTED>
+                // Calculate the total number new infected, exposed last day + exposed other days becoming infected
+                double new_i = precision_correction(new_infections(age_segment_index, res));
+
+                // Advance all infected q = 0 to q = Ti-1 one day forward
+                for (unsigned int i = infected_phases - 1; i > 0; --i)
+                {
+                    // *** Calculate proportion of infected on a given day of the infection ***
+
+                    // The previous day of infection
+                    curr_inf = res_infected.at(i - 1);
+
+                    // The number of people in a stage of infection moving to the new infection stage do not include those
+                    // who have died or recovered. Note: A subtraction must be done here as the recovery and mortality rates
+                    // are given for the total population of an infection stage. Multiplying by (1 - respective rate) here will
+                    // NOT work as the second multiplication done will effectively be of the infection stage population after
+                    // the first multiplication, rather than the entire infection state population.
+                    curr_inf -= recovered.at(i - 1);
+                    curr_inf -= fatalities.at(i - 1);
+
+                    curr_inf = precision_correction(curr_inf);
+
+                    // The amount of susceptible does not include the infected population
+                    new_s -= curr_inf;
+
+                    res_infected.at(i) = curr_inf;
+                }
+
+                // The people on the first day of infection
+                res_infected.at(0) = new_i;
+
+                // The susceptible population does not include those that just became exposed
+                new_s -= new_i;
+            // </INFECTED>
+
+            // <FATALITIES>
+                res_fatalities += accumulate(fatalities.begin(), fatalities.end(), 0.0f);
+
+                // The susceptible population is smaller due to previous deaths
+                new_s -= res_fatalities;
+
+                // So far, it was assumed that on the last day of infection, all recovered. But this is not true- have to account
+                //  for those who died on the last day of infection.
+                recovered.back() -= fatalities.back();
+            // </FATALITIES>
+
+            unsigned int recovered_index = recovered_phases - 1;
+
+            // <RE-SUSCEPTIBLE>
+                if (!SIIRS_model)
+                {
+                    // Add the population on the second last day of recovery to the population on the last day of recovery.
+                    // This entire population on the last day of recovery is then subtracted from the susceptible population
+                    // to take into account that the population on the last day of recovery will not be subtracted from the susceptible
+                    // population in the Equation 6a for loop.
+                    res_recovered.back() += res_recovered.at(recovered_phases - 2);
+                    new_s -= res_recovered.back();
+                    // Avoid processing the population on the last day of recovery in the equation 6a for loop. This will
+                    // update all stages of recovery population except the last one, which grows with every time step
+                    // as it is only added to from the population on the second last day of recovery.
+                    recovered_index -= 1;
+                }
+            // </RE-SUSCEPTIBLE>
+
+            // <RECOVERED>
+                // Equation 6a
+                for (unsigned int i = recovered_index; i > 0; --i)
+                {
+                    // Each day of the recovered is the value of the previous day. The population on the last day is
+                    // now susceptible (assuming a SIIRS model); this is implicitly done already as the susceptible value was set to 1.0 and the
+                    // population on the last day of recovery is never subtracted from the susceptible value.
+                    res_recovered.at(i) = res_recovered.at(i - 1);
+                    new_s -= res_recovered.at(i);
+                }
+
+                    // The people on the first day of recovery are those that were on the last stage of infection (minus those who died;
+                    // already accounted for) in the previous time step plus those that recovered early during an infection stage.
+                    res_recovered.at(0) = accumulate(recovered.begin(), recovered.end(), 0.0f);
+
+                    // The susceptible population does not include the recovered population
+                    new_s -= accumulate(recovered.begin(), recovered.end(), 0.0f);
+                // </RECOVERIES>
+
+                return 0;
+        }
 
         double precision_correction(double proportion) const { return round(proportion * prec_divider) * one_over_prec_divider; }
 
