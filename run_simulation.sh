@@ -15,7 +15,7 @@
 Main()
 {
     # Defining commands used
-    SIMULATE="./pandemic-geographical_model ../config/scenario_${AREA_FILE}.json 500 $PROGRESS"
+    SIMULATE="$VALGRIND ./pandemic-geographical_model ../config/scenario_${AREA_FILE}.json 500 $PROGRESS"
     PARSE_MSG_LOGS="java -jar sim.converter.glenn.jar "input" "output""
 
     # Defining directory to save results
@@ -144,16 +144,19 @@ Main()
             echo -e " ${YELLOW}--clean|-c|--clean=#|-c=#${RESET} \t Cleans all simulation runs for the selected area if no # is set, \n \t\t\t\t otherwise cleans the specified run using the # inputed such as 'clean=1'"
             echo -e " ${YELLOW}--flags, -f${RESET}\t\t\t Displays all flags"
             echo -e " ${YELLOW}--help, -h${RESET}\t\t\t Displays the help"
-            echo -e " ${YELLOW}--Ontario, --ontario, -On, -on${RESET} Runs a simulation in Ontario"
-            echo -e " ${YELLOW}-Ottawa, --ottawa, -Ot, -ot${RESET}\t Runs a simulation in Ottawa"
-            echo -e " ${YELLOW}--rebuild, -r${RESET}\t\t\t Rebuilds the model"
             echo -e " ${YELLOW}--no-progress, -np${RESET}\t\t Turns off the progress bars and loading animations"
+            echo -e " ${YELLOW}--Ontario, --ontario, -On, -on${RESET}  Runs a simulation in Ontario"
+            echo -e " ${YELLOW}--Ottawa, --ottawa, -Ot, -ot${RESET}\t Runs a simulation in Ottawa"
+            echo -e " ${YELLOW}--profile, -p${RESET}\t\t\t Builds using the ${ITALIC}pg${RESET} profiler tool, runs the model, then exports the results in a text file"
+            echo -e " ${YELLOW}--rebuild, -r${RESET}\t\t\t Rebuilds the model"
+            echo -e " ${YELLOW}--valgrind|-v${RESET}\t\t\t Runs using valgrind, a memory error and leak check tool"
+            echo -e " ${YELLOW}--Wall|-w${RESET}\t\t\t Displays build warnings"
         else
             echo -e "${BOLD}Usage:${RESET}"
             echo -e " ./run_simulation.sh ${ITALIC}<area flag>${RESET}"
             echo -e " where ${ITALIC}<area flag>${RESET}is either --Ottawa ${BOLD}OR${RESET}--Ontario"
             echo -e " example: ./run_simulation.sh --Ottawa"
-            echo -e "Use \033[1;33m--flags${RESET}to see a list of all the flags and their meanings"
+            echo -e "Use \033[1;33m--flags${RESET} to see a list of all the flags and their meanings"
         fi
     }
 # </Helpers> #
@@ -162,6 +165,8 @@ Main()
 if [[ $1 == "" ]]; then Help;
 else
     CLEAN=N # Default to not clean the sim runs
+    WALL="-DWALL=N"
+    PROFILE=N
 
     # Loop through the flags
     while test $# -gt 0; do
@@ -195,6 +200,10 @@ else
             --rebuild|-r)
                 # Delete old model and it will be built further down
                 rm -f bin/pandemic-geographical_model
+                rm -rf CMakeFiles/
+                rm -f cmake_install.cmake
+                rm -f CMakeCache.txt
+                rm -f Makefile
                 shift;
             ;;
             --no-progress|-np)
@@ -202,13 +211,16 @@ else
                 shift
             ;;
             --valgrind|-v)
-                VALGRIND="valgrind --leak-check=yes"
+                VALGRIND="valgrind --leak-check=yes -s"
                 shift
             ;;
             --profile|-p)
-                gprof bin/pandemic-geographical_model bin/gmon.out > bin/performance.txt
-                echo -e "${GREEN}${BOLD}Done.${RESET}"
-                exit 1;
+                PROFILE=Y
+                shift
+            ;;
+            --Wall|-w)
+                WALL="-DWALL=Y"
+                shift
             ;;
             *)
                 echo -e "${RED}Unknown parameter: ${YELLOW}${1}${RESET}"
@@ -227,7 +239,7 @@ else
     # Compile the model if it does not exist
     if [[ ! -f "bin/pandemic-geographical_model" ]]; then
         echo "Building Model"
-        cmake CMakeLists.txt > log 2>&1
+        cmake CMakeLists.txt $WALL "-DPROFILER=${PROFILE}" > log 2>&1
         ErrorCheck $? log
         make > log 2>&1
         ErrorCheck $? log # Check for build errors
@@ -244,5 +256,12 @@ else
     VISUALIZATION_DIR="GIS_Viewer/${AREA}/simulation_runs/"
 
     if [[ $CLEAN == "Y" ]]; then Clean;
-    else Main; fi
+    else
+        Main;
+
+        if [[ $PROFILE == "Y" ]]; then
+            gprof bin/pandemic-geographical_model bin/gmon.out > bin/performance.txt
+            echo -e "Check ${GREEN}bin\performance.txt${RESET} for profiler results"
+        fi
+    fi
 fi

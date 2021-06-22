@@ -32,8 +32,14 @@ find_package(Boost COMPONENTS unit_test_framework system thread REQUIRED)
 
 file(MAKE_DIRECTORY logs)
 
-#set(CMAKE_CXX_FLAGS "-pg")
-set(CMAKE_CXX_FLAGS "-Wall")
+if("${WALL}" STREQUAL "Y")
+    set(CMAKE_CXX_FLAGS "-Wall")
+endif()
+
+if("${PROFILER}" STREQUAL "Y")
+    set(CMAKE_CXX_FLAGS "-pg")
+endif()
+
 add_executable(pandemic-geographical_model src/main.cpp)
 
 target_link_libraries(pandemic-geographical_model PUBLIC ${Boost_LIBRARIES})
