@@ -134,7 +134,7 @@ class geographical_cell : public cell<T, string, sevirds, vicinity>
                         thread th_vac(&geographical_cell::compute_vaccinated, age_segment_index, res_susceptible, ref(res_vaccinated1),
                                         ref(res_vaccinated2), ref(vac_total), vac1_phases, vac2_phases, this);
 
-                        th_vac.detach();
+                        th_vac.join();
                     }
 
 
@@ -364,13 +364,13 @@ class geographical_cell : public cell<T, string, sevirds, vicinity>
                 // While those who are vaccinated are still susceptiple, the moment they are vaccinated
                 //  they are tracked a differently from those who are not so the variable curr_vac1 can be
                 //  viewed as 'suscetpible vaccinated with 1 dose'
-                // new_s -= curr_vac1;
+                // new_s += curr_vac1;
 
                 res_vaccinated1.at(i) = curr_vac1;
             }
 
             res_vaccinated1.at(0) = new_vac1;
-            //new_s -= new_vac1;
+            //new_s += new_vac1;
 
             res_vaccinated2.at(vac2_phases) += res_vaccinated2.at(vac2_phases - 1);
 
@@ -378,15 +378,13 @@ class geographical_cell : public cell<T, string, sevirds, vicinity>
             {
                 curr_vac2 = res_vaccinated2.at(i - 1);
 
-                //new_s -= curr_vac2;
+                //new_s += curr_vac2;
 
                 res_vaccinated2.at(i) = curr_vac2;
             }
 
             res_vaccinated2.at(0) = new_vac2;
-            //new_s -= new_vac2;
-
-            return;
+            //new_s += new_vac2;
         }
 
         static void compute_not_vaccinated(int age_segment_index, double res_susceptible, double& res_fatalities, vector<double>& res_exposed,
