@@ -44,6 +44,7 @@
             "fatalities": [0, 0, 0, 0, 0],
             "disobedient": 0.25,
             "hospital_capacity": 0.2,
+            "fatality_modifier": 1.5,
             "immunityD1": [
                 [100, 100, 100, 100, 100, 100, 100, 100, 100],
                 [100, 100, 100, 100, 100, 100, 100, 100, 100],
