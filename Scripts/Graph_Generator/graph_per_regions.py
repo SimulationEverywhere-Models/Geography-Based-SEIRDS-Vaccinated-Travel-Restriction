@@ -4,12 +4,15 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[1]:
-
-
 import os
 import re
 import itertools, threading, time, sys
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import matplotlib.colors as mcolors
+import matplotlib
+import shutil
 
 no_progress = len(sys.argv) > 1 and sys.argv[1] == "N"
 
@@ -35,8 +38,6 @@ if not no_progress:
     t = threading.Thread(target=animate)
     t.start()
 
-# In[2]:
-
 log_file_folder = "../../logs"
 log_filename = log_file_folder + "/pandemic_state.txt"
 
@@ -57,10 +58,7 @@ newiIndex   = 8
 newrIndex   = 9
 dIndex      = 10
 
-# In[4]:
-
 def state_to_percent_df(sim_time, region_state, line_num):
-
     # read the percentages of each state
     percent_S   = region_state[sIndex]
     percent_E   = region_state[eIndex]
@@ -76,14 +74,11 @@ def state_to_percent_df(sim_time, region_state, line_num):
 
     psum = percent_S + percent_E + percent_I + percent_R + percent_D
     assert 0.95 <= psum < 1.05, ("at time" + str(curr_time))
-    
+
     # return the info in desired format
     return [int(sim_time), percent_S, percent_E, percent_VD1, percent_VD2, percent_I, percent_R, percent_new_E, percent_new_I, percent_new_R, percent_D]
 
-# In[5]:
-
 def state_to_cumulative_df(sim_time, region_state, line_num):
-    
     # read the percentages of each state
     cell_population = region_state[0]
     percent_S   = region_state[sIndex]
@@ -97,7 +92,7 @@ def state_to_cumulative_df(sim_time, region_state, line_num):
     percent_new_E = region_state[neweIndex]
     percent_new_I = region_state[newiIndex]
     percent_new_R = region_state[newrIndex]
-    
+
     # convert from percentages to cumulative totals
     total_S     = round(cell_population*percent_S)
     total_E     = round(cell_population*percent_E)
@@ -110,120 +105,65 @@ def state_to_cumulative_df(sim_time, region_state, line_num):
     total_new_E = round(cell_population*percent_new_E)
     total_new_I = round(cell_population*percent_new_I)
     total_new_R = round(cell_population*percent_new_R)
-    
+
     psum = percent_S + percent_E + percent_I + percent_R + percent_D
     ptotal = total_S + total_E + total_I + total_R + total_D
     assert 0.95 <= psum < 1.05, ("at time" + str(curr_time))
-    
+
     # return the info in desired format
     return [int(sim_time), total_S, total_E, total_VD1, total_VD2, total_I, total_R, total_new_E, total_new_I, total_new_R, total_D]
-
-# In[5]:
-
 
 states = ["sus", "expos", "infec", "rec"]
 curr_time = None
 curr_states = {}
 initial_pop = {}
 total_pop = 0
+data_percents = {}
+data_totals = {}
 
 # read the initial populations of all regions and their names in time step 0
 with open(log_filename, "r") as log_file:
     line_num = 0
+
     # for each line, read a line then:
     for line in log_file:
-        
         # strip leading and trailing spaces
         line = line.strip()
-        
+
         # if a time marker is found that is not the current time
         if line.isnumeric() and line != curr_time:
-            
-            # if time step 1 is found, then break
-            if curr_time == "1":
-                break
             # update new simulation time
             curr_time = line
             continue
 
         # create an re match objects from the current line
         state_match = re.search(regex_state,line)
-        id_match = re.search(regex_model_id,line)
-        if not (state_match and id_match):            continue
-            
+        id_match    = re.search(regex_model_id,line)
+        if not (state_match and id_match):
+            continue
+
         # parse the state and id and insert into initial_pop
         cid = id_match.group().lstrip('_')
         state = state_match.group().strip("<>")
         state = state.split(",")
         initial_pop[cid] = float(state[0])
-        line_num += 1
-        
-# In[]
 
-data_percents = {}
-data_totals = {}
+        # initialize data strucutres with region keys
+        if not cid in data_percents:
+            data_percents[cid]  = list()
+            data_totals[cid]    = list()
 
-# initialize data strucutres with region keys
-for region_id in initial_pop:
-    data_percents[region_id] = list()
-    data_totals[region_id] = list()
 
-# In[]
-
-with open(log_filename, "r") as log_file:
-    line_num = 0
-    
-    # for each line, read a line then:
-    for line in log_file:
-        
-        # strip leading and trailing spaces
-        line = line.strip()
-        
-        # if a time marker is found that is not the current time
-        if line.isnumeric() and line != curr_time:
-            
-            # if state is ready to write then write it to data of each region before starting on the new time step
-            if curr_states:
-                for region_id in curr_states:
-                    state_percentages = state_to_percent_df(curr_time, curr_states[region_id], line_num)
-                    state_totals = state_to_cumulative_df(curr_time, curr_states[region_id], line_num)
-                    data_percents[region_id].append(state_percentages)
-                    data_totals[region_id].append(state_totals)
-            # update new simulation time
-            curr_time = line
-            continue
-
-        # create an re match objects from the current line
-        state_match = re.search(regex_state,line)
-        id_match = re.search(regex_model_id,line)
-        if not (state_match and id_match):
-            #print(line)
-            continue
-            
-        # parse the state and id and insert into curr_states
-        cid = id_match.group().lstrip('_')
         state = state_match.group().strip("<>")
-        state = list(map(float,state.split(",")))
+        state = list(map(float, state.split(",")))
         curr_states[cid] = state
+
+        state_percentages   = state_to_percent_df(curr_time, curr_states[cid], line_num)
+        state_totals        = state_to_cumulative_df(curr_time, curr_states[cid], line_num)
+        data_percents[cid].append(state_percentages)
+        data_totals[cid].append(state_totals)
+
         line_num += 1
-    
-    # append final timestep   
-    for region_id in curr_states:
-        state_percentages = state_to_percent_df(curr_time, curr_states[region_id], line_num)
-        state_totals = state_to_cumulative_df(curr_time, curr_states[region_id], line_num)
-        data_percents[region_id].append(state_percentages)
-        data_totals[region_id].append(state_totals)
-    
-# In[7]:
-
-import pandas as pd
-import numpy as np
-import matplotlib.pyplot as plt
-import matplotlib.colors as mcolors
-import matplotlib
-import shutil
-
-# In[]:
 
 COLOR_SUSCEPTIBLE   = 'xkcd:blue'
 COLOR_INFECTED      = 'xkcd:red'
@@ -240,17 +180,14 @@ font = {'family' : 'DejaVu Sans',
 matplotlib.rc('font', **font)
 columns = ["time", "susceptible", "exposed", "vaccinatedD1", "vaccinatedD2", "infected", "recovered", "new_exposed", "new_infected", "new_recovered", "deaths"]
 
-# In[6]: # create an empty stats folder
-    
 path = log_file_folder + "/stats"
 shutil.rmtree(path, ignore_errors=True)
-try: 
-    os.mkdir(path) 
-except OSError as error: 
+try:
+    os.mkdir(path)
+except OSError as error:
     print(error)
     done = True
-# In[6]:
-# for every region, make a timeseries and serid graphs in the stats folder from percent data
+
 for region_key in data_percents:
 
     # make a folder for the region in that stats folder
