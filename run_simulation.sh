@@ -47,7 +47,7 @@ Main()
     # Run the model
     cd bin
     echo; echo "Executing model:"
-    #echo $SIMULATE
+    echo $SIMULATE
     $SIMULATE
     ErrorCheck $? # Check for build errors
 
