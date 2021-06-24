@@ -372,7 +372,7 @@ class geographical_cell : public cell<T, string, sevirds, vicinity>
                                         unsigned int recovered_phases) const
         {
             // Get these ahead of time for performance
-            double res_fatalities                       = res.fatalities.at(age_segment_index);
+            double& res_fatalities                       = res.fatalities.at(age_segment_index);
             vector<double> &res_exposed                 = res.exposed.at(age_segment_index);
             vector<double> &res_infected                = res.infected.at(age_segment_index);
             vector<double> &res_recovered               = res.recovered.at(age_segment_index);

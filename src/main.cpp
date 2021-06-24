@@ -111,7 +111,6 @@ int main(int argc, char** argv)
 
         // Start the thread
         thread th_obj(lm, &noProgress);
-        th_obj.detach();
 
         cadmium::dynamic::engine::runner<TIME, logger_top> r(t, {0});
         float sim_time = (argc > 2) ? atof(argv[2]) : 500;
@@ -121,6 +120,7 @@ int main(int argc, char** argv)
         if (!noProgress)
         {
             noProgress = true;
+            th_obj.join();
             cout << "\r";
         }
         cout << "\033[1;32mDone.       \033[0m" << endl;
