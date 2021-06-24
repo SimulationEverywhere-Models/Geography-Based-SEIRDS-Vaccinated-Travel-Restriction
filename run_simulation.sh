@@ -54,11 +54,14 @@ Main()
     # Generate SIRDS graphs
     echo; echo "Generating graphs and stats (will be found in logs folder):"
     cd ../Scripts/Graph_Generator/
-    python3 graph_per_regions.py $PROGRESS
-    ErrorCheck $? # Check for build errors
+    python3 graph_per_regions.py $PROGRESS &
+    pid1=$! # Remember the background process
     python3 graph_aggregates.py $PROGRESS
     ErrorCheck $? # Check for build errors
     cd ../..
+
+    wait $pid1 # Wait for graph_generator to finish
+    ErrorCheck $? # Check for build errors
 
     # Copy the message log + scenario to message log parser's input
     # Note this deletes the contents of input/output folders of the message log parser before executing
@@ -76,6 +79,7 @@ Main()
     ErrorCheck $? log # Check for build errors
     unzip "output\pandemic_messages.zip" -d output
     cd ../..
+
 
     # Copy the converted message logs to GIS Web Viewer Folder
     echo; echo; echo -e "Copying converted files to: ${BLUE}${VISUALIZATION_DIR}${RESET}"
