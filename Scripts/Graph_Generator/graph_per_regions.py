@@ -4,12 +4,12 @@
 #!/usr/bin/env python
 # coding: utf-8
 
+from multiprocessing.context import Process
 import os
 import re
 import itertools, threading, time, sys
 import pandas as pd
 import numpy as np
-import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
 import matplotlib
 import shutil
@@ -39,6 +39,7 @@ if not no_progress:
     t.start()
 
 log_file_folder = "../../logs"
+#log_file_folder = "/home/ericmereu/Documents/Geography-Based-SEIRDS-Vaccinated/logs/"
 log_filename = log_file_folder + "/pandemic_state.txt"
 
 # regex str to find underscore and one or more characters after the underscore (model id)
@@ -113,13 +114,13 @@ def state_to_cumulative_df(sim_time, region_state, line_num):
     # return the info in desired format
     return [int(sim_time), total_S, total_E, total_VD1, total_VD2, total_I, total_R, total_new_E, total_new_I, total_new_R, total_D]
 
-states = ["sus", "expos", "infec", "rec"]
-curr_time = None
-curr_states = {}
-initial_pop = {}
-total_pop = 0
-data_percents = {}
-data_totals = {}
+states          = ["sus", "expos", "infec", "rec"]
+curr_time       = None
+curr_states     = {}
+initial_pop     = {}
+total_pop       = 0
+data_percents   = {}
+data_totals     = {}
 
 # read the initial populations of all regions and their names in time step 0
 with open(log_filename, "r") as log_file:
@@ -143,16 +144,15 @@ with open(log_filename, "r") as log_file:
             continue
 
         # parse the state and id and insert into initial_pop
-        cid = id_match.group().lstrip('_')
-        state = state_match.group().strip("<>")
-        state = state.split(",")
+        cid     = id_match.group().lstrip('_')
+        state   = state_match.group().strip("<>")
+        state   = state.split(",")
         initial_pop[cid] = float(state[0])
 
         # initialize data strucutres with region keys
         if not cid in data_percents:
             data_percents[cid]  = list()
             data_totals[cid]    = list()
-
 
         state = state_match.group().strip("<>")
         state = list(map(float, state.split(",")))
@@ -165,59 +165,55 @@ with open(log_filename, "r") as log_file:
 
         line_num += 1
 
-COLOR_SUSCEPTIBLE   = 'xkcd:blue'
-COLOR_INFECTED      = 'xkcd:red'
-COLOR_EXPOSED       = 'xkcd:sienna'
-COLOR_DOSE1         = '#42b395' # xkcd:greenyblue
-COLOR_DOSE2         = '#0b8b87' # xkcd:greenishblue
-COLOR_RECOVERED     = 'xkcd:green'
-COLOR_DEAD          = 'xkcd:black'
-
-font = {'family' : 'DejaVu Sans',
-        'weight' : 'normal',
-        'size'   : 16}
-
-matplotlib.rc('font', **font)
-columns = ["time", "susceptible", "exposed", "vaccinatedD1", "vaccinatedD2", "infected", "recovered", "new_exposed", "new_infected", "new_recovered", "deaths"]
-
 path = log_file_folder + "/stats"
 shutil.rmtree(path, ignore_errors=True)
+
 try:
     os.mkdir(path)
 except OSError as error:
     print(error)
     done = True
 
-for region_key in data_percents:
+def generate_graph(region_key, path, region_data, region_totals):
+    import matplotlib.pyplot as plt
+    COLOR_SUSCEPTIBLE = 'xkcd:blue'
+    COLOR_INFECTED = 'xkcd:red'
+    COLOR_EXPOSED = 'xkcd:sienna'
+    COLOR_DOSE1 = '#42b395'  # xkcd:greenyblue
+    COLOR_DOSE2 = '#0b8b87'  # xkcd:greenishblue
+    COLOR_RECOVERED = 'xkcd:green'
+    COLOR_DEAD = 'xkcd:black'
+
+    font = {'family': 'DejaVu Sans',
+            'weight': 'normal',
+            'size': 16}
+
+    matplotlib.rc('font', **font)
+    columns = ["time", "susceptible", "exposed", "vaccinatedD1", "vaccinatedD2",
+            "infected", "recovered", "new_exposed", "new_infected", "new_recovered", "deaths"]
 
     # make a folder for the region in that stats folder
-    region_data = data_percents[region_key]
-    region_totals = data_totals[region_key]
-    foldername = "region_" + region_key
+    foldername      = "region_" + region_key
+
     try:
         os.mkdir(path + "/" + foldername)
     except OSError as error:
-        print(error)
-        done = True
+        print('Region ID - ' + region_key + ": ", error)
 
-    percents_filename = foldername +"_percentage_timeseries.csv"
-    totals_filename = foldername +"_totals_timeseries.csv"
-    base_name = path + "/" + foldername + "/"
-    percentages_filepath = base_name + percents_filename
-    totals_filepath = base_name + totals_filename
-
-    cell_population = initial_pop[region_key]
+    percents_filename       = foldername +"_percentage_timeseries.csv"
+    totals_filename         = foldername +"_totals_timeseries.csv"
+    base_name               = path + "/" + foldername + "/"
+    percentages_filepath    = base_name + percents_filename
+    totals_filepath         = base_name + totals_filename
 
     # write the timeseries percent file inside stats/region_id
     with open(percentages_filepath, "w") as out_file:
-        #out_file.write("initial cell population : " + str(cell_population) + ",\n")
         out_file.write("sim_time, S, E, VD1, VD2, I, R, New_E, New_I, New_R, D\n")
         for timestep in region_data:
             out_file.write(str(timestep).strip("[]")+"\n")
 
     # write the timeseries cumulative file inside stats/region_id
     with open(totals_filepath, "w") as out_file:
-        #out_file.write("initial cell population : " + str(cell_population) + ",\n")
         out_file.write("sim_time, S, E, VD1, VD2, I, R, New_E, New_I, New_R, D\n")
         for timestep in region_totals:
             out_file.write(str(timestep).strip("[]")+"\n")
@@ -361,7 +357,17 @@ for region_key in data_percents:
     plt.savefig(base_name + "totals_SEVIR+D.png")
     plt.close(fig)
 
-done = True
+processes = list()
+for region_id in data_percents:
+    ps = Process(target=generate_graph, args=(region_id, path,data_percents[region_id],data_totals[region_id]))
+    processes.append(ps)
+    ps.start()
+
+for ps in processes:
+    ps.join()
 
 if no_progress:
     print("\033[1;32mDone.\033[0m")
+else:
+    done = True
+    t.join()
