@@ -54,14 +54,11 @@ Main()
     # Generate SIRDS graphs
     echo; echo "Generating graphs and stats (will be found in logs folder):"
     cd ../Scripts/Graph_Generator/
-    python3 graph_per_regions.py $GRAPHS_FLAGS &
-    pid1=$! # Remember the background process
+    python3 graph_per_regions.py $GRAPHS_FLAGS
+    ErrorCheck $? # Check for build errors
     python3 graph_aggregates.py $GRAPHS_FLAGS
     ErrorCheck $? # Check for build errors
     cd ../..
-
-    wait $pid1 # Wait for graph_generator to finish
-    ErrorCheck $? # Check for build errors
 
     # Copy the message log + scenario to message log parser's input
     # Note this deletes the contents of input/output folders of the message log parser before executing
