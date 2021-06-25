@@ -54,9 +54,9 @@ Main()
     # Generate SIRDS graphs
     echo; echo "Generating graphs and stats (will be found in logs folder):"
     cd ../Scripts/Graph_Generator/
-    python3 graph_per_regions.py $PROGRESS &
+    python3 graph_per_regions.py $GRAPHS_FLAGS &
     pid1=$! # Remember the background process
-    python3 graph_aggregates.py $PROGRESS
+    python3 graph_aggregates.py $GRAPHS_FLAGS
     ErrorCheck $? # Check for build errors
     cd ../..
 
@@ -79,7 +79,6 @@ Main()
     ErrorCheck $? log # Check for build errors
     unzip "output\pandemic_messages.zip" -d output
     cd ../..
-
 
     # Copy the converted message logs to GIS Web Viewer Folder
     echo; echo; echo -e "Copying converted files to: ${BLUE}${VISUALIZATION_DIR}${RESET}"
@@ -171,6 +170,7 @@ else
     CLEAN=N # Default to not clean the sim runs
     WALL="-DWALL=N"
     PROFILE=N
+    GRAPHS_FLAGS=""
 
     # Loop through the flags
     while test $# -gt 0; do
@@ -211,10 +211,11 @@ else
                 shift;
             ;;
             --no-progress|-np)
+                GRAPHS_FLAGS=${GRAPHS_FLAGS}" -np"
                 PROGRESS=N
                 shift
             ;;
-            --valgrind|-v)
+            --valgrind|-val)
                 VALGRIND="valgrind --leak-check=yes -s"
                 shift
             ;;
@@ -224,6 +225,10 @@ else
             ;;
             --Wall|-w)
                 WALL="-DWALL=Y"
+                shift
+            ;;
+            --no-vaccines|-nvac)
+                GRAPHS_FLAGS=${GRAPHS_FLAGS}" -v"
                 shift
             ;;
             *)
