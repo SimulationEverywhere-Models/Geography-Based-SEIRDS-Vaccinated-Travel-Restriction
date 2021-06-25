@@ -228,7 +228,7 @@ else
                 shift
             ;;
             --no-vaccines|-nvac)
-                GRAPHS_FLAGS=${GRAPHS_FLAGS}" -v"
+                GRAPHS_FLAGS=${GRAPHS_FLAGS}" -nvac"
                 shift
             ;;
             *)
