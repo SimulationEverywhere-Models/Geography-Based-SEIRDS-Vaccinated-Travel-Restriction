@@ -1,8 +1,6 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[102]
-
 # Created by Eric (Jun 2021)
 # and is a combination of two scrips originally created by Kevin
 
@@ -74,28 +72,16 @@ def get_boundary_length(gdf, id1):
     g1 = gdf[gdf[area_id] == str(id1)].geometry.iloc[0]
     return g1.boundary.length
 
-# In[103]
-
 df      = pd.read_csv(cadmium_dir + clean_csv)  # General information (id, population, area...)
 df_adj  = pd.read_csv(cadmium_dir + adj_csv)  # Pair of adjacent territories
 gdf     = gpd.read_file(cadmium_dir + gpkg_file)  # GeoDataFrame with the territories poligons
-
-# In[104]
-
 df.head()
-
-# In[105]
-
 gdf.head()
-
-# In[107]
 
 # Read default state from input json
 default_cell    = json.loads( open(input_dir + "default.json", "r").read()      )
 fields          = json.loads( open(input_dir + "fields.json", "r").read()       )
 infectedCell    = json.loads( open(input_dir + "infectedCell.json", "r").read() )
-
-# In[108]
 
 default_state               = default_cell["default"]["state"]
 default_vicinity            = default_cell["default"]["neighborhood"]["default_cell_id"]
@@ -103,14 +89,9 @@ default_correction_factors  = default_vicinity["infection_correction_factors"]
 default_correlation         = default_vicinity["correlation"]
 df_adj.head()
 
-# In[109]
-
 nan_rows            = df[ df[rows].isnull() ]
 zero_pop_rows       = df[ df[rows] == 0 ]
 invalid_region_ids  = list( pd.concat([nan_rows, zero_pop_rows])[region_id_type] )
-len(invalid_region_ids), len(df) # TODO: What does this line do?
-
-# In[110]
 
 adj_full = OrderedDict()
 
@@ -157,8 +138,6 @@ for key, value in adj_full.items():
     # Insert every cell into its own neighborhood, a cell is -> cell = adj_full[key][key]
     adj_full[key][key]["neighborhood"][key] = {"correlation": default_correlation, "infection_correction_factors": default_correction_factors}
 
-# In[111]
-
 # Insert cells from ordered dictionary into index "cells" of a new OrderedDict
 template = OrderedDict()
 template["cells"] = {}
@@ -179,8 +158,6 @@ for key, value in adj_full.items():
 # Insert fields object at the end of the json for use with the GIS Webviewer V2
 template["fields"] = fields["fields"]
 adj_full_json = json.dumps(template, indent=4, sort_keys=False)  # Dictionary to string (with indentation=4 for better formatting)
-
-# In[112]
 
 with open(output_json, "w") as f:
     f.write(adj_full_json)

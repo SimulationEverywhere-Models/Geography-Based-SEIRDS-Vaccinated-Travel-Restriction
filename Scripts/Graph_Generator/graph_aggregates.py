@@ -27,17 +27,17 @@ for flag in sys.argv:
 done = False
 def animate():
     # Loop through the animation cycles
-    for c in itertools.cycle(['|', '/', '-', '\\']):
+    for c in itertools.cycle(["|", "/", "-", "\\"]):
         # When the global variable is set at the eof
         #  then the infinite loop will break
         if done:
             break
         # Using stdout makes it easier to deal with the newlines inherent in print()
         # '\r' replaces the previous line so we don't crowd the terminal
-        sys.stdout.write('\r\033[33maggregating graphs ' + c + '\033[0m')
+        sys.stdout.write("\r\033[33maggregating graphs " + c + "\033[0m")
         sys.stdout.flush()
         time.sleep(0.1)
-    sys.stdout.write('\r\033[1;32mDone.                   \033[0m\n')
+    sys.stdout.write("\r\033[1;32mDone.                   \033[0m\n")
 
 # Don't forget to thread it!
 if not no_progress:
@@ -124,7 +124,6 @@ cids        = {}
 
 # Read the data of all regions and their names
 with open(log_filename, "r") as log_file:
-
     # Read the file twice
     #   Once to get the total_pop
     #   A second time to calculate the data
@@ -154,8 +153,8 @@ with open(log_filename, "r") as log_file:
 
             # Parse the state and id and insert into total_pop
             cid     = id_match.group().lstrip('_')
-            state   = state_match.group().strip("<>")
-            state   = state.split(",")
+            state   = state_match.group().strip('<>')
+            state   = state.split(',')
 
             if i == 0:
                 total_pop[cid] = float(state[0])
@@ -167,22 +166,22 @@ with open(log_filename, "r") as log_file:
 
     data.append(curr_states_to_df_row(curr_time, curr_states, sum(total_pop.values()), line_num))
 
-font = {'family' : 'DejaVu Sans',
-        'weight' : 'normal',
-        'size'   : 16}
+font = {"family" : "DejaVu Sans",
+        "weight" : "normal",
+        "size"   : 16}
 
-matplotlib.rc('font', **font)
-matplotlib.rc('lines', linewidth=2)
+matplotlib.rc("font", **font)
+matplotlib.rc("lines", linewidth=2)
 
 try:
     os.mkdir(path)
 except OSError as error:
     print(error)
 
-with open(base_name+"aggregate_timeseries.csv", "w") as out_file:
+with open(base_name+"aggregate_timeseries.csv", 'w') as out_file:
     out_file.write("sim_time, S, E, VD1, VD2, I, R, New_E, New_I, New_R, D, pop_sum\n")
     for timestep in data:
-        out_file.write(str(timestep).strip("[]")+"\n")
+        out_file.write(str(timestep).strip('[]')+"\n")
 
 columns = ["time", "susceptible", "exposed", "vaccinatedD1", "vaccinatedD2", "infected",
             "recovered", "new_exposed", "new_infected", "new_recovered", "deaths", "error"]
@@ -199,8 +198,8 @@ ax.plot(x, 100*df_vis["susceptible"],   label="Susceptible",    color=COLOR_SUSC
 ax.plot(x, 100*df_vis["exposed"],       label="Exposed",        color=COLOR_EXPOSED)
 ax.plot(x, 100*df_vis["infected"],      label="Infected",       color=COLOR_INFECTED)
 ax.plot(x, 100*df_vis["recovered"],     label="Recovered",      color=COLOR_RECOVERED)
-plt.legend(loc='upper right')
-plt.title('Epidemic Aggregate SEIR Percentages')
+plt.legend(loc="upper right")
+plt.title("Epidemic Aggregate SEIR Percentages")
 plt.xlabel("Time (days)")
 plt.ylabel("Population (%)")
 plt.savefig(base_name + "SEIR.png")
@@ -212,8 +211,8 @@ linewidth = 2
 ax.plot(x, 100*df_vis["new_exposed"],   label="New exposed",    color=COLOR_EXPOSED)
 ax.plot(x, 100*df_vis["new_infected"],  label="New infected",   color=COLOR_INFECTED)
 ax.plot(x, 100*df_vis["new_recovered"], label="New recovered",  color=COLOR_RECOVERED)
-plt.legend(loc='upper right')
-plt.title('Epidemic Aggregate New EIR Percentages')
+plt.legend(loc="upper right")
+plt.title("Epidemic Aggregate New EIR Percentages")
 plt.xlabel("Time (days)")
 plt.ylabel("Population (%)")
 plt.savefig(base_name + "New_EIR.png")
@@ -226,8 +225,8 @@ axs[0].plot(x, 100*df_vis["exposed"],       label="Exposed",        color=COLOR_
 axs[0].plot(x, 100*df_vis["infected"],      label="Infected",       color=COLOR_INFECTED)
 axs[0].plot(x, 100*df_vis["recovered"],     label="Recovered",      color=COLOR_RECOVERED)
 axs[0].set_ylabel("Population (%)")
-axs[0].legend()
-axs[0].set_title('Epidemic Aggregate SEIR+D Percentages')
+axs[0].legend(loc="upper right")
+axs[0].set_title("Epidemic Aggregate SEIR+D Percentages")
 
 axs[1].plot(x, 100*df_vis["deaths"], label="Deaths", color=COLOR_DEAD)
 axs[1].set_xlabel("Time (days)")
@@ -248,7 +247,7 @@ if vaccines:
     axs[0].plot(x, 100*df_vis["recovered"],     label="Recovered",      color=COLOR_RECOVERED)
     axs[0].set_ylabel("Population (%)")
     axs[0].legend(loc="upper right")
-    axs[0].set_title('Epidemic Aggregate SEIRD+V Percentages')
+    axs[0].set_title("Epidemic Aggregate SEIRD+V Percentages")
 
     axs[1].plot(x, 100*df_vis["vaccinatedD1"], label="Vaccinated 1 Dose",   color=COLOR_DOSE1)
     axs[1].plot(x, 100*df_vis["vaccinatedD2"], label="Vaccinated 2 Doses",  color=COLOR_DOSE2)

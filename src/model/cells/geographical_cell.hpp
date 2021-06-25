@@ -86,7 +86,6 @@ class geographical_cell : public cell<T, string, sevirds, vicinity>
             sevirds res = state.current_state;
 
             double new_s;
-            unsigned int recovered_index;
             unsigned int age_segments       = res.get_num_age_segments();
             unsigned int vac1_phases        = res.get_num_vaccinated1_phases() - 1;
             unsigned int vac2_phases        = res.get_num_vaccinated2_phases() - 1;
@@ -114,15 +113,17 @@ class geographical_cell : public cell<T, string, sevirds, vicinity>
 
                 new_s = 1;
 
-                if (is_vaccination)
-                    compute_vaccinated(age_segment_index, res, new_s, vac1_phases, vac2_phases);
+                double& res_susceptible = res.susceptible.at(age_segment_index);
 
-                computer_not_vaccinated(age_segment_index, res, new_s, exposed_phases, infected_phases, recovered_phases);
+                if (is_vaccination)
+                    compute_vaccinated(age_segment_index, res, new_s, vac1_phases, vac2_phases, res_susceptible);
+
+                computer_not_vaccinated(age_segment_index, res, new_s, exposed_phases, infected_phases, recovered_phases, res_susceptible);
 
                 if (new_s > -0.001 && new_s < 0) new_s = 0; // double precision issues
                 assert(new_s >= 0);
 
-                res.susceptible.at(age_segment_index) = new_s;
+                res_susceptible = new_s;
             } //for(age_groups)
 
             return res;
@@ -131,33 +132,27 @@ class geographical_cell : public cell<T, string, sevirds, vicinity>
         // It returns the delay to communicate cell's new state.
         T output_delay(sevirds const &cell_state) const override { return 1; }
 
-        double new_vaccinated1(unsigned int age_segment_index, double curr_vac1_rates) const
-        {
-            return curr_vac1_rates * state.current_state.susceptible.at(age_segment_index);
-        }
+        double new_vaccinated1(double res_susceptible, double curr_vac1_rates) const { return curr_vac1_rates * res_susceptible; }
 
-        double new_vaccinated2(unsigned int age_segment_index, sevirds& current_sevirds) const
+        double new_vaccinated2(vector<double> const& res_vaccinatedD1, sevirds& current_sevirds, vector<double> const& curr_vac2_rates) const
         {
             double vac2 = 0;
 
-            // Get the list of vaccinated dose 1
-            vector<double>& vac1 = current_sevirds.vaccinatedD1.at(age_segment_index);
-
             // The interval is the time between the first dose and when the second dose
             //  minus 1 because everybody on the last day moves to dose 2 regardless
-            unsigned interval = vac1.size() - current_sevirds.min_interval_doses;
+            unsigned interval = res_vaccinatedD1.size() - current_sevirds.min_interval_doses;
 
             // Everybody on the last day is moved to dose 2
-            vac2 = vac1.back();
+            vac2 = res_vaccinatedD1.back();
 
             // Some people are eligible to receive their second dose sooner
             for (unsigned int phase = 0; phase < interval; ++phase)
-                vac2 += vac2_rates.at(age_segment_index).at(phase) * vac1.at(current_sevirds.min_interval_doses + phase);
+                vac2 += curr_vac2_rates.at(phase) * res_vaccinatedD1.at(current_sevirds.min_interval_doses + phase);
 
             return vac2;
         }
 
-        double new_exposed(unsigned int age_segment_index, sevirds& current_seird) const
+        double new_exposed(unsigned int age_segment_index, sevirds& current_seird, double res_susceptible) const
         {
             double expos = 0;
             sevirds const cstate = state.current_state;
@@ -173,9 +168,8 @@ class geographical_cell : public cell<T, string, sevirds, vicinity>
             double neighbor_correction;
             unsigned int infected_phases;
 
-            const vector<double>& res_mobility_rates  = mobility_rates.at(age_segment_index);
-            const vector<double>& res_virulance_rates = virulence_rates.at(age_segment_index);
-            double cstate_susceptible           = cstate.susceptible.at(age_segment_index);
+            const vector<double>& res_mobility_rates    = mobility_rates.at(age_segment_index);
+            const vector<double>& res_virulance_rates   = virulence_rates.at(age_segment_index);
 
             // External exposed
             for(auto neighbor: neighbors)
@@ -199,50 +193,46 @@ class geographical_cell : public cell<T, string, sevirds, vicinity>
                 {
                     expos += v.correlation * res_mobility_rates.at(i) * // Variable Cij
                              res_virulance_rates.at(i) *                // Variable lambda
-                             cstate_susceptible * total_infections *    // Variables Si and Ij, respectively
+                             res_susceptible * total_infections *    // Variables Si and Ij, respectively
                              neighbor_correction;                       // New exposed may be slightly fewer if there are mobility restrictions
                 }
             }
 
-            return min(cstate.susceptible.at(age_segment_index), expos);
+            return min(res_susceptible, expos);
         } //new_exposed()
 
-        double new_infections(unsigned int age_segment_index, sevirds &current_seird) const
+        double new_infections(vector<double> const& res_exposed, vector<double> const& res_incubation_rates) const
         {
             double inf = 0;
             sevirds const cstate = state.current_state;
-            const vector<double>& cstate_exposed = cstate.exposed.at(age_segment_index);
-            inf = cstate_exposed.back();
-            unsigned int exposed_size = cstate_exposed.size();
-            const vector<double>& res_incubation_rates = incubation_rates.at(age_segment_index);
+            inf = res_exposed.back();
+            unsigned int exposed_size = res_exposed.size();
 
             // Scan through all exposed day except last and calculate exposed.at(asi).at(i)
             for (unsigned int i = 0; i < exposed_size - 1 ; i++)
-                inf += cstate_exposed.at(i) * res_incubation_rates.at(i);
+                inf += res_exposed.at(i) * res_incubation_rates.at(i);
 
             inf = precision_correction((double)inf);
             return inf;
         }
 
-        vector<double> new_recoveries(const sevirds &current_state, unsigned int age_segment_index, const vector<double> &fatalities) const
+        vector<double> new_recoveries(unsigned int infected_phases, vector<double> const& res_infected,
+                                        unsigned int age_segment_index, const vector<double> &fatalities) const
         {
-            unsigned int infected_phases = current_state.get_num_infected_phases();
             vector<double> recovered(infected_phases, 0.0f);
-
-            const vector<double>& cstate_infected = current_state.infected.at(age_segment_index);
             const vector<double>& res_recovery_rates = recovery_rates.at(age_segment_index);
 
             // Assume that any individuals that are not fatalities on the last stage of infection recover
-            recovered.back() = cstate_infected.back() - fatalities.back();
+            recovered.back() = res_infected.back() - fatalities.back();
             double new_recoveries, maximum_possible_recoveries;
 
             for (unsigned int i = 0; i < infected_phases - 1; ++i)
             {
                 // Calculate all of the new recovered- for every day that a population is infected, some recover.
-                new_recoveries = precision_correction(cstate_infected.at(i) * res_recovery_rates.at(i));
+                new_recoveries = precision_correction(res_infected.at(i) * res_recovery_rates.at(i));
 
                 // There can't be more recoveries than those who have died
-                maximum_possible_recoveries = cstate_infected.at(i) - fatalities.at(i);
+                maximum_possible_recoveries = res_infected.at(i) - fatalities.at(i);
 
                 recovered.at(i) = min(new_recoveries, maximum_possible_recoveries);
             }
@@ -250,24 +240,22 @@ class geographical_cell : public cell<T, string, sevirds, vicinity>
             return recovered;
         }
 
-        vector<double> new_fatalities(const sevirds &current_state, unsigned int age_segment_index) const
+        vector<double> new_fatalities(const sevirds &current_state, double infected_phases, vector<double> const& res_infected,
+                                        unsigned int age_segment_index) const
         {
-            vector<double> fatalities(current_state.get_num_infected_phases(), 0.0f);
+            vector<double> fatalities(infected_phases, 0.0f);
 
-            const vector<double>& cstate_infected       = current_state.infected.at(age_segment_index);
             const vector<double>& res_fatality_rates    = fatality_rates.at(age_segment_index);
-
-            unsigned int infected_phases = current_state.get_num_infected_phases();
 
             // Calculate all those who have died during an infection stage.
             for (unsigned int i = 0; i < infected_phases; ++i) {
-                fatalities.at(i) += precision_correction(cstate_infected.at(i) * res_fatality_rates.at(i));
+                fatalities.at(i) += precision_correction(res_infected.at(i) * res_fatality_rates.at(i));
 
                 if (current_state.get_total_infections() > current_state.hospital_capacity)
                     fatalities.at(i) *= current_state.fatality_modifier;
 
                 // There can't be more fatalities than the number of people who are infected at a stage
-                fatalities.at(i) = min(fatalities.at(i), cstate_infected.at(i));
+                fatalities.at(i) = min(fatalities.at(i), res_infected.at(i));
             }
 
             return fatalities;
@@ -320,7 +308,8 @@ class geographical_cell : public cell<T, string, sevirds, vicinity>
             return correction;
         } //movement_correction_factor()
 
-        void compute_vaccinated(int age_segment_index, sevirds& res, double& new_s, unsigned int vac1_phases, unsigned int vac2_phases) const
+        void compute_vaccinated(int age_segment_index, sevirds& res, double& new_s, unsigned int vac1_phases,
+                                unsigned int vac2_phases, double res_susceptible) const
         {
             vector<double>& res_vaccinated1         = res.vaccinatedD1.at(age_segment_index);
             vector<double>& res_vaccinated2         = res.vaccinatedD2.at(age_segment_index);
@@ -329,10 +318,10 @@ class geographical_cell : public cell<T, string, sevirds, vicinity>
             double curr_vac1, curr_vac2;
 
             // Calculate the number of new vaccinated dose 1
-            double new_vac1 = precision_correction(new_vaccinated1(age_segment_index, curr_vac1_rates));
+            double new_vac1 = precision_correction(new_vaccinated1(res_susceptible, curr_vac1_rates));
 
             // Calculate the number of new vaccinated dose 2
-            double new_vac2 = precision_correction(new_vaccinated2(age_segment_index, res));
+            double new_vac2 = precision_correction(new_vaccinated2(res_vaccinated1, res, curr_vac2_rates));
 
             // Advance all vaccinated dose 1 foward a day, with some moving to dose 2
             for (unsigned int i = vac1_phases; i > 0; --i)
@@ -369,25 +358,25 @@ class geographical_cell : public cell<T, string, sevirds, vicinity>
         }
 
         double computer_not_vaccinated(int age_segment_index, sevirds& res, double& new_s, unsigned int exposed_phases, unsigned int infected_phases,
-                                        unsigned int recovered_phases) const
+                                        unsigned int recovered_phases, double res_susceptible) const
         {
             // Get these ahead of time for performance
-            double& res_fatalities                       = res.fatalities.at(age_segment_index);
-            vector<double> &res_exposed                 = res.exposed.at(age_segment_index);
-            vector<double> &res_infected                = res.infected.at(age_segment_index);
-            vector<double> &res_recovered               = res.recovered.at(age_segment_index);
-            const vector<double> &res_incubation_rates  = incubation_rates.at(age_segment_index);
+            double& res_fatalities                      = res.fatalities.at(age_segment_index);
+            vector<double>& res_exposed                 = res.exposed.at(age_segment_index);
+            vector<double>& res_infected                = res.infected.at(age_segment_index);
+            vector<double>& res_recovered               = res.recovered.at(age_segment_index);
+            const vector<double>& res_incubation_rates  = incubation_rates.at(age_segment_index);
             double curr_expos, curr_inf;
 
             // Calculate the vector of fatalities entered from each infection day
-            vector<double> fatalities = new_fatalities(res, age_segment_index);
+            vector<double> fatalities = new_fatalities(res, infected_phases, res_infected, age_segment_index);
 
             // Calculate the vector of new recoveries entering from each infection day 1:num_infection_phases,
-            vector<double> recovered = new_recoveries(res, age_segment_index, fatalities);
+            vector<double> recovered = new_recoveries(infected_phases, res_infected, age_segment_index, fatalities);
 
             // <EXPOSED>
                 // Calculate the total number of new exposed entering exposed(0)
-                double new_e = precision_correction(new_exposed(age_segment_index, res));
+                double new_e = precision_correction(new_exposed(age_segment_index, res, res_susceptible));
 
                 // Advance all exposed forward a day, with some proportion leaving exposed(q-1) and entering infected(1)
                 for (unsigned int i = exposed_phases - 1; i > 0; --i)
@@ -407,7 +396,7 @@ class geographical_cell : public cell<T, string, sevirds, vicinity>
 
             // <INFECTED>
                 // Calculate the total number new infected, exposed last day + exposed other days becoming infected
-                double new_i = precision_correction(new_infections(age_segment_index, res));
+                double new_i = precision_correction(new_infections(res_exposed, res_incubation_rates));
 
                 // Advance all infected q = 0 to q = Ti-1 one day forward
                 for (unsigned int i = infected_phases - 1; i > 0; --i)
