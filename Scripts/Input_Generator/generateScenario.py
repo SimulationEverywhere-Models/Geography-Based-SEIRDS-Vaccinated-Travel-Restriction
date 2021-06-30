@@ -105,7 +105,7 @@ for ind, row, in df_adj.iterrows():
         print("Invalid region ID found:", row_region_id)
         continue
     elif row_neighborhood_id in invalid_region_ids:
-        print("Invalid region ID found:", row_neighborhood_id)
+        print("Invalid neighborhood region ID found:", row_neighborhood_id)
         continue
     elif row_region_id_str not in adj_full:
         rel_row = df[ df[region_id_type] == row[region_id] ].iloc[0, :]
