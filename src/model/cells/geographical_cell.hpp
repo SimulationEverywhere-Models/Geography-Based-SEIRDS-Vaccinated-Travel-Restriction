@@ -494,10 +494,12 @@ class geographical_cell : public cell<T, string, sevirds, vicinity>
 
             // <EXPOSED DOSE 1>
                 double new_exposedV1 = precision_correction(new_exposed(res, age_data_vac1, false));
+                new_s -= new_exposedV1;
             // </EXPOSED DOSE 1>
 
             // <EXPOSED DOSE 2>
                 double new_exposedV2 = precision_correction(new_exposed(res, age_data_vac2, false));
+                new_s -= new_exposedV2;
             // </EXPOSED DOSE 2>
         }
 
