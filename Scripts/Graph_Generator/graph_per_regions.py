@@ -43,6 +43,7 @@ if not no_progress:
 
 # Setup paths, filenames, and folders
 log_file_folder = "../../logs"
+log_file_folder = "/home/ericmereu/Documents/Geography-Based-SEIRDS-Vaccinated/GIS_Viewer/ontario/simulation_runs/run1/logs"
 log_filename = log_file_folder + "/pandemic_state.txt"
 path = log_file_folder + "/stats"
 shutil.rmtree(path, ignore_errors=True)
@@ -198,7 +199,7 @@ def generate_graph(region_key, path, region_data, region_totals):
             "infected", "recovered", "new_exposed", "new_infected", "new_recovered", "deaths"]
 
     # Make a folder for the region in that stats folder
-    foldername      = "region_" + region_key
+    foldername = "region_" + region_key
 
     try:
         os.mkdir(path + "/" + foldername)
@@ -226,6 +227,9 @@ def generate_graph(region_key, path, region_data, region_totals):
     # initialize graphing dfs (percents)
     df_vis_p = pd.DataFrame(region_data, columns=columns)
     df_vis_p = df_vis_p.set_index("time")
+
+    vaccines2 = vaccines if not vaccines else not (
+        sum(df_vis_p['vaccinatedD1']) == 0.0 or sum(df_vis_p['vaccinatedD2']) == 0)
 
     # initialize graphing dfs (totals)
     df_vis_t = pd.DataFrame(region_totals, columns=columns)
@@ -265,7 +269,7 @@ def generate_graph(region_key, path, region_data, region_totals):
     axs[0].plot(x, 100*df_vis_p["infected"],    label="Infected",       color=COLOR_INFECTED)
     axs[0].plot(x, 100*df_vis_p["recovered"],   label="Recovered",      color=COLOR_RECOVERED)
     axs[0].plot(x, 100*df_vis_p["deaths"],      label="Deaths",         color=COLOR_DEAD)
-    if vaccines:
+    if vaccines and vaccines2:
         axs[0].plot(x, 100*df_vis_p["vaccinatedD1"], label="Vaccinated 1 dose",  color=COLOR_DOSE1)
         axs[0].plot(x, 100*df_vis_p["vaccinatedD2"], label="Vaccinated 2 dose",  color=COLOR_DOSE2)
         axs[0].set_title('Epidemic SEVIRD Percentages and Totals for ' + foldername)
@@ -280,7 +284,7 @@ def generate_graph(region_key, path, region_data, region_totals):
     axs[1].plot(t, df_vis_t["infected"],    label="Infected",       color=COLOR_INFECTED)
     axs[1].plot(t, df_vis_t["recovered"],   label="Recovered",      color=COLOR_RECOVERED)
     axs[1].plot(t, df_vis_t["deaths"],      label="Deaths",         color=COLOR_DEAD)
-    if vaccines:
+    if vaccines and vaccines2:
         axs[1].plot(t, df_vis_t["vaccinatedD1"],    label="Vaccinated 1 Dose",  color=COLOR_DOSE1)
         axs[1].plot(t, df_vis_t["vaccinatedD2"],    label="Vaccinated 2 Doses", color=COLOR_DOSE2)
         axs[1].set_ylim(0,150000) # TODO: Remove this once vaccinated modelling is implemented correctly
@@ -288,7 +292,7 @@ def generate_graph(region_key, path, region_data, region_totals):
     axs[1].set_xlabel("Time (days)")
     axs[1].legend(loc="upper right")
 
-    if (vaccines):
+    if vaccines and vaccines2:
         plt.savefig(base_name + "SEVIRD.png")
     else:
         plt.savefig(base_name + "SEIRD.png")
@@ -298,7 +302,7 @@ def generate_graph(region_key, path, region_data, region_totals):
     # Deaths + Vaccinated
     fig, axs = plt.subplots(2, figsize=(15,6))
 
-    if vaccines:
+    if vaccines and vaccines2:
         axs[0].plot(x, 100*df_vis_p["vaccinatedD1"], label="Vaccinated 1 Dose", color=COLOR_DOSE1)
         axs[0].plot(x, 100*df_vis_p["vaccinatedD2"], label="Vaccinated 2 Dose", color=COLOR_DOSE2)
         axs[0].set_title("Epidemic Death and Vaccinated Percentages for " + foldername)
@@ -314,7 +318,7 @@ def generate_graph(region_key, path, region_data, region_totals):
     axs[1].set_xlabel("Time (days)")
     axs[1].legend(loc="upper right")
 
-    if vaccines:
+    if vaccines and vaccines2:
         plt.savefig(base_name + "Deaths+Vaccianted.png")
     else:
         plt.savefig(base_name + "Deaths.png")

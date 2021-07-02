@@ -46,6 +46,7 @@ if not no_progress:
 
 # Setup paths, filenames, and folders
 log_file_folder = "../../logs"
+log_file_folder = "/home/ericmereu/Documents/Geography-Based-SEIRDS-Vaccinated/GIS_Viewer/ontario/simulation_runs/run1/logs"
 log_filename = log_file_folder + "/pandemic_state.txt"
 path = log_file_folder + "/stats/aggregate"
 base_name = path + "/"
@@ -237,7 +238,7 @@ axs[1].legend(loc="upper right")
 plt.savefig(base_name + "SEIR+D.png")
 
 ### --- SEIRD+V --- ###
-if vaccines:
+if vaccines and not (sum(df_vis['vaccinatedD1']) == 0.0 or sum(df_vis['vaccinatedD2']) == 0):
     fig, axs = plt.subplots(2, figsize=(15,6))
     linewidth = 2
 
