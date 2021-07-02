@@ -27,7 +27,7 @@ class AgeData
     vecDouble& m_exposed;
     vecDouble& m_infected;
     vecDouble& m_recovered;
-    double&    m_fatalities;
+    vecDouble  m_fatalities;
 
     // Config Vectors
     vecDouble const& m_incubRates;
@@ -40,7 +40,7 @@ class AgeData
 
     public:
         AgeData(unsigned int age, vecVecDouble& susc, vecVecDouble& exp, vecVecDouble& inf,
-                vecVecDouble& rec, vecDouble& fat, vecVecDouble const& incub_r, vecVecDouble const& rec_r,
+                vecVecDouble& rec, vecVecDouble const& incub_r, vecVecDouble const& rec_r,
                 vecVecDouble const& fat_r, vecDouble const& vac_r, vecVecDouble const& mob_r,
                 vecVecDouble const& vir_r, vecDouble const& immu_r) :
             m_currAge(age),
@@ -48,7 +48,6 @@ class AgeData
             m_exposed(exp.at(age)),
             m_infected(inf.at(age)),
             m_recovered(rec.at(age)),
-            m_fatalities(fat.at(age)),
             m_incubRates(incub_r.at(age)),
             m_recovRates(rec_r.at(age)),
             m_fatalRates(fat_r.at(age)),
@@ -61,16 +60,16 @@ class AgeData
         // Non-Vaccinated
         //  so no vaccination rate or immunity rate
         AgeData(unsigned int age, vecVecDouble& susc, vecVecDouble& exp, vecVecDouble& inf,
-            vecVecDouble& rec, vecDouble& fat, vecVecDouble const& incub_r, vecVecDouble const& rec_r,
+            vecVecDouble& rec, vecVecDouble const& incub_r, vecVecDouble const& rec_r,
             vecVecDouble const& fat_r, vecVecDouble const& mob_r, vecVecDouble const& vir_r) :
-            AgeData(age, susc, exp, inf, rec, fat, incub_r, rec_r, fat_r, EMPTY_VEC, mob_r, vir_r, EMPTY_VEC)
+            AgeData(age, susc, exp, inf, rec, incub_r, rec_r, fat_r, EMPTY_VEC, mob_r, vir_r, EMPTY_VEC)
         { }
 
         vecDouble&  GetSusceptible()    { return m_susceptible; }
         vecDouble&  GetExposed()        { return m_exposed;     }
         vecDouble&  GetInfected()       { return m_infected;    }
         vecDouble&  GetRecovered()      { return m_recovered;   }
-        double&     GetFatalities()     { return m_fatalities;  }
+        vecDouble&  GetFatalities()     { return m_fatalities;  }
 
         vecDouble const& GetIncubationRates()   { return m_incubRates;      }
         vecDouble const& GetRecoveryRates()     { return m_recovRates;      }
