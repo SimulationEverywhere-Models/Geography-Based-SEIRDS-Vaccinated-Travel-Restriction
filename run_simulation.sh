@@ -224,10 +224,6 @@ else
                 WALL="-DWALL=Y"
                 shift
             ;;
-            --no-vaccines|-nvac)
-                GRAPHS_FLAGS=${GRAPHS_FLAGS}" -nvac"
-                shift
-            ;;
             *)
                 echo -e "${RED}Unknown parameter: ${YELLOW}${1}${RESET}"
                 Help;
