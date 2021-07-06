@@ -13,15 +13,12 @@ import matplotlib
 import shutil
 
 no_progress = False
-vaccines    = True
 
 # Handles command line flags
 for flag in sys.argv:
     flag = flag.lower()
     if flag == "--no-progress" or flag == "-np":
         no_progress = True
-    elif flag == "--no-vaccines" or flag == "-nvac":
-        vaccines = False
 
 # Loading animation
 done = False
@@ -46,6 +43,7 @@ if not no_progress:
 
 # Setup paths, filenames, and folders
 log_file_folder = "../../logs"
+# log_file_folder = "/home/ericmereu/Documents/Geography-Based-SEIRDS-Vaccinated/GIS_Viewer/ontario/simulation_runs/run14/logs"
 log_filename = log_file_folder + "/pandemic_state.txt"
 path = log_file_folder + "/stats/aggregate"
 base_name = path + "/"
@@ -237,7 +235,7 @@ axs[1].legend(loc="upper right")
 plt.savefig(base_name + "SEIR+D.png")
 
 ### --- SEIRD+V --- ###
-if vaccines and not (sum(df_vis['vaccinatedD1']) == 0.0 or sum(df_vis['vaccinatedD2']) == 0):
+if not (sum(df_vis['vaccinatedD1']) == 0 and sum(df_vis['vaccinatedD2']) == 0):
     fig, axs = plt.subplots(2, figsize=(15,6))
     linewidth = 2
 
