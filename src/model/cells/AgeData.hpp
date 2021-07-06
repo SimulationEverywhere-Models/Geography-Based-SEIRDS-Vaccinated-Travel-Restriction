@@ -18,31 +18,42 @@ static vecDouble EMPTY_VEC; // Used as a null
 */
 class AgeData
 {
-    // The current age the data is referencing
-    unsigned int m_currAge;
+    public:
+        enum PopType
+        {
+            NVAC,
+            DOSE1,
+            DOSE2
+        };
 
-    // Proportion Vectors
-    // These will be at a current age segment index so only one vector of doubles
-    vecDouble& m_susceptible;
-    vecDouble& m_exposed;
-    vecDouble& m_infected;
-    vecDouble& m_recovered;
-    vecDouble  m_fatalities;
+    private:
+        // The current age the data is referencing
+        unsigned int m_currAge;
 
-    // Config Vectors
-    vecDouble const& m_incubRates;
-    vecDouble const& m_recovRates;
-    vecDouble const& m_fatalRates;
-    vecDouble const& m_mobilityRates;
-    vecDouble const& m_vacRates;
-    vecDouble const& m_virulRates;
-    vecDouble const& m_immuneRates;
+        // Proportion Vectors
+        // These will be at a current age segment index so only one vector of doubles
+        vecDouble& m_susceptible;
+        vecDouble& m_exposed;
+        vecDouble& m_infected;
+        vecDouble& m_recovered;
+        vecDouble  m_fatalities;
+
+        // Config Vectors
+        vecDouble const& m_incubRates;
+        vecDouble const& m_recovRates;
+        vecDouble const& m_fatalRates;
+        vecDouble const& m_mobilityRates;
+        vecDouble const& m_vacRates;
+        vecDouble const& m_virulRates;
+        vecDouble const& m_immuneRates;
+
+        PopType m_popType;
 
     public:
         AgeData(unsigned int age, vecVecDouble& susc, vecVecDouble& exp, vecVecDouble& inf,
                 vecVecDouble& rec, vecVecDouble const& incub_r, vecVecDouble const& rec_r,
                 vecVecDouble const& fat_r, vecDouble const& vac_r, vecVecDouble const& mob_r,
-                vecVecDouble const& vir_r, vecDouble const& immu_r) :
+                vecVecDouble const& vir_r, vecDouble const& immu_r, PopType type=PopType::NVAC) :
             m_currAge(age),
             m_susceptible(susc.at(age)),
             m_exposed(exp.at(age)),
@@ -54,7 +65,8 @@ class AgeData
             m_mobilityRates(mob_r.at(age)),
             m_vacRates(vac_r),      // Don't .at() this one since it may be EMPTY_VEC
             m_virulRates(vir_r.at(age)),
-            m_immuneRates(immu_r)   // This one too may be EMPTY_VEC
+            m_immuneRates(immu_r),   // This one too may be EMPTY_VEC
+            m_popType(type)
         { }
 
         // Non-Vaccinated
@@ -78,6 +90,9 @@ class AgeData
         vecDouble const& GetVaccinationRates()  { return m_vacRates;        }
         vecDouble const& GetVirulenceRates()    { return m_virulRates;      }
         vecDouble const& GetImmunityRates()     { return m_immuneRates;     }
+
+        PopType& GetType() { return m_popType; }
+        int      GetAge()  { return m_currAge; }
 };
 
 #endif // AGE_DATA_HPP
