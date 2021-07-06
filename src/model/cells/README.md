@@ -10,7 +10,7 @@ Holds the parameters that control the simulation. In particular:
 * The mobility rates
 * The fatality rates
 
-**`seird.hpp`**:
+**`sevirds.hpp`**:
 
 Holds the state of each cell in the simulation. The states of each cell are updated
 throughout the simulation, and provides the functionality to print the state information
@@ -36,3 +36,8 @@ can be found (this is implemented in the `geographical_cell.hpp`).
 Holds the implementation of the model that runs different simulations. It uses all of the
 aforementioned structures to run simulations. This implementation is described in the
 associated user guide, located at the root of the repository.
+
+**`AgeData.hpp`**
+
+Holds data for one age group (susceptible proportion, infected proportion, virulence rate...) for
+faster retrival and easier passing around. It's exclusively used in `geographical_cell.hpp`.
