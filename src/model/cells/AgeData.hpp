@@ -83,6 +83,12 @@ class AgeData
         vecDouble&  GetRecovered()      { return m_recovered;   }
         vecDouble&  GetFatalities()     { return m_fatalities;  }
 
+        double& GetSusceptible(int index)    { return m_susceptible.at(index);   }
+        double& GetExposed(int index)        { return m_exposed.at(index);       }
+        double& GetInfected(int index)       { return m_infected.at(index);      }
+        double& GetRecovered(int index)      { return m_recovered.at(index);     }
+        double& GetFatalities(int index)     { return m_fatalities.at(index);    }
+
         vecDouble const& GetIncubationRates()   { return m_incubRates;      }
         vecDouble const& GetRecoveryRates()     { return m_recovRates;      }
         vecDouble const& GetFatalityRates()     { return m_fatalRates;      }
@@ -90,6 +96,14 @@ class AgeData
         vecDouble const& GetVaccinationRates()  { return m_vacRates;        }
         vecDouble const& GetVirulenceRates()    { return m_virulRates;      }
         vecDouble const& GetImmunityRates()     { return m_immuneRates;     }
+
+        double GetIncubationRate(int index)    { return m_incubRates.at(index);    }
+        double GetRecoveryRate(int index)      { return m_recovRates.at(index);    }
+        double GetFatalityRate(int index)      { return m_fatalRates.at(index);    }
+        double GetMobilityRate(int index)      { return m_mobilityRates.at(index); }
+        double GetVaccinationRate(int index)   { return m_vacRates.at(index);      }
+        double GetVirulenceRate(int index)     { return m_virulRates.at(index);    }
+        double GetImmunityRate(int index)      { return m_immuneRates.at(index);   }
 
         PopType& GetType() { return m_popType; }
         int      GetAge()  { return m_currAge; }
