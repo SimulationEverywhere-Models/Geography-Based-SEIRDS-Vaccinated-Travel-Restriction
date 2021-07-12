@@ -103,20 +103,14 @@ struct sevirds
     static double sum_state_vector(const vector<double>& state_vector) { return accumulate(state_vector.begin(), state_vector.end(), 0.0f); }
 
     /**
-     * @param age_segment_index: Used to retrieve the total susceptible at the specified age group.
-     *                              Defaults to -1, meaning 'get all the susceptible for all age groups'.
+     * @param getNVac: Used when only wanting to get the non-vaccinated susceptible population.
     */
-    double get_total_susceptible(int age_segment_index=-1, bool getNVac=false) const
+    double get_total_susceptible(bool getNVac=false) const
     {
-        assert(age_segment_index >= -1 && "Invalid Age Segment");
-
         double total_susceptible = 0;
 
         for (unsigned int i = 0; i < num_age_groups; ++i)
         {
-            if (age_segment_index > -1)
-                i = (unsigned int)age_segment_index;
-
             // Total non-vaccinated
             total_susceptible += susceptible.at(i).front() * age_group_proportions.at(i);
 
@@ -126,82 +120,43 @@ struct sevirds
                 total_susceptible += sum_state_vector(vaccinatedD1.at(i)) * age_group_proportions.at(i);
                 total_susceptible += sum_state_vector(vaccinatedD2.at(i)) * age_group_proportions.at(i);
             }
-
-            // If an age group have been inputed then we're done
-            if (age_segment_index > -1)
-                break;
         }
 
         return total_susceptible;
     }
 
-    /**
-     * @param age_segment_index: Used to retrieve the total vaccinated dose 1 at the specified age group.
-     *                              Defaults to -1, meaning 'get all those vaccinated with dose 1 in all age groups'.
-    */
-    double get_total_vaccinatedD1(int age_segment_index=-1) const
+    double get_total_vaccinatedD1() const
     {
-        assert(age_segment_index >= -1 && "Invalid Age Segment");
-
         double total_vaccinatedD1 = 0;
 
         for (unsigned int i = 0; i < num_age_groups; ++i)
         {
-            if (age_segment_index > -1)
-                i = (unsigned int)age_segment_index;
-
             // Total vaccinated Dose 1
             total_vaccinatedD1 += sum_state_vector(vaccinatedD1.at(i)) * age_group_proportions.at(i);
-
-            // If an age group have been inputed then we're done
-            if (age_segment_index > -1)
-                break;
         }
 
         return total_vaccinatedD1;
     }
 
-    /**
-     * @param age_segment_index: Used to retrieve the total vaccinated dose 2 at the specified age group.
-     *                              Defaults to -1, meaning 'get all those vaccinated with dose 2 in all age groups'.
-    */
-    double get_total_vaccinatedD2(int age_segment_index=-1) const
+    double get_total_vaccinatedD2() const
     {
-        assert(age_segment_index >= -1 && "Invalid Age Segment");
-
         double total_vaccinatedD2 = 0;
 
         for (unsigned int i = 0; i < num_age_groups; ++i)
         {
-            if (age_segment_index > -1)
-                i = (unsigned int)age_segment_index;
-
             // Total vaccinated Dose 2
             total_vaccinatedD2 += sum_state_vector(vaccinatedD2.at(i)) * age_group_proportions.at(i);
-
-            // If an age group have been inputed then we're done
-            if (age_segment_index > -1)
-                break;
         }
 
         return total_vaccinatedD2;
     }
 
-    /**
-     * @param age_segment_index: Used to retrieve the total exposed at the specified age group.
-     *                              Defaults to -1, meaning 'get all the exposures for all age groups'.
-    */
-    double get_total_exposed(int age_segment_index=-1) const
+    double get_total_exposed() const
     {
-        assert(age_segment_index >= -1 && "Invalid Age Segment");
-
         double total_exposed = 0;
 
         for (unsigned int i = 0; i < num_age_groups; ++i)
         {
-            if (age_segment_index > -1)
-                i = (unsigned int)age_segment_index;
-
             // Total non-vaccinated exposed
             total_exposed += sum_state_vector(exposed.at(i)) * age_group_proportions.at(i);
 
@@ -211,30 +166,17 @@ struct sevirds
                 total_exposed += sum_state_vector(exposedD1.at(i)) * age_group_proportions.at(i);
                 total_exposed += sum_state_vector(exposedD2.at(i)) * age_group_proportions.at(i);
             }
-
-            // If an age group have been inputed then we're done
-            if (age_segment_index > -1)
-                break;
         }
 
         return total_exposed;
     }
 
-    /**
-     * @param age_segment_index: Used to retrieve the total infections at the specified age group.
-     *                              Defaults to -1, meaning 'get all the infections for all age groups'.
-    */
-    double get_total_infections(int age_segment_index=-1) const
+    double get_total_infections() const
     {
-        assert(age_segment_index >= -1 && "Invalid Age Segment");
-
         double total_infections = 0;
 
         for (unsigned int i = 0; i < num_age_groups; ++i)
         {
-            if (age_segment_index > -1)
-                i = (unsigned int)age_segment_index;
-
             // Total non-vaccinated infected
             total_infections += sum_state_vector(infected.at(i)) * age_group_proportions.at(i);
 
@@ -244,30 +186,17 @@ struct sevirds
                 total_infections += sum_state_vector(infectedD1.at(i)) * age_group_proportions.at(i);
                 total_infections += sum_state_vector(infectedD2.at(i)) * age_group_proportions.at(i);
             }
-
-            // If an age group have been inputed then we're done
-            if (age_segment_index > -1)
-                break;
         }
 
         return total_infections;
     }
 
-    /**
-     * @param age_segment_index: Used to retrieve the total susceptible at the specified age group.
-     *                              Defaults to -1, meaning 'get all the recoveries for all age groups'.
-    */
-    double get_total_recovered(int age_segment_index=-1) const
+    double get_total_recovered() const
     {
-        assert(age_segment_index >= -1 && "Invalid Age Segment");
-
         double total_recoveries = 0;
 
         for(unsigned int i = 0; i < num_age_groups; ++i)
         {
-            if (age_segment_index > -1)
-                i = (unsigned int)age_segment_index;
-
             // Total non-vaccinated recoveries
             total_recoveries += sum_state_vector(recovered.at(i)) * age_group_proportions.at(i);
 
@@ -277,23 +206,13 @@ struct sevirds
                 total_recoveries += sum_state_vector(recoveredD1.at(i)) * age_group_proportions.at(i);
                 total_recoveries += sum_state_vector(recoveredD2.at(i)) * age_group_proportions.at(i);
             }
-
-            // If an age group have been inputed then we're done
-            if (age_segment_index > -1)
-                break;
         }
 
         return total_recoveries;
     }
 
-    /**
-     * @param age_segment_index: Used to retrieve the total susceptible at the specified age group.
-     *                              Defaults to -1, meaning 'get all the fatalities for all age groups'.
-    */
-    double get_total_fatalities(int age_segment_index=-1) const
+    double get_total_fatalities() const
     {
-        assert(age_segment_index >= -1 && "Invalid Age Segment");
-
         double total_fatalities = 0.0f;
 
         for (unsigned int i = 0; i < num_age_groups; ++i)
@@ -337,7 +256,7 @@ ostream &operator<<(ostream& os, const sevirds& sevirds)
                             sevirds.age_group_proportions.at(i);
     }
 
-    os << "<" << sevirds.population << "," << sevirds.get_total_susceptible(-1, true) << "," << sevirds.get_total_exposed() << "," << sevirds.get_total_vaccinatedD1()
+    os << "<" << sevirds.population << "," << sevirds.get_total_susceptible(true) << "," << sevirds.get_total_exposed() << "," << sevirds.get_total_vaccinatedD1()
         << "," << sevirds.get_total_vaccinatedD2() << "," << sevirds.get_total_infections() << "," << sevirds.get_total_recovered() << "," << new_exposed
         << "," << new_infections << "," << new_recoveries << "," << sevirds.get_total_fatalities() << ">";
     return os;
