@@ -240,20 +240,28 @@ ostream &operator<<(ostream& os, const sevirds& sevirds)
     double new_infections   = 0;
     double new_recoveries   = 0;
 
+    double age_group_proportion;
+
     for (unsigned int i = 0; i < sevirds.num_age_groups; ++i)
     {
-        new_exposed     += (sevirds.exposed.at(i).at(0) +                               // Non-vaccinated exposed
-                            (sevirds.vaccines ? sevirds.exposedD1.at(i).at(0) : 0)  +   // Dose 1 exposed
-                            (sevirds.vaccines ? sevirds.exposedD2.at(i).at(0) : 0)) *   // Dose 2 exposed
-                            sevirds.age_group_proportions.at(i);
-        new_infections  += (sevirds.infected.at(i).at(0) +                              // Non-vaccinated infected
-                            (sevirds.vaccines ? sevirds.infectedD1.at(i).at(0) : 0)  +  // Dose 1 infected
-                            (sevirds.vaccines ? sevirds.infectedD1.at(i).at(0) : 0)) *  // Dose2 infected
-                            sevirds.age_group_proportions.at(i);
-        new_recoveries  += (sevirds.recovered.at(i).at(0) +                             // Non-vaccinated recovered
-                            (sevirds.vaccines ? sevirds.recoveredD1.at(i).at(0) : 0)  + // Dose 1 recovered
-                            (sevirds.vaccines ? sevirds.recoveredD2.at(i).at(0) : 0)) * // Dose 2 recovered
-                            sevirds.age_group_proportions.at(i);
+        age_group_proportion = sevirds.age_group_proportions.at(i);
+
+        new_exposed    += sevirds.exposed.at(i).at(0) * age_group_proportion;   // Non-vaccinated exposed
+        new_infections += sevirds.infected.at(i).at(0) * age_group_proportion;  // Non-vaccinated infected
+        new_recoveries += sevirds.recovered.at(i).at(0) * age_group_proportion; // Non-vaccinated recovered
+
+        if (sevirds.vaccines)
+        {
+            // Dose 1
+            new_exposed    += sevirds.exposedD1.at(i).at(0) * age_group_proportion;
+            new_infections += sevirds.infectedD1.at(i).at(0) * age_group_proportion;
+            new_recoveries += sevirds.recoveredD1.at(i).at(0) * age_group_proportion;
+
+            // Dose 2
+            new_exposed    += sevirds.exposedD2.at(i).at(0) * age_group_proportion;
+            new_infections += sevirds.infectedD2.at(i).at(0) * age_group_proportion;
+            new_recoveries += sevirds.recoveredD2.at(i).at(0) * age_group_proportion;
+        }
     }
 
     os << "<" << sevirds.population << "," << sevirds.get_total_susceptible(true) << "," << sevirds.get_total_exposed() << "," << sevirds.get_total_vaccinatedD1()
