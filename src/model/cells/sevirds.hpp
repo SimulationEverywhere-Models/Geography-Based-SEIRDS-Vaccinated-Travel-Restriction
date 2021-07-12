@@ -118,7 +118,7 @@ struct sevirds
                 i = (unsigned int)age_segment_index;
 
             // Total non-vaccinated
-            total_susceptible += sum_state_vector(susceptible.at(i)) * age_group_proportions.at(i);
+            total_susceptible += susceptible.at(i).front() * age_group_proportions.at(i);
 
             // Total vaccianted (Dose1 + Dose2)
             if (vaccines && !getNVac)
@@ -167,6 +167,8 @@ struct sevirds
     */
     double get_total_vaccinatedD2(int age_segment_index=-1) const
     {
+        assert(age_segment_index >= -1 && "Invalid Age Segment");
+
         double total_vaccinatedD2 = 0;
 
         for (unsigned int i = 0; i < num_age_groups; ++i)
