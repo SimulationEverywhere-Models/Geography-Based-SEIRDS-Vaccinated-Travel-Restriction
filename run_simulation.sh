@@ -20,15 +20,20 @@ Main()
 
     # Defining directory to save results
     # Always creates a new directory instead of replacing a previous one
-    declare -i RUN_INDEX=1
-    while true; do
-        # Creates a new run
-        if [[ ! -d "${VISUALIZATION_DIR}run${RUN_INDEX}" ]]; then
-            VISUALIZATION_DIR="${VISUALIZATION_DIR}run${RUN_INDEX}"
-            break;
-        fi
-        RUN_INDEX=$((RUN_INDEX + 1))
-    done
+    if [[ $NAME != "" ]]; then
+        VISUALIZATION_DIR="${VISUALIZATION_DIR}${NAME}"
+        break;
+    else
+        declare -i RUN_INDEX=1
+        while true; do
+            # Creates a new run
+            if [[ ! -d "${VISUALIZATION_DIR}run${RUN_INDEX}" ]]; then
+                VISUALIZATION_DIR="${VISUALIZATION_DIR}run${RUN_INDEX}"
+                break;
+            fi
+            RUN_INDEX=$((RUN_INDEX + 1))
+        done
+    fi
 
     # Make directories if they don't exist
     mkdir -p Scripts/Input_Generator/output
@@ -111,8 +116,8 @@ Main()
             rm -rfv $VISUALIZATION_DIR
         # Otherwise delete the run that matches the number passed in
         else
-            echo -e "Removing ${YELLOW}run${RUN}${RESET} for ${YELLOW}${AREA}${RED}"
-            rm -rfdv ${VISUALIZATION_DIR}run${RUN}
+            echo -e "Removing ${YELLOW}${RUN}${RESET} for ${YELLOW}${AREA}${RED}"
+            rm -rfdv ${VISUALIZATION_DIR}${RUN}
         fi
 
         echo -e "${BOLD}${GREEN}Done.${RESET}" # Reset the colors
@@ -141,7 +146,7 @@ Main()
     {
         if [[ $1 == 1 ]]; then
             echo -e "${YELLOW}Flags:${RESET}"
-            echo -e " ${YELLOW}--clean|-c|--clean=#|-c=#${RESET} \t Cleans all simulation runs for the selected area if no # is set, \n \t\t\t\t otherwise cleans the specified run using the # inputed such as 'clean=1'"
+            echo -e " ${YELLOW}--clean|-c|--clean=#|-c=#${RESET} \t Cleans all simulation runs for the selected area if no # is set, \n \t\t\t\t otherwise cleans the specified run using the folder name inputed such as 'clean=run1'"
             echo -e " ${YELLOW}--flags, -f${RESET}\t\t\t Displays all flags"
             echo -e " ${YELLOW}--help, -h${RESET}\t\t\t Displays the help"
             echo -e " ${YELLOW}--no-progress, -np${RESET}\t\t Turns off the progress bars and loading animations"
@@ -168,6 +173,7 @@ else
     WALL="-DWALL=N"
     PROFILE=N
     GRAPHS_FLAGS=""
+    NAME=""
 
     # Loop through the flags
     while test $# -gt 0; do
@@ -187,6 +193,17 @@ else
                 Help;
                 exit 1;
             ;;
+            --name*|-n*)
+                if [[ $1 == *"="* ]]; then
+                    NAME=`echo $1 | sed -e 's/^[^=]*=//g'`; # Set custom folder name
+                fi
+                shift
+            ;;
+            --no-progress|-np)
+                GRAPHS_FLAGS=${GRAPHS_FLAGS}" -np"
+                PROGRESS=N
+                shift
+            ;;
             --Ontario|--ontario|-On|-on)
                 AREA="ontario"
                 AREA_FILE="${AREA}_phu"
@@ -198,6 +215,10 @@ else
                 AREA_FILE="${AREA}_da"
                 shift
             ;;
+            --profile|-p)
+                PROFILE=Y
+                shift
+            ;;
             --rebuild|-r)
                 # Delete old model and it will be built further down
                 rm -f bin/pandemic-geographical_model
@@ -207,17 +228,8 @@ else
                 rm -f Makefile
                 shift;
             ;;
-            --no-progress|-np)
-                GRAPHS_FLAGS=${GRAPHS_FLAGS}" -np"
-                PROGRESS=N
-                shift
-            ;;
             --valgrind|-val)
                 VALGRIND="valgrind --leak-check=yes -s"
-                shift
-            ;;
-            --profile|-p)
-                PROFILE=Y
                 shift
             ;;
             --Wall|-w)
@@ -256,6 +268,11 @@ else
 
     # Used both in Clean() and Main() so we set it here
     VISUALIZATION_DIR="GIS_Viewer/${AREA}/simulation_runs/"
+
+    if [[ $NAME != "" && -d ${VISUALIZATION_DIR}${NAME} ]]; then
+        echo -e "${RED}'${NAME}' Already exists!${RESET}"
+        exit -1
+    fi
 
     if [[ $CLEAN == "Y" ]]; then Clean;
     else
