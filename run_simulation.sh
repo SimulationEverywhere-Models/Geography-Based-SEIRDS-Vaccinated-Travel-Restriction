@@ -15,7 +15,7 @@
 Main()
 {
     # Defining commands used
-    SIMULATE="$VALGRIND ./pandemic-geographical_model ../config/scenario_${AREA_FILE}.json 500 $PROGRESS"
+    SIMULATE="$VALGRIND ./pandemic-geographical_model ../config/scenario_${AREA_FILE}.json $DAYS $PROGRESS"
     PARSE_MSG_LOGS="java -jar sim.converter.glenn.jar "input" "output""
 
     # Defining directory to save results
@@ -51,8 +51,7 @@ Main()
 
     # Run the model
     cd bin
-    echo; echo "Executing model:"
-    echo $SIMULATE
+    echo; echo "Executing model for $DAYS days:"
     $SIMULATE
     ErrorCheck $? # Check for build errors
 
@@ -147,6 +146,7 @@ Main()
         if [[ $1 == 1 ]]; then
             echo -e "${YELLOW}Flags:${RESET}"
             echo -e " ${YELLOW}--clean|-c|--clean=#|-c=#${RESET} \t Cleans all simulation runs for the selected area if no # is set, \n \t\t\t\t otherwise cleans the specified run using the folder name inputed such as 'clean=run1'"
+            echo -e " ${YELLOW}--days=#|-d=#${RESET} \t\t\t Sets the number of days to run a simulation (default=500)"
             echo -e " ${YELLOW}--flags, -f${RESET}\t\t\t Displays all flags"
             echo -e " ${YELLOW}--help, -h${RESET}\t\t\t Displays the help"
             echo -e " ${YELLOW}--no-progress, -np${RESET}\t\t Turns off the progress bars and loading animations"
@@ -174,6 +174,7 @@ else
     PROFILE=N
     GRAPHS_FLAGS=""
     NAME=""
+    DAYS="500"
 
     # Loop through the flags
     while test $# -gt 0; do
@@ -183,6 +184,12 @@ else
                     RUN=`echo $1 | sed -e 's/^[^=]*=//g'`; # Get the run to remove
                 else RUN="-1"; fi # -1 => Delete all runs
                 CLEAN=Y
+                shift
+            ;;
+            --days*|-d*)
+                if [[ $1 == *"="* ]]; then
+                    DAYS=`echo $1 | sed -e 's/^[^=]*=//g'`;
+                fi
                 shift
             ;;
             --flags|-f)
