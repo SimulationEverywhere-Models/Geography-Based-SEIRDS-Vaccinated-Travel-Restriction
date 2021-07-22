@@ -22,6 +22,7 @@ for flag in sys.argv:
 
 # Loading animation
 done = False
+success = True
 def animate():
     # Loop through the animation cycles
     for c in itertools.cycle(["|", "/", "-", "\\"]):
@@ -34,7 +35,8 @@ def animate():
         sys.stdout.write("\r\033[33maggregating graphs " + c + "\033[0m")
         sys.stdout.flush()
         time.sleep(0.1)
-    sys.stdout.write("\r\033[1;32mDone.                   \033[0m\n")
+    if success:
+        sys.stdout.write("\r\033[1;32mDone.                   \033[0m\n")
 
 # Don't forget to thread it!
 if not no_progress:
@@ -43,7 +45,7 @@ if not no_progress:
 
 # Setup paths, filenames, and folders
 log_file_folder = "../../logs"
-# log_file_folder = "/home/ericmereu/Documents/Geography-Based-SEIRDS-Vaccinated/GIS_Viewer/ontario/simulation_runs/run14/logs"
+#log_file_folder = "/home/ericmereu/Documents/Geography-Based-SEIRDS-Vaccinated/logs"
 log_filename = log_file_folder + "/pandemic_state.txt"
 path = log_file_folder + "/stats/aggregate"
 base_name = path + "/"
@@ -105,9 +107,9 @@ def curr_states_to_df_row(sim_time, curr_states, total_pop, line_num):
     percent_new_E = new_E / total_pop
     percent_new_I = new_I / total_pop
     percent_new_R = new_R / total_pop
-    psum = percent_S + percent_E + percent_I + percent_R + percent_D
+    psum = percent_S + percent_E + percent_VD1 + percent_VD2 + percent_I + percent_R + percent_D
 
-    assert 0.95 <= psum < 1.05, ("at time" + str(curr_time))
+    assert 0.95 <= psum < 1.05, ("at time " + str(curr_time))
 
     return [int(sim_time), percent_S, percent_E, percent_VD1, percent_VD2, percent_I, percent_R, percent_new_E, percent_new_I, percent_new_R, percent_D, psum]
 
@@ -120,124 +122,91 @@ curr_states = {}
 total_pop   = {}
 cids        = {}
 
-# Read the data of all regions and their names
-with open(log_filename, "r") as log_file:
-    # Read the file twice
-    #   Once to get the total_pop
-    #   A second time to calculate the data
-    for i in range(2):
-        log_file.seek(0, 0)
-        line_num = 0
-
-        # For each line, read a line then:
-        for line in log_file:
-            # Strip leading and trailing spaces
-            line = line.strip()
-
-            # If a time marker is found that is not the current time
-            if line.isnumeric() and line != curr_time:
-                if curr_states and i == 1:
-                    data.append(curr_states_to_df_row(curr_time, curr_states, sum(list(total_pop.values())), line_num))
-
-                # Update new simulation time
-                curr_time = line
-                continue
-
-            # Create an re match objects from the current line
-            state_match = re.search(regex_state,line)
-            id_match    = re.search(regex_model_id,line)
-            if not (state_match and id_match):
-                continue
-
-            # Parse the state and id and insert into total_pop
-            cid     = id_match.group().lstrip('_')
-            state   = state_match.group().strip('<>')
-            state   = state.split(',')
-
-            if i == 0:
-                total_pop[cid] = float(state[0])
-            elif i == 1:
-                state = list(map(float, state))
-                curr_states[cid] = state
-
-            line_num += 1
-
-    data.append(curr_states_to_df_row(curr_time, curr_states, sum(total_pop.values()), line_num))
-
-font = {"family" : "DejaVu Sans",
-        "weight" : "normal",
-        "size"   : 16}
-
-matplotlib.rc("font", **font)
-matplotlib.rc("lines", linewidth=2)
-
 try:
-    os.mkdir(path)
-except OSError as error:
-    print(error)
+    # Read the data of all regions and their names
+    with open(log_filename, "r") as log_file:
+        # Read the file twice
+        #   Once to get the total_pop
+        #   A second time to calculate the data
+        for i in range(2):
+            log_file.seek(0, 0)
+            line_num = 0
 
-with open(base_name+"aggregate_timeseries.csv", 'w') as out_file:
-    out_file.write("sim_time, S, E, VD1, VD2, I, R, New_E, New_I, New_R, D, pop_sum\n")
-    for timestep in data:
-        out_file.write(str(timestep).strip('[]')+"\n")
+            # For each line, read a line then:
+            for line in log_file:
+                # Strip leading and trailing spaces
+                line = line.strip()
 
-columns = ["time", "susceptible", "exposed", "vaccinatedD1", "vaccinatedD2", "infected",
-            "recovered", "new_exposed", "new_infected", "new_recovered", "deaths", "error"]
-df_vis = pd.DataFrame(data, columns=columns)
-df_vis = df_vis.set_index("time")
-df_vis.to_csv("states.csv")
-df_vis.head()
-x = list(df_vis.index)
+                # If a time marker is found that is not the current time
+                if line.isnumeric() and line != curr_time:
+                    if curr_states and i == 1:
+                        data.append(curr_states_to_df_row(curr_time, curr_states, sum(list(total_pop.values())), line_num))
 
-### --- SEIR --- ###
-fig, ax = plt.subplots(figsize=(15,6))
+                    # Update new simulation time
+                    curr_time = line
+                    continue
 
-ax.plot(x, 100*df_vis["susceptible"],   label="Susceptible",    color=COLOR_SUSCEPTIBLE)
-ax.plot(x, 100*df_vis["exposed"],       label="Exposed",        color=COLOR_EXPOSED)
-ax.plot(x, 100*df_vis["infected"],      label="Infected",       color=COLOR_INFECTED)
-ax.plot(x, 100*df_vis["recovered"],     label="Recovered",      color=COLOR_RECOVERED)
-plt.legend(loc="upper right")
-plt.title("Epidemic Aggregate SEIR Percentages")
-plt.xlabel("Time (days)")
-plt.ylabel("Population (%)")
-plt.savefig(base_name + "SEIR.png")
+                # Create an re match objects from the current line
+                state_match = re.search(regex_state,line)
+                id_match    = re.search(regex_model_id,line)
+                if not (state_match and id_match):
+                    continue
 
-### --- New EIR --- ###
-fig, ax = plt.subplots(figsize=(15,6))
-linewidth = 2
+                # Parse the state and id and insert into total_pop
+                cid     = id_match.group().lstrip('_')
+                state   = state_match.group().strip('<>')
+                state   = state.split(',')
 
-ax.plot(x, 100*df_vis["new_exposed"],   label="New exposed",    color=COLOR_EXPOSED)
-ax.plot(x, 100*df_vis["new_infected"],  label="New infected",   color=COLOR_INFECTED)
-ax.plot(x, 100*df_vis["new_recovered"], label="New recovered",  color=COLOR_RECOVERED)
-plt.legend(loc="upper right")
-plt.title("Epidemic Aggregate New EIR Percentages")
-plt.xlabel("Time (days)")
-plt.ylabel("Population (%)")
-plt.savefig(base_name + "New_EIR.png")
+                if i == 0:
+                    total_pop[cid] = float(state[0])
+                elif i == 1:
+                    state = list(map(float, state))
+                    curr_states[cid] = state
 
-### --- SEIR+D --- ###
-fig, axs = plt.subplots(2, figsize=(15,6))
+                line_num += 1
 
-axs[0].plot(x, 100*df_vis["susceptible"],   label="Susceptible",    color=COLOR_SUSCEPTIBLE)
-axs[0].plot(x, 100*df_vis["exposed"],       label="Exposed",        color=COLOR_EXPOSED)
-axs[0].plot(x, 100*df_vis["infected"],      label="Infected",       color=COLOR_INFECTED)
-axs[0].plot(x, 100*df_vis["recovered"],     label="Recovered",      color=COLOR_RECOVERED)
-axs[0].set_ylabel("Population (%)")
-axs[0].legend(loc="upper right")
-axs[0].set_title("Epidemic Aggregate SEIR+D Percentages")
+        data.append(curr_states_to_df_row(curr_time, curr_states, sum(total_pop.values()), line_num))
 
-axs[1].plot(x, 100*df_vis["deaths"], label="Deaths", color=COLOR_DEAD)
-axs[1].set_xlabel("Time (days)")
-axs[1].set_ylabel("Population (%)")
-axs[1].set_ylim([0,6])
-axs[1].legend(loc="upper right")
+    font = {"family" : "DejaVu Sans",
+            "weight" : "normal",
+            "size"   : 16}
 
-plt.savefig(base_name + "SEIR+D.png")
+    matplotlib.rc("font", **font)
+    matplotlib.rc("lines", linewidth=2)
 
-### --- SEIRD+V --- ###
-if not (sum(df_vis['vaccinatedD1']) == 0 and sum(df_vis['vaccinatedD2']) == 0):
-    fig, axs = plt.subplots(2, figsize=(15,6))
+    try:
+        os.mkdir(path)
+    except OSError as error:
+        raise error
+
+    with open(base_name+"aggregate_timeseries.csv", 'w') as out_file:
+        out_file.write("sim_time, S, E, VD1, VD2, I, R, New_E, New_I, New_R, D, pop_sum\n")
+        for timestep in data:
+            out_file.write(str(timestep).strip('[]')+"\n")
+
+    columns = ["time", "susceptible", "exposed", "vaccinatedD1", "vaccinatedD2", "infected",
+                "recovered", "new_exposed", "new_infected", "new_recovered", "deaths", "error"]
+    df_vis = pd.DataFrame(data, columns=columns)
+    df_vis = df_vis.set_index("time")
+    df_vis.to_csv("states.csv")
+    df_vis.head()
+    x = list(df_vis.index)
+
+    ### --- New EIR --- ###
+    fig, ax = plt.subplots(figsize=(15,6))
     linewidth = 2
+
+    ax.plot(x, 100*df_vis["new_exposed"],   label="New exposed",    color=COLOR_EXPOSED)
+    ax.plot(x, 100*df_vis["new_infected"],  label="New infected",   color=COLOR_INFECTED)
+    ax.plot(x, 100*df_vis["new_recovered"], label="New recovered",  color=COLOR_RECOVERED)
+    plt.legend(loc="upper right")
+    plt.title("Epidemic Aggregate New EIR Percentages")
+    plt.xlabel("Time (days)")
+    plt.ylabel("Population (%)")
+    plt.savefig(base_name + "New_EIR.png")
+
+    ### --- SEIR+D --- ###
+    fig, axs = plt.subplots(2, figsize=(15,6))
 
     axs[0].plot(x, 100*df_vis["susceptible"],   label="Susceptible",    color=COLOR_SUSCEPTIBLE)
     axs[0].plot(x, 100*df_vis["exposed"],       label="Exposed",        color=COLOR_EXPOSED)
@@ -245,18 +214,63 @@ if not (sum(df_vis['vaccinatedD1']) == 0 and sum(df_vis['vaccinatedD2']) == 0):
     axs[0].plot(x, 100*df_vis["recovered"],     label="Recovered",      color=COLOR_RECOVERED)
     axs[0].set_ylabel("Population (%)")
     axs[0].legend(loc="upper right")
-    axs[0].set_title("Epidemic Aggregate SEIRD+V Percentages")
+    axs[0].set_title("Epidemic Aggregate SEIR+D Percentages")
 
-    axs[1].plot(x, 100*df_vis["vaccinatedD1"], label="Vaccinated 1 Dose",   color=COLOR_DOSE1)
-    axs[1].plot(x, 100*df_vis["vaccinatedD2"], label="Vaccinated 2 Doses",  color=COLOR_DOSE2)
+    axs[1].plot(x, 100*df_vis["deaths"], label="Deaths", color=COLOR_DEAD)
     axs[1].set_xlabel("Time (days)")
     axs[1].set_ylabel("Population (%)")
-    axs[1].legend()
+    axs[1].set_ylim([0,6])
+    axs[1].legend(loc="upper right")
 
-    plt.savefig(base_name + "SEIRD+V.png")
+    plt.savefig(base_name + "SEIR+D.png")
 
-if no_progress:
-    print("\033[1;32mDone.\033[0m")
-else:
+    ### --- SEIRD+V --- ###
+    if not (sum(df_vis['vaccinatedD1']) == 0 and sum(df_vis['vaccinatedD2']) == 0):
+        fig, axs = plt.subplots(2, figsize=(15,6))
+        linewidth = 2
+
+        axs[0].plot(x, 100*df_vis["susceptible"],   label="Susceptible",    color=COLOR_SUSCEPTIBLE)
+        axs[0].plot(x, 100*df_vis["exposed"],       label="Exposed",        color=COLOR_EXPOSED)
+        axs[0].plot(x, 100*df_vis["infected"],      label="Infected",       color=COLOR_INFECTED)
+        axs[0].plot(x, 100*df_vis["recovered"],     label="Recovered",      color=COLOR_RECOVERED)
+        axs[0].set_ylabel("Population (%)")
+        axs[0].legend(loc="upper right")
+        axs[0].set_title("Epidemic Aggregate SEIRD+V Percentages")
+
+        axs[1].plot(x, 100*df_vis["vaccinatedD1"], label="Vaccinated 1 Dose",   color=COLOR_DOSE1)
+        axs[1].plot(x, 100*df_vis["vaccinatedD2"], label="Vaccinated 2 Doses",  color=COLOR_DOSE2)
+        axs[1].set_xlabel("Time (days)")
+        axs[1].set_ylabel("Population (%)")
+        axs[1].legend()
+
+        plt.savefig(base_name + "SEIRD+V.png")
+
+    if no_progress:
+        print("\033[1;32mDone.\033[0m")
+    else:
+        done = True
+        t.join()
+except AssertionError as assertion:
+    success = False
     done = True
-    t.join()
+    if not no_progress:
+        t.join()
+
+    print("\n\033[31mASSERT:\033[0m 0.95 <= psum < 1.05", assertion)
+    sys.exit(-1)
+except KeyboardInterrupt as interrupt:
+    success = False
+    done = True
+    if not no_progress:
+        t.join()
+
+    print("\n\033[33mStopped by user\033[0m")
+    sys.exit(-1)
+except Exception as error:
+    success = False
+    done = True
+    if not no_progress:
+        t.join()
+
+    print("\n\033[31m" + str(error) + "\033[0m")
+    sys.exit(-1)
