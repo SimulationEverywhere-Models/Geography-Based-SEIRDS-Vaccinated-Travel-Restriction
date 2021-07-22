@@ -57,7 +57,9 @@ struct sevirds
     unordered_map<string, hysteresis_factor> hysteresis_factors;
     unsigned int num_age_groups;
 
-    bool vaccines; // Are vaccines being modeled?
+    bool vaccines; // Are vaccines being modelled?
+    double prec_divider;
+    double one_over_prec_divider;
 
     // Required for the JSON library, as types used with it must be default-constructable.
     // The overloaded constructor results in a default constructor having to be manually written.
@@ -68,7 +70,7 @@ struct sevirds
             proportionVector inf, proportionVector inf1, proportionVector inf2,
             proportionVector rec, proportionVector rec1, proportionVector rec2,
             vector<double> fat, double dis, double hcap, double fatm, proportionVector immuD1, unsigned int min_interval,
-            proportionVector immuD2, bool vac=false) :
+            proportionVector immuD2, double divider, bool vac=false) :
                 susceptible{move(sus)},
                 vaccinatedD1{move(vac1)},
                 vaccinatedD2{move(vac2)},
@@ -88,6 +90,8 @@ struct sevirds
                 immunityD1_rate{move(immuD1)},
                 immunityD2_rate{move(immuD2)},
                 min_interval_doses{min_interval},
+                prec_divider{divider},
+                one_over_prec_divider{1.0 / divider},
                 vaccines{vac}
     { num_age_groups = age_group_proportions.size(); }
 
@@ -100,7 +104,7 @@ struct sevirds
     unsigned int get_immunity1_num_weeks() const    { return immunityD1_rate.size();        }
     unsigned int get_immunity2_num_weeks() const    { return immunityD2_rate.size();        }
 
-    static double sum_state_vector(const vector<double>& state_vector) { return accumulate(state_vector.begin(), state_vector.end(), 0.0f); }
+    static double sum_state_vector(const vector<double>& state_vector) { return accumulate(state_vector.begin(), state_vector.end(), 0.0); }
 
     /**
      * @param getNVac: Used when only wanting to get the non-vaccinated susceptible population.
@@ -125,86 +129,135 @@ struct sevirds
         return total_susceptible;
     }
 
-    double get_total_vaccinatedD1() const
+    double get_total_vaccinatedD1(int age_group=-1) const
     {
         double total_vaccinatedD1 = 0;
 
-        for (unsigned int i = 0; i < num_age_groups; ++i)
+        if (age_group == -1)
         {
-            // Total vaccinated Dose 1
-            total_vaccinatedD1 += sum_state_vector(vaccinatedD1.at(i)) * age_group_proportions.at(i);
+            for (unsigned int i = 0; i < num_age_groups; ++i)
+            {
+                // Total vaccinated Dose 1
+                total_vaccinatedD1 += sum_state_vector(vaccinatedD1.at(i)) * age_group_proportions.at(i);
+            }
         }
+        else
+            total_vaccinatedD1 = sum_state_vector(vaccinatedD1.at(age_group));
 
         return total_vaccinatedD1;
     }
 
-    double get_total_vaccinatedD2() const
+    double get_total_vaccinatedD2(int age_group=-1) const
     {
         double total_vaccinatedD2 = 0;
 
-        for (unsigned int i = 0; i < num_age_groups; ++i)
+        if (age_group == -1)
         {
-            // Total vaccinated Dose 2
-            total_vaccinatedD2 += sum_state_vector(vaccinatedD2.at(i)) * age_group_proportions.at(i);
+            for (unsigned int i = 0; i < num_age_groups; ++i)
+            {
+                // Total vaccinated Dose 2
+                total_vaccinatedD2 += sum_state_vector(vaccinatedD2.at(i)) * age_group_proportions.at(i);
+            }
         }
+        else
+            total_vaccinatedD2 = sum_state_vector(vaccinatedD2.at(age_group));
 
         return total_vaccinatedD2;
     }
 
-    double get_total_exposed() const
+    double get_total_exposed(int age_group=-1) const
     {
         double total_exposed = 0;
 
-        for (unsigned int i = 0; i < num_age_groups; ++i)
+        if (age_group == -1)
         {
-            // Total non-vaccinated exposed
-            total_exposed += sum_state_vector(exposed.at(i)) * age_group_proportions.at(i);
+            for (unsigned int i = 0; i < num_age_groups; ++i)
+            {
+                // Total non-vaccinated exposed
+                total_exposed += sum_state_vector(exposed.at(i)) * age_group_proportions.at(i);
 
-            // Total vaccinated exposed (Dose1 + Dose2)
+                // Total vaccinated exposed (Dose1 + Dose2)
+                if (vaccines)
+                {
+                    total_exposed += sum_state_vector(exposedD1.at(i)) * age_group_proportions.at(i);
+                    total_exposed += sum_state_vector(exposedD2.at(i)) * age_group_proportions.at(i);
+                }
+            }
+        }
+        else
+        {
+            total_exposed += sum_state_vector(exposed.at(age_group));
+
             if (vaccines)
             {
-                total_exposed += sum_state_vector(exposedD1.at(i)) * age_group_proportions.at(i);
-                total_exposed += sum_state_vector(exposedD2.at(i)) * age_group_proportions.at(i);
+                total_exposed += sum_state_vector(exposedD1.at(age_group));
+                total_exposed += sum_state_vector(exposedD2.at(age_group));
             }
         }
 
         return total_exposed;
     }
 
-    double get_total_infections() const
+    double get_total_infections(int age_group=-1) const
     {
         double total_infections = 0;
 
-        for (unsigned int i = 0; i < num_age_groups; ++i)
+        if (age_group == -1)
         {
-            // Total non-vaccinated infected
-            total_infections += sum_state_vector(infected.at(i)) * age_group_proportions.at(i);
+            for (unsigned int i = 0; i < num_age_groups; ++i)
+            {
+                // Total non-vaccinated infected
+                total_infections += sum_state_vector(infected.at(i)) * age_group_proportions.at(i);
 
-            // Total vaccinated infected (Dose1 + Dose2)
+                // Total vaccinated infected (Dose1 + Dose2)
+                if (vaccines)
+                {
+                    total_infections += sum_state_vector(infectedD1.at(i)) * age_group_proportions.at(i);
+                    total_infections += sum_state_vector(infectedD2.at(i)) * age_group_proportions.at(i);
+                }
+            }
+        }
+        else
+        {
+            total_infections += sum_state_vector(infected.at(age_group));
+
             if (vaccines)
             {
-                total_infections += sum_state_vector(infectedD1.at(i)) * age_group_proportions.at(i);
-                total_infections += sum_state_vector(infectedD2.at(i)) * age_group_proportions.at(i);
+                total_infections += sum_state_vector(infectedD1.at(age_group));
+                total_infections += sum_state_vector(infectedD2.at(age_group));
             }
         }
 
         return total_infections;
     }
 
-    double get_total_recovered() const
+    double get_total_recovered(int age_group=-1, bool SIIRS_model=false) const
     {
         double total_recoveries = 0;
 
-        for(unsigned int i = 0; i < num_age_groups; ++i)
+        if (age_group == -1)
         {
-            // Total non-vaccinated recoveries
-            total_recoveries += sum_state_vector(recovered.at(i)) * age_group_proportions.at(i);
+            for(unsigned int i = 0; i < num_age_groups; ++i)
+            {
+                // Total non-vaccinated recoveries
+                total_recoveries += sum_state_vector(recovered.at(i)) * age_group_proportions.at(i);
 
-            // Total vaccinated recoveries (Dose1 + Dose2)
+                // Total vaccinated recoveries (Dose1 + Dose2)
+                if (vaccines)
+                {
+                    total_recoveries += sum_state_vector(recoveredD1.at(i)) * age_group_proportions.at(i);
+                    total_recoveries += sum_state_vector(recoveredD2.at(i)) * age_group_proportions.at(i);
+                }
+            }
+        }
+        else
+        {
+            total_recoveries += sum_state_vector(recovered.at(age_group));
+
             if (vaccines)
             {
-                total_recoveries += sum_state_vector(recoveredD1.at(i)) * age_group_proportions.at(i);
-                total_recoveries += sum_state_vector(recoveredD2.at(i)) * age_group_proportions.at(i);
+                total_recoveries += sum_state_vector(recoveredD1.at(age_group));
+                total_recoveries += sum_state_vector(recoveredD2.at(age_group));
             }
         }
 
@@ -229,6 +282,14 @@ struct sevirds
                 (recovered != other.recovered) || (recoveredD1 != other.recoveredD1) || (recoveredD2 != other.recoveredD2) ||
                 (fatalities != other.fatalities);
     }
+
+    /**
+     * @brief Handles setting the decimal point without using division
+     * 
+     * @param proportion: Value to be corrected
+     * @return double: corrected value
+     */
+    double precision_divider(double proportion) const { return round(proportion * prec_divider) * one_over_prec_divider; }
 }; //struct servids{}
 
 bool operator<(const sevirds& lhs, const sevirds& rhs) { return true; }
@@ -236,9 +297,9 @@ bool operator<(const sevirds& lhs, const sevirds& rhs) { return true; }
 // outputs <population, S, E, VD1, VD2, I, R, new E, new I, new R, D>
 ostream &operator<<(ostream& os, const sevirds& sevirds)
 {
-    double new_exposed      = 0;
-    double new_infections   = 0;
-    double new_recoveries   = 0;
+    double new_exposed    = 0;
+    double new_infections = 0;
+    double new_recoveries = 0;
 
     double age_group_proportion;
 
@@ -246,27 +307,45 @@ ostream &operator<<(ostream& os, const sevirds& sevirds)
     {
         age_group_proportion = sevirds.age_group_proportions.at(i);
 
-        new_exposed    += sevirds.exposed.at(i).at(0) * age_group_proportion;   // Non-vaccinated exposed
-        new_infections += sevirds.infected.at(i).at(0) * age_group_proportion;  // Non-vaccinated infected
-        new_recoveries += sevirds.recovered.at(i).at(0) * age_group_proportion; // Non-vaccinated recovered
+        new_exposed    += sevirds.exposed.at(i).front()   * age_group_proportion; // Non-Vaccinated Exposed
+        new_infections += sevirds.infected.at(i).front()  * age_group_proportion; // Non-Vaccinated Infected
+        new_recoveries += sevirds.recovered.at(i).front() * age_group_proportion; // Non-Vaccinated Recovered
 
         if (sevirds.vaccines)
         {
             // Dose 1
-            new_exposed    += sevirds.exposedD1.at(i).at(0) * age_group_proportion;
-            new_infections += sevirds.infectedD1.at(i).at(0) * age_group_proportion;
-            new_recoveries += sevirds.recoveredD1.at(i).at(0) * age_group_proportion;
+            new_exposed    += sevirds.exposedD1.at(i).front()   * age_group_proportion;
+            new_infections += sevirds.infectedD1.at(i).front()  * age_group_proportion;
+            new_recoveries += sevirds.recoveredD1.at(i).front() * age_group_proportion;
 
             // Dose 2
-            new_exposed    += sevirds.exposedD2.at(i).at(0) * age_group_proportion;
-            new_infections += sevirds.infectedD2.at(i).at(0) * age_group_proportion;
-            new_recoveries += sevirds.recoveredD2.at(i).at(0) * age_group_proportion;
+            new_exposed    += sevirds.exposedD2.at(i).front()   * age_group_proportion;
+            new_infections += sevirds.infectedD2.at(i).front()  * age_group_proportion;
+            new_recoveries += sevirds.recoveredD2.at(i).front() * age_group_proportion;
         }
     }
 
-    os << "<" << sevirds.population << "," << sevirds.get_total_susceptible(true) << "," << sevirds.get_total_exposed() << "," << sevirds.get_total_vaccinatedD1()
-        << "," << sevirds.get_total_vaccinatedD2() << "," << sevirds.get_total_infections() << "," << sevirds.get_total_recovered() << "," << new_exposed
-        << "," << new_infections << "," << new_recoveries << "," << sevirds.get_total_fatalities() << ">";
+    // Precision everything
+    new_exposed    = sevirds.precision_divider(new_exposed);
+    new_infections = sevirds.precision_divider(new_infections);
+    new_recoveries = sevirds.precision_divider(new_recoveries);
+
+    double total_susceptible = sevirds.precision_divider(sevirds.get_total_susceptible(true));
+    double total_exposed     = sevirds.precision_divider(sevirds.get_total_exposed());
+    double total_infected    = sevirds.precision_divider(sevirds.get_total_infections());
+    double total_recovered   = sevirds.precision_divider(sevirds.get_total_recovered());
+    double total_fatalities  = sevirds.precision_divider(sevirds.get_total_fatalities());
+
+    double total_vaccinatedD1 = 0.0, total_vaccinatedD2 = 0.0;
+    if (sevirds.vaccines)
+    {
+        total_vaccinatedD1 = sevirds.precision_divider(sevirds.get_total_vaccinatedD1());
+        total_vaccinatedD2 = sevirds.precision_divider(sevirds.get_total_vaccinatedD2());
+    }
+
+    os << "<" << sevirds.population << "," << total_susceptible << "," << total_exposed << "," << total_vaccinatedD1
+        << "," << total_vaccinatedD2 << "," << total_infected << "," << total_recovered << "," << new_exposed
+        << "," << new_infections << "," << new_recoveries << "," << total_fatalities << ">";
     return os;
 }
 
