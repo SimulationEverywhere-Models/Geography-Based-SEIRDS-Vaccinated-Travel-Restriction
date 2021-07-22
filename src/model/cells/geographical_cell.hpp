@@ -173,7 +173,7 @@ class geographical_cell : public cell<T, string, sevirds, vicinity>
                 {
                     new_s -= data->get()->GetTotalExposed();
                     sanity_check(new_s);
-                    new_s -= data->get()->GetTotalExposed();
+                    new_s -= data->get()->GetTotalInfected();
                     sanity_check(new_s);
                     new_s -= data->get()->GetTotalRecovered();
                     sanity_check(new_s);
