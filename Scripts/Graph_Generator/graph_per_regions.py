@@ -19,6 +19,7 @@ for word in sys.argv:
 
 # Loading animation
 done = False
+success = True
 def animate():
     # Loop through the animation cycles
     for c in itertools.cycle(['|', '/', '-', '\\']):
@@ -31,7 +32,8 @@ def animate():
         sys.stdout.write('\r\033[33mgenerating graphs ' + c + '\033[0m')
         sys.stdout.flush()
         time.sleep(0.1)
-    sys.stdout.write('\r\033[1;32mDone.                   \033[0m\n')
+    if success:
+        sys.stdout.write('\r\033[1;32mDone.                   \033[0m\n')
 
 # Don't forget to thread it!
 if not no_progress:
@@ -40,6 +42,7 @@ if not no_progress:
 
 # Setup paths, filenames, and folders
 log_file_folder = "../../logs"
+#log_file_folder = "/home/ericmereu/Documents/Geography-Based-SEIRDS-Vaccinated/logs"
 log_filename = log_file_folder + "/pandemic_state.txt"
 path = log_file_folder + "/stats"
 shutil.rmtree(path, ignore_errors=True)
@@ -75,8 +78,8 @@ def state_to_percent_df(sim_time, region_state, line_num):
     percent_new_I = region_state[newiIndex]
     percent_new_R = region_state[newrIndex]
 
-    psum = percent_S + percent_E + percent_I + percent_R + percent_D
-    assert 0.95 <= psum < 1.05, ("at time" + str(curr_time))
+    psum = percent_S + percent_E + percent_VD1 + percent_VD2 + percent_I + percent_R + percent_D
+    assert 0.95 <= psum < 1.05, ("at time " + str(curr_time))
 
     # return the info in desired format
     return [int(sim_time), percent_S, percent_E, percent_VD1, percent_VD2, percent_I, percent_R, percent_new_E, percent_new_I, percent_new_R, percent_D]
@@ -109,9 +112,8 @@ def state_to_cumulative_df(sim_time, region_state, line_num):
     total_new_I = round(cell_population*percent_new_I)
     total_new_R = round(cell_population*percent_new_R)
 
-    psum = percent_S + percent_E + percent_I + percent_R + percent_D
-    ptotal = total_S + total_E + total_I + total_R + total_D
-    assert 0.95 <= psum < 1.05, ("at time" + str(curr_time))
+    psum = percent_S + percent_E + percent_VD1 + percent_VD2 + percent_I + percent_R + percent_D
+    assert 0.95 <= psum < 1.05, ("at time " + str(curr_time))
 
     # Return the info in desired format
     return [int(sim_time), total_S, total_E, total_VD1, total_VD2, total_I, total_R, total_new_E, total_new_I, total_new_R, total_D]
@@ -124,214 +126,239 @@ total_pop       = 0
 data_percents   = {}
 data_totals     = {}
 
-# Read the initial populations of all regions and their names in time step 0
-with open(log_filename, "r") as log_file:
-    line_num = 0
-
-    # For each line, read a line then:
-    for line in log_file:
-        # Strip leading and trailing spaces
-        line = line.strip()
-
-        # If a time marker is found that is not the current time
-        if line.isnumeric() and line != curr_time:
-            # Update new simulation time
-            curr_time = line
-            continue
-
-        # Create an re match objects from the current line
-        state_match = re.search(regex_state,line)
-        id_match    = re.search(regex_model_id,line)
-        if not (state_match and id_match):
-            continue
-
-        # Parse the state and id and insert into initial_pop
-        cid     = id_match.group().lstrip('_')
-        state   = state_match.group().strip("<>")
-        state   = state.split(",")
-        initial_pop[cid] = float(state[0])
-
-        # Initialize data strucutres with region keys
-        if not cid in data_percents:
-            data_percents[cid]  = list()
-            data_totals[cid]    = list()
-
-        state = state_match.group().strip("<>")
-        state = list(map(float, state.split(",")))
-        curr_states[cid] = state
-
-        state_percentages   = state_to_percent_df(curr_time, curr_states[cid], line_num)
-        state_totals        = state_to_cumulative_df(curr_time, curr_states[cid], line_num)
-        data_percents[cid].append(state_percentages)
-        data_totals[cid].append(state_totals)
-
-        line_num += 1
-
 try:
-    os.mkdir(path)
-except OSError as error:
-    print(error)
-    done = True
+    # Read the initial populations of all regions and their names in time step 0
+    with open(log_filename, "r") as log_file:
+        line_num = 0
 
-# Generates graph for one region_key
-def generate_graph(region_key, path, region_data, region_totals):
-    import matplotlib.pyplot as plt
-    COLOR_SUSCEPTIBLE   = 'xkcd:blue'
-    COLOR_INFECTED      = 'xkcd:red'
-    COLOR_EXPOSED       = 'xkcd:sienna'
-    COLOR_DOSE1         = '#B91FDE'
-    COLOR_DOSE2         = '#680D5A'
-    COLOR_RECOVERED     = 'xkcd:green'
-    COLOR_DEAD          = 'xkcd:black'
+        # For each line, read a line then:
+        for line in log_file:
+            # Strip leading and trailing spaces
+            line = line.strip()
 
-    font = {'family': 'DejaVu Sans',
-            'weight': 'normal',
-            'size': 16}
+            # If a time marker is found that is not the current time
+            if line.isnumeric() and line != curr_time:
+                # Update new simulation time
+                curr_time = line
+                continue
 
-    matplotlib.rc('font', **font)
-    matplotlib.rc('lines', linewidth=2)
+            # Create an re match objects from the current line
+            state_match = re.search(regex_state,line)
+            id_match    = re.search(regex_model_id,line)
+            if not (state_match and id_match):
+                continue
 
-    columns = ["time", "susceptible", "exposed", "vaccinatedD1", "vaccinatedD2",
-            "infected", "recovered", "new_exposed", "new_infected", "new_recovered", "deaths"]
+            # Parse the state and id and insert into initial_pop
+            cid     = id_match.group().lstrip('_')
+            state   = state_match.group().strip("<>")
+            state   = state.split(",")
+            initial_pop[cid] = float(state[0])
 
-    # Make a folder for the region in that stats folder
-    foldername = "region_" + region_key
+            # Initialize data strucutres with region keys
+            if not cid in data_percents:
+                data_percents[cid]  = list()
+                data_totals[cid]    = list()
+
+            state = state_match.group().strip("<>")
+            state = list(map(float, state.split(",")))
+            curr_states[cid] = state
+
+            state_percentages   = state_to_percent_df(curr_time, curr_states[cid], line_num)
+            state_totals        = state_to_cumulative_df(curr_time, curr_states[cid], line_num)
+            data_percents[cid].append(state_percentages)
+            data_totals[cid].append(state_totals)
+
+            line_num += 1
 
     try:
-        os.mkdir(path + "/" + foldername)
+        os.mkdir(path)
     except OSError as error:
-        print('Region ID - ' + region_key + ": ", error)
+        raise error
 
-    percents_filename       = foldername +"_percentage_timeseries.csv"
-    totals_filename         = foldername +"_totals_timeseries.csv"
-    base_name               = path + "/" + foldername + "/"
-    percentages_filepath    = base_name + percents_filename
-    totals_filepath         = base_name + totals_filename
+    # Generates graph for one region_key
+    def generate_graph(region_key, path, region_data, region_totals):
+        import matplotlib.pyplot as plt
+        COLOR_SUSCEPTIBLE   = 'xkcd:blue'
+        COLOR_INFECTED      = 'xkcd:red'
+        COLOR_EXPOSED       = 'xkcd:sienna'
+        COLOR_DOSE1         = '#B91FDE'
+        COLOR_DOSE2         = '#680D5A'
+        COLOR_RECOVERED     = 'xkcd:green'
+        COLOR_DEAD          = 'xkcd:black'
 
-    # write the timeseries percent file inside stats/region_id
-    with open(percentages_filepath, "w") as out_file:
-        out_file.write("sim_time, S, E, VD1, VD2, I, R, New_E, New_I, New_R, D\n")
-        for timestep in region_data:
-            out_file.write(str(timestep).strip("[]")+"\n")
+        font = {'family': 'DejaVu Sans',
+                'weight': 'normal',
+                'size': 16}
 
-    # write the timeseries cumulative file inside stats/region_id
-    with open(totals_filepath, "w") as out_file:
-        out_file.write("sim_time, S, E, VD1, VD2, I, R, New_E, New_I, New_R, D\n")
-        for timestep in region_totals:
-            out_file.write(str(timestep).strip("[]")+"\n")
+        matplotlib.rc('font', **font)
+        matplotlib.rc('lines', linewidth=2)
 
-    # initialize graphing dfs (percents)
-    df_vis_p = pd.DataFrame(region_data, columns=columns)
-    df_vis_p = df_vis_p.set_index("time")
+        columns = ["time", "susceptible", "exposed", "vaccinatedD1", "vaccinatedD2",
+                "infected", "recovered", "new_exposed", "new_infected", "new_recovered", "deaths"]
 
-    vaccines = not (sum(df_vis_p['vaccinatedD1']) == 0 and sum(df_vis_p['vaccinatedD2']) == 0)
+        # Make a folder for the region in that stats folder
+        foldername = "region_" + region_key
 
-    # initialize graphing dfs (totals)
-    df_vis_t = pd.DataFrame(region_totals, columns=columns)
-    df_vis_t = df_vis_t.set_index("time")
+        try:
+            os.mkdir(path + "/" + foldername)
+        except OSError as error:
+            print('Region ID - ' + region_key + ": ")
+            raise error
 
-    x = list(df_vis_p.index)
-    t = list(df_vis_t.index)
+        percents_filename       = foldername +"_percentage_timeseries.csv"
+        totals_filename         = foldername +"_totals_timeseries.csv"
+        base_name               = path + "/" + foldername + "/"
+        percentages_filepath    = base_name + percents_filename
+        totals_filepath         = base_name + totals_filename
 
-    ### --- SEIR --- ###
-    fig, axs = plt.subplots(2, figsize=(15,6))
+        # write the timeseries percent file inside stats/region_id
+        with open(percentages_filepath, "w") as out_file:
+            out_file.write("sim_time, S, E, VD1, VD2, I, R, New_E, New_I, New_R, D\n")
+            for timestep in region_data:
+                out_file.write(str(timestep).strip("[]")+"\n")
 
-    axs[0].plot(x, 100*df_vis_p["susceptible"], label="Susceptible",    color=COLOR_SUSCEPTIBLE)
-    axs[0].plot(x, 100*df_vis_p["exposed"],     label="Exposed",        color=COLOR_EXPOSED)
-    axs[0].plot(x, 100*df_vis_p["infected"],    label="Infected",       color=COLOR_INFECTED)
-    axs[0].plot(x, 100*df_vis_p["recovered"],   label="Recovered",      color=COLOR_RECOVERED)
-    axs[0].legend(loc='upper right')
-    axs[0].set_ylim(0, 100)
-    axs[0].set_title('Epidemic SEIR Percentages and Total for ' + foldername)
-    axs[0].set_ylabel("Population (%)")
+        # write the timeseries cumulative file inside stats/region_id
+        with open(totals_filepath, "w") as out_file:
+            out_file.write("sim_time, S, E, VD1, VD2, I, R, New_E, New_I, New_R, D\n")
+            for timestep in region_totals:
+                out_file.write(str(timestep).strip("[]")+"\n")
 
-    axs[1].plot(t, df_vis_t["susceptible"], label="Susceptible",    color=COLOR_SUSCEPTIBLE)
-    axs[1].plot(t, df_vis_t["exposed"],     label="Exposed",        color=COLOR_EXPOSED)
-    axs[1].plot(t, df_vis_t["infected"],    label="Infected",       color=COLOR_INFECTED)
-    axs[1].plot(t, df_vis_t["recovered"],   label="Recovered",      color=COLOR_RECOVERED)
-    axs[1].legend(loc='upper right')
-    axs[1].set_xlabel("Time (days)")
-    axs[1].set_ylabel("Population (#)")
+        # initialize graphing dfs (percents)
+        df_vis_p = pd.DataFrame(region_data, columns=columns)
+        df_vis_p = df_vis_p.set_index("time")
 
-    plt.savefig(base_name + "SEIR.png")
-    plt.close(fig)
+        vaccines = not (sum(df_vis_p['vaccinatedD1']) == 0 and sum(df_vis_p['vaccinatedD2']) == 0)
 
-    ### --- SEIRD --- ###
-    fig, axs = plt.subplots(2, figsize=(15,6))
+        # initialize graphing dfs (totals)
+        df_vis_t = pd.DataFrame(region_totals, columns=columns)
+        df_vis_t = df_vis_t.set_index("time")
 
-    axs[0].plot(x, 100*df_vis_p["susceptible"], label="Susceptible",    color=COLOR_SUSCEPTIBLE)
-    axs[0].plot(x, 100*df_vis_p["exposed"],     label="Exposed",        color=COLOR_EXPOSED)
-    axs[0].plot(x, 100*df_vis_p["infected"],    label="Infected",       color=COLOR_INFECTED)
-    axs[0].plot(x, 100*df_vis_p["recovered"],   label="Recovered",      color=COLOR_RECOVERED)
-    axs[0].plot(x, 100*df_vis_p["deaths"],      label="Deaths",         color=COLOR_DEAD)
-    if vaccines:
-        axs[0].plot(x, 100*df_vis_p["vaccinatedD1"], label="Vaccinated 1 dose",  color=COLOR_DOSE1)
-        axs[0].plot(x, 100*df_vis_p["vaccinatedD2"], label="Vaccinated 2 dose",  color=COLOR_DOSE2)
-        axs[0].set_title('Epidemic SEVIRD Percentages and Totals for ' + foldername)
-    else:
-        axs[0].set_title('Epidemic SEIRD Percentages and Totals for ' + foldername)
-    axs[0].set_ylabel("Population (%)")
-    axs[0].set_ylim(0, 100)
-    axs[0].legend(loc="upper right")
+        x = list(df_vis_p.index)
+        t = list(df_vis_t.index)
 
-    axs[1].plot(t, df_vis_t["susceptible"], label="Susceptible",    color=COLOR_SUSCEPTIBLE)
-    axs[1].plot(t, df_vis_t["exposed"],     label="Exposed",        color=COLOR_EXPOSED)
-    axs[1].plot(t, df_vis_t["infected"],    label="Infected",       color=COLOR_INFECTED)
-    axs[1].plot(t, df_vis_t["recovered"],   label="Recovered",      color=COLOR_RECOVERED)
-    axs[1].plot(t, df_vis_t["deaths"],      label="Deaths",         color=COLOR_DEAD)
-    if vaccines:
-        axs[1].plot(t, df_vis_t["vaccinatedD1"],    label="Vaccinated 1 Dose",  color=COLOR_DOSE1)
-        axs[1].plot(t, df_vis_t["vaccinatedD2"],    label="Vaccinated 2 Doses", color=COLOR_DOSE2)
-        axs[1].set_ylim(0,150000) # TODO: Remove this once vaccinated modelling is implemented correctly
-    axs[1].set_ylabel("Population (#)")
-    axs[1].set_xlabel("Time (days)")
-    axs[1].legend(loc="upper right")
+        ### --- SEIR --- ###
+        fig, axs = plt.subplots(2, figsize=(15,6))
 
-    if vaccines:
-        plt.savefig(base_name + "SEVIRD.png")
-    else:
-        plt.savefig(base_name + "SEIRD.png")
-
-    plt.close(fig)
-
-    # Deaths + Vaccinated
-    fig, axs = plt.subplots(2, figsize=(15,6))
-
-    if vaccines:
-        axs[0].plot(x, 100*df_vis_p["vaccinatedD1"], label="Vaccinated 1 Dose", color=COLOR_DOSE1)
-        axs[0].plot(x, 100*df_vis_p["vaccinatedD2"], label="Vaccinated 2 Dose", color=COLOR_DOSE2)
-        axs[0].set_title("Epidemic Death and Vaccinated Percentages for " + foldername)
+        axs[0].plot(x, 100*df_vis_p["susceptible"], label="Susceptible",    color=COLOR_SUSCEPTIBLE)
+        axs[0].plot(x, 100*df_vis_p["exposed"],     label="Exposed",        color=COLOR_EXPOSED)
+        axs[0].plot(x, 100*df_vis_p["infected"],    label="Infected",       color=COLOR_INFECTED)
+        axs[0].plot(x, 100*df_vis_p["recovered"],   label="Recovered",      color=COLOR_RECOVERED)
+        axs[0].legend(loc='upper right')
+        axs[0].set_ylim(0, 100)
+        axs[0].set_title('Epidemic SEIR Percentages and Total for ' + foldername)
         axs[0].set_ylabel("Population (%)")
+
+        axs[1].plot(t, df_vis_t["susceptible"], label="Susceptible",    color=COLOR_SUSCEPTIBLE)
+        axs[1].plot(t, df_vis_t["exposed"],     label="Exposed",        color=COLOR_EXPOSED)
+        axs[1].plot(t, df_vis_t["infected"],    label="Infected",       color=COLOR_INFECTED)
+        axs[1].plot(t, df_vis_t["recovered"],   label="Recovered",      color=COLOR_RECOVERED)
+        axs[1].legend(loc='upper right')
+        axs[1].set_xlabel("Time (days)")
+        axs[1].set_ylabel("Population (#)")
+
+        plt.savefig(base_name + "SEIR.png")
+        plt.close(fig)
+
+        ### --- SEIRD --- ###
+        fig, axs = plt.subplots(2, figsize=(15,6))
+
+        axs[0].plot(x, 100*df_vis_p["susceptible"], label="Susceptible",    color=COLOR_SUSCEPTIBLE)
+        axs[0].plot(x, 100*df_vis_p["exposed"],     label="Exposed",        color=COLOR_EXPOSED)
+        axs[0].plot(x, 100*df_vis_p["infected"],    label="Infected",       color=COLOR_INFECTED)
+        axs[0].plot(x, 100*df_vis_p["recovered"],   label="Recovered",      color=COLOR_RECOVERED)
+        axs[0].plot(x, 100*df_vis_p["deaths"],      label="Deaths",         color=COLOR_DEAD)
+        if vaccines:
+            axs[0].plot(x, 100*df_vis_p["vaccinatedD1"], label="Vaccinated 1 dose",  color=COLOR_DOSE1)
+            axs[0].plot(x, 100*df_vis_p["vaccinatedD2"], label="Vaccinated 2 dose",  color=COLOR_DOSE2)
+            axs[0].set_title('Epidemic SEVIRD Percentages and Totals for ' + foldername)
+        else:
+            axs[0].set_title('Epidemic SEIRD Percentages and Totals for ' + foldername)
+        axs[0].set_ylabel("Population (%)")
+        axs[0].set_ylim(0, 100)
+        axs[0].legend(loc="upper right")
+
+        axs[1].plot(t, df_vis_t["susceptible"], label="Susceptible",    color=COLOR_SUSCEPTIBLE)
+        axs[1].plot(t, df_vis_t["exposed"],     label="Exposed",        color=COLOR_EXPOSED)
+        axs[1].plot(t, df_vis_t["infected"],    label="Infected",       color=COLOR_INFECTED)
+        axs[1].plot(t, df_vis_t["recovered"],   label="Recovered",      color=COLOR_RECOVERED)
+        axs[1].plot(t, df_vis_t["deaths"],      label="Deaths",         color=COLOR_DEAD)
+        if vaccines:
+            axs[1].plot(t, df_vis_t["vaccinatedD1"],    label="Vaccinated 1 Dose",  color=COLOR_DOSE1)
+            axs[1].plot(t, df_vis_t["vaccinatedD2"],    label="Vaccinated 2 Doses", color=COLOR_DOSE2)
+            axs[1].set_ylim(0,150000) # TODO: Remove this once vaccinated modelling is implemented correctly
+        axs[1].set_ylabel("Population (#)")
+        axs[1].set_xlabel("Time (days)")
+        axs[1].legend(loc="upper right")
+
+        if vaccines:
+            plt.savefig(base_name + "SEVIRD.png")
+        else:
+            plt.savefig(base_name + "SEIRD.png")
+
+        plt.close(fig)
+
+        # Deaths + Vaccinated
+        fig, axs = plt.subplots(2, figsize=(15,6))
+
+        if vaccines:
+            axs[0].plot(x, 100*df_vis_p["vaccinatedD1"], label="Vaccinated 1 Dose", color=COLOR_DOSE1)
+            axs[0].plot(x, 100*df_vis_p["vaccinatedD2"], label="Vaccinated 2 Dose", color=COLOR_DOSE2)
+            axs[0].set_title("Epidemic Death and Vaccinated Percentages for " + foldername)
+            axs[0].set_ylabel("Population (%)")
+        else:
+            axs[0].plot(t, df_vis_t["deaths"], label="Deaths", color=COLOR_DEAD)
+            axs[0].set_title("Epidemice Death Totals and Percentages for " + foldername)
+            axs[0].set_ylabel("Population (#)")
+        axs[0].legend(loc="upper right")
+
+        axs[1].plot(x, 100*df_vis_p["deaths"], label="Deaths", color=COLOR_DEAD)
+        axs[1].set_ylabel("Population (%)")
+        axs[1].set_xlabel("Time (days)")
+        axs[1].legend(loc="upper right")
+
+        if vaccines:
+            plt.savefig(base_name + "Deaths+Vaccianted.png")
+        else:
+            plt.savefig(base_name + "Deaths.png")
+        plt.close(fig)
+
+    # Multiprocess each cell to produce their respective threads
+    processes = list()
+    for region_id in data_percents:
+        ps = Process(target=generate_graph, args=(region_id, path,data_percents[region_id],data_totals[region_id]))
+        processes.append(ps)
+        ps.start()
+
+    # Wait for each process to finish
+    for ps in processes:
+        ps.join()
+
+    if no_progress:
+        print("\033[1;32mDone.\033[0m")
     else:
-        axs[0].plot(t, df_vis_t["deaths"], label="Deaths", color=COLOR_DEAD)
-        axs[0].set_title("Epidemice Death Totals and Percentages for " + foldername)
-        axs[0].set_ylabel("Population (#)")
-    axs[0].legend(loc="upper right")
-
-    axs[1].plot(x, 100*df_vis_p["deaths"], label="Deaths", color=COLOR_DEAD)
-    axs[1].set_ylabel("Population (%)")
-    axs[1].set_xlabel("Time (days)")
-    axs[1].legend(loc="upper right")
-
-    if vaccines:
-        plt.savefig(base_name + "Deaths+Vaccianted.png")
-    else:
-        plt.savefig(base_name + "Deaths.png")
-    plt.close(fig)
-
-# Multiprocess each cell to produce their respective threads
-processes = list()
-for region_id in data_percents:
-    ps = Process(target=generate_graph, args=(region_id, path,data_percents[region_id],data_totals[region_id]))
-    processes.append(ps)
-    ps.start()
-
-# Wait for each process to finish
-for ps in processes:
-    ps.join()
-
-if no_progress:
-    print("\033[1;32mDone.\033[0m")
-else:
+        done = True
+        t.join()
+except AssertionError as assertion:
+    success = False
     done = True
-    t.join()
+    if not no_progress:
+        t.join()
+
+    print("\n\033[31mASSERT:\033[0m 0.95 <= psum < 1.05", assertion)
+    sys.exit(-1)
+except KeyboardInterrupt as interrupt:
+    success = False
+    done = True
+    if not no_progress:
+        t.join()
+
+    print("\n\033[33mStopped by user\033[0m")
+    sys.exit(-1)
+except Exception as error:
+    success = False
+    done = True
+    if not no_progress:
+        t.join()
+
+    print("\n\033[31m" + str(error) + "\033[0m")
+    sys.exit(-1)
