@@ -81,7 +81,7 @@ gdf.head()
 # Read default state from input json
 default_cell    = json.loads( open(input_dir + "default.json", "r").read()      )
 fields          = json.loads( open(input_dir + "fields.json", "r").read()       )
-infectedCell    = json.loads( open(input_dir + "infectedCell.json", "r").read() )
+infectedCells   = json.loads( open(input_dir + "infectedCell.json", "r").read() )
 
 default_state               = default_cell["default"]["state"]
 default_vicinity            = default_cell["default"]["neighborhood"]["default_cell_id"]
@@ -121,7 +121,7 @@ for ind, row, in df_adj.iterrows():
     l1, l2, shared  = shared_boundaries(gdf, row_region_id, row_neighborhood_id)
     correlation     = (shared/l1 + shared/l2) / 2  # Equation extracted from Zhong paper (boundaries only, we don't have roads info for now)
     if correlation == 0:
-            continue
+        continue
 
     expr = {"correlation": correlation, "infection_correction_factors": default_correction_factors}
     adj_full[row_region_id_str][row_region_id_str]["neighborhood"][row_neighborhood_id_str]=expr
@@ -142,18 +142,23 @@ for key, value in adj_full.items():
 template = OrderedDict()
 template["cells"] = {}
 template["cells"]["default"] = default_cell["default"]
+
+infected_index = list()
+for key in infectedCells:
+    infected_index.append(key)
+
 for key, value in adj_full.items():
-    # Write cells in cadmium master format 
+    # Write cells in cadmium master format
     template["cells"][key] = value[key]
 
     # Overwrite the state variables of the infected cell
     # This should be modified to support any number of infected cells contained in the infectedCell.json file
-    if key == infectedCell["cell_id"]:
-        template["cells"][key]["state"]["susceptible"] = infectedCell["state"]["susceptible"]
-        template["cells"][key]["state"]["exposed"] = infectedCell["state"]["exposed"]
-        template["cells"][key]["state"]["infected"] = infectedCell["state"]["infected"]
-        template["cells"][key]["state"]["recovered"] = infectedCell["state"]["recovered"]
-        template["cells"][key]["state"]["fatalities"] = infectedCell["state"]["fatalities"]
+    if key in infected_index:
+        template["cells"][key]["state"]["susceptible"] = infectedCells[key]["state"]["susceptible"]
+        template["cells"][key]["state"]["exposed"]     = infectedCells[key]["state"]["exposed"]
+        template["cells"][key]["state"]["infected"]    = infectedCells[key]["state"]["infected"]
+        template["cells"][key]["state"]["recovered"]   = infectedCells[key]["state"]["recovered"]
+        template["cells"][key]["state"]["fatalities"]  = infectedCells[key]["state"]["fatalities"]
 
 # Insert fields object at the end of the json for use with the GIS Webviewer V2
 template["fields"] = fields["fields"]

@@ -231,7 +231,7 @@ struct sevirds
         return total_infections;
     }
 
-    double get_total_recovered(int age_group=-1, bool SIIRS_model=false) const
+    double get_total_recovered(int age_group=-1) const
     {
         double total_recoveries = 0;
 

@@ -67,6 +67,7 @@ class AgeData
         vecDouble const& m_immuneRates;
 
         // Phase Lengths
+        unsigned int m_susceptiblePhase;
         unsigned int m_exposedPhase;
         unsigned int m_infectedPhase;
         unsigned int m_recoveredPhase;
@@ -104,9 +105,10 @@ class AgeData
             m_OriginalRecovered(rec.at(age))
         {
             // -1 so for loops are easier
-            m_exposedPhase   = m_exposed.size()     - 1;
-            m_infectedPhase  = m_infected.size()    - 1;
-            m_recoveredPhase = m_recovered.size()   - 1;
+            m_susceptiblePhase = m_susceptible.size() - 1;
+            m_exposedPhase     = m_exposed.size()     - 1;
+            m_infectedPhase    = m_infected.size()    - 1;
+            m_recoveredPhase   = m_recovered.size()   - 1;
 
             m_OriginalExposed.reserve(m_exposedPhase + 1);
             m_OriginalInfected.reserve(m_infectedPhase + 1);
@@ -153,7 +155,6 @@ class AgeData
         double const& GetOrigInfected(int index)    { return m_OriginalInfected.at(index);    }
         double const& GetOrigRecovered(int index)   { return m_OriginalRecovered.at(index);   }
 
-        vecDouble const& GetIncubationRates()  { return m_incubRates;    }
         vecDouble const& GetRecoveryRates()    { return m_recovRates;    }
         vecDouble const& GetFatalityRates()    { return m_fatalRates;    }
         vecDouble const& GetMobilityRates()    { return m_mobilityRates; }
@@ -169,9 +170,10 @@ class AgeData
         double GetVirulenceRate(int index)   { return m_virulRates.at(index);    }
         double GetImmunityRate(int index)    { return m_immuneRates.at(index);   }
 
-        unsigned int GetExposedPhase()   { return m_exposedPhase;   }
-        unsigned int GetInfectedPhase()  { return m_infectedPhase;  }
-        unsigned int GetRecoveredPhase() { return m_recoveredPhase; }
+        unsigned int GetSusceptiblePhase() { return m_susceptiblePhase; }
+        unsigned int GetExposedPhase()     { return m_exposedPhase;     }
+        unsigned int GetInfectedPhase()    { return m_infectedPhase;    }
+        unsigned int GetRecoveredPhase()   { return m_recoveredPhase;   }
 
         PopType& GetType() { return m_popType; }
         int      GetAge()  { return m_currAge; }

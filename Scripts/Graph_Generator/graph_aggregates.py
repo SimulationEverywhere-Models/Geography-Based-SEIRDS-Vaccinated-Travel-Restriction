@@ -45,7 +45,7 @@ if not no_progress:
 
 # Setup paths, filenames, and folders
 log_file_folder = "../../logs"
-#log_file_folder = "/home/ericmereu/Documents/Geography-Based-SEIRDS-Vaccinated/logs"
+# log_file_folder = "/home/ericmereu/Documents/Geography-Based-SEIRDS-Vaccinated/GIS_Viewer/ontario/simulation_runs/run11/logs"
 log_filename = log_file_folder + "/pandemic_state.txt"
 path = log_file_folder + "/stats/aggregate"
 base_name = path + "/"
@@ -75,6 +75,14 @@ COLOR_DOSE1         = '#B91FDE'
 COLOR_DOSE2         = '#680D5A'
 COLOR_RECOVERED     = 'xkcd:green'
 COLOR_DEAD          = 'xkcd:black'
+
+STYLE_SUSCEPTIBLE = '-'
+STYLE_INFECTED    = '--'
+STYLE_EXPOSED     = '-.'
+STYLE_DOSE1       = 'solid'
+STYLE_DOSE2       = 'dashed'
+STYLE_RECOVERED   = ':'
+STYLE_DEAD        = 'solid'
 
 def curr_states_to_df_row(sim_time, curr_states, total_pop, line_num):
     total_S = total_E = total_VD1 = total_VD2 = total_I = total_R = total_D = 0
@@ -109,7 +117,7 @@ def curr_states_to_df_row(sim_time, curr_states, total_pop, line_num):
     percent_new_R = new_R / total_pop
     psum = percent_S + percent_E + percent_VD1 + percent_VD2 + percent_I + percent_R + percent_D
 
-    assert 0.95 <= psum < 1.05, ("at time " + str(curr_time))
+    assert 0.995 <= psum < 1.005, ("at time " + str(curr_time))
 
     return [int(sim_time), percent_S, percent_E, percent_VD1, percent_VD2, percent_I, percent_R, percent_new_E, percent_new_I, percent_new_R, percent_D, psum]
 
@@ -194,11 +202,10 @@ try:
 
     ### --- New EIR --- ###
     fig, ax = plt.subplots(figsize=(15,6))
-    linewidth = 2
 
-    ax.plot(x, 100*df_vis["new_exposed"],   label="New exposed",    color=COLOR_EXPOSED)
-    ax.plot(x, 100*df_vis["new_infected"],  label="New infected",   color=COLOR_INFECTED)
-    ax.plot(x, 100*df_vis["new_recovered"], label="New recovered",  color=COLOR_RECOVERED)
+    ax.plot(x, 100*df_vis["new_exposed"],   label="New exposed",    color=COLOR_EXPOSED,   linestyle=STYLE_EXPOSED)
+    ax.plot(x, 100*df_vis["new_infected"],  label="New infected",   color=COLOR_INFECTED,  linestyle=STYLE_INFECTED)
+    ax.plot(x, 100*df_vis["new_recovered"], label="New recovered",  color=COLOR_RECOVERED, linestyle=STYLE_RECOVERED)
     plt.legend(loc="upper right")
     plt.title("Epidemic Aggregate New EIR Percentages")
     plt.xlabel("Time (days)")
@@ -208,15 +215,15 @@ try:
     ### --- SEIR+D --- ###
     fig, axs = plt.subplots(2, figsize=(15,6))
 
-    axs[0].plot(x, 100*df_vis["susceptible"],   label="Susceptible",    color=COLOR_SUSCEPTIBLE)
-    axs[0].plot(x, 100*df_vis["exposed"],       label="Exposed",        color=COLOR_EXPOSED)
-    axs[0].plot(x, 100*df_vis["infected"],      label="Infected",       color=COLOR_INFECTED)
-    axs[0].plot(x, 100*df_vis["recovered"],     label="Recovered",      color=COLOR_RECOVERED)
+    axs[0].plot(x, 100*df_vis["susceptible"],   label="Susceptible",    color=COLOR_SUSCEPTIBLE, linestyle=STYLE_SUSCEPTIBLE)
+    axs[0].plot(x, 100*df_vis["exposed"],       label="Exposed",        color=COLOR_EXPOSED,     linestyle=STYLE_EXPOSED)
+    axs[0].plot(x, 100*df_vis["infected"],      label="Infected",       color=COLOR_INFECTED,    linestyle=STYLE_INFECTED)
+    axs[0].plot(x, 100*df_vis["recovered"],     label="Recovered",      color=COLOR_RECOVERED,   linestyle=STYLE_RECOVERED)
     axs[0].set_ylabel("Population (%)")
     axs[0].legend(loc="upper right")
     axs[0].set_title("Epidemic Aggregate SEIR+D Percentages")
 
-    axs[1].plot(x, 100*df_vis["deaths"], label="Deaths", color=COLOR_DEAD)
+    axs[1].plot(x, 100*df_vis["deaths"], label="Deaths", color=COLOR_DEAD, linestyle=STYLE_DEAD)
     axs[1].set_xlabel("Time (days)")
     axs[1].set_ylabel("Population (%)")
     axs[1].set_ylim([0,6])
@@ -227,18 +234,17 @@ try:
     ### --- SEIRD+V --- ###
     if not (sum(df_vis['vaccinatedD1']) == 0 and sum(df_vis['vaccinatedD2']) == 0):
         fig, axs = plt.subplots(2, figsize=(15,6))
-        linewidth = 2
 
-        axs[0].plot(x, 100*df_vis["susceptible"],   label="Susceptible",    color=COLOR_SUSCEPTIBLE)
-        axs[0].plot(x, 100*df_vis["exposed"],       label="Exposed",        color=COLOR_EXPOSED)
-        axs[0].plot(x, 100*df_vis["infected"],      label="Infected",       color=COLOR_INFECTED)
-        axs[0].plot(x, 100*df_vis["recovered"],     label="Recovered",      color=COLOR_RECOVERED)
+        axs[0].plot(x, 100*df_vis["susceptible"],   label="Susceptible",    color=COLOR_SUSCEPTIBLE, linestyle=STYLE_SUSCEPTIBLE)
+        axs[0].plot(x, 100*df_vis["exposed"],       label="Exposed",        color=COLOR_EXPOSED,     linestyle=STYLE_EXPOSED)
+        axs[0].plot(x, 100*df_vis["infected"],      label="Infected",       color=COLOR_INFECTED,    linestyle=STYLE_INFECTED)
+        axs[0].plot(x, 100*df_vis["recovered"],     label="Recovered",      color=COLOR_RECOVERED,   linestyle=STYLE_RECOVERED)
         axs[0].set_ylabel("Population (%)")
         axs[0].legend(loc="upper right")
         axs[0].set_title("Epidemic Aggregate SEIRD+V Percentages")
 
-        axs[1].plot(x, 100*df_vis["vaccinatedD1"], label="Vaccinated 1 Dose",   color=COLOR_DOSE1)
-        axs[1].plot(x, 100*df_vis["vaccinatedD2"], label="Vaccinated 2 Doses",  color=COLOR_DOSE2)
+        axs[1].plot(x, 100*df_vis["vaccinatedD1"], label="Vaccinated 1 Dose",   color=COLOR_DOSE1, linestyle=STYLE_DOSE1)
+        axs[1].plot(x, 100*df_vis["vaccinatedD2"], label="Vaccinated 2 Doses",  color=COLOR_DOSE2, linestyle=STYLE_DOSE2)
         axs[1].set_xlabel("Time (days)")
         axs[1].set_ylabel("Population (%)")
         axs[1].legend()
@@ -256,7 +262,7 @@ except AssertionError as assertion:
     if not no_progress:
         t.join()
 
-    print("\n\033[31mASSERT:\033[0m 0.95 <= psum < 1.05", assertion)
+    print("\n\033[31mASSERT:\033[0m 0.995 <= psum < 1.005", assertion)
     sys.exit(-1)
 except KeyboardInterrupt as interrupt:
     success = False

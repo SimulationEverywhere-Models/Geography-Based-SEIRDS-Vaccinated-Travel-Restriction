@@ -58,8 +58,13 @@ Main()
     # Generate SIRDS graphs
     echo; echo "Generating graphs and stats (will be found in logs folder):"
     cd ../Scripts/Graph_Generator/
-    python3 graph_per_regions.py $GRAPHS_FLAGS
-    ErrorCheck $? # Check for build errors
+    if [[ $GRAPH_REGIONS == "Y" ]]; then
+        python3 graph_per_regions.py $GRAPHS_FLAGS
+        ErrorCheck $? # Check for build errors
+    else
+        mkdir -p ../../logs/stats
+    fi
+
     python3 graph_aggregates.py $GRAPHS_FLAGS
     ErrorCheck $? # Check for build errors
     cd ../..
@@ -148,6 +153,7 @@ Main()
             echo -e " ${YELLOW}--clean|-c|--clean=#|-c=#${RESET} \t Cleans all simulation runs for the selected area if no # is set, \n \t\t\t\t otherwise cleans the specified run using the folder name inputed such as 'clean=run1'"
             echo -e " ${YELLOW}--days=#|-d=#${RESET} \t\t\t Sets the number of days to run a simulation (default=500)"
             echo -e " ${YELLOW}--flags, -f${RESET}\t\t\t Displays all flags"
+            echo -e " ${YELLOW}--graph-region, -gr${RESET}\t\t Generates graphs per region (default=off)"
             echo -e " ${YELLOW}--help, -h${RESET}\t\t\t Displays the help"
             echo -e " ${YELLOW}--no-progress, -np${RESET}\t\t Turns off the progress bars and loading animations"
             echo -e " ${YELLOW}--Ontario, --ontario, -On, -on${RESET}  Runs a simulation in Ontario"
@@ -175,6 +181,7 @@ else
     GRAPHS_FLAGS=""
     NAME=""
     DAYS="500"
+    GRAPH_REGIONS="N"
 
     # Loop through the flags
     while test $# -gt 0; do
@@ -195,6 +202,10 @@ else
             --flags|-f)
                 Help 1;
                 exit 1;
+            ;;
+            --graph-regions|-gr)
+                GRAPH_REGIONS="Y"
+                shift
             ;;
             --help|-h)
                 Help;
