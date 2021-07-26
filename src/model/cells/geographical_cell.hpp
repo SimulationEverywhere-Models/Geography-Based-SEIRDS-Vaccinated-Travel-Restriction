@@ -171,14 +171,11 @@ class geographical_cell : public cell<T, string, sevirds, vicinity>
                 // Compute Susceptible
                 for (unique_ptr<AgeData> *data : datas)
                 {
-                    new_s -= res.get_total_exposed();
-                    // new_s -= data->get()->GetTotalExposed();
+                    new_s -= data->get()->GetTotalExposed();
                     sanity_check(new_s);
-                    new_s -= res.get_total_infections();
-                    // new_s -= data->get()->GetTotalInfected();
+                    new_s -= data->get()->GetTotalInfected();
                     sanity_check(new_s);
-                    new_s -= res.get_total_recovered();
-                    //new_s -= data->get()->GetTotalRecovered();
+                    new_s -= data->get()->GetTotalRecovered();
                     sanity_check(new_s);
 
                     res.fatalities.at(age_segment_index) += data->get()->GetTotalFatalities();
