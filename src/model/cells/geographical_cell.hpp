@@ -171,11 +171,14 @@ class geographical_cell : public cell<T, string, sevirds, vicinity>
                 // Compute Susceptible
                 for (unique_ptr<AgeData> *data : datas)
                 {
-                    new_s -= data->get()->GetTotalExposed();
+                    new_s -= res.get_total_exposed();
+                    // new_s -= data->get()->GetTotalExposed();
                     sanity_check(new_s);
-                    new_s -= data->get()->GetTotalInfected();
+                    new_s -= res.get_total_infections();
+                    // new_s -= data->get()->GetTotalInfected();
                     sanity_check(new_s);
-                    new_s -= data->get()->GetTotalRecovered();
+                    new_s -= res.get_total_recovered();
+                    //new_s -= data->get()->GetTotalRecovered();
                     sanity_check(new_s);
 
                     res.fatalities.at(age_segment_index) += data->get()->GetTotalFatalities();
@@ -270,7 +273,7 @@ class geographical_cell : public cell<T, string, sevirds, vicinity>
         */
         double new_exposed(sevirds &res, unique_ptr<AgeData> &age_data, int q = 0, bool immunity = true) const
         {
-            double expos = 0, sum = 0, inner_sum;
+            double expos = 0, sum = 0, inner_sum, inner_sumV1, inner_sumV2;
 
             // Calculate the correction factor of the current cell.
             // The current cell must be part of its own neighborhood for this to work!
@@ -300,39 +303,49 @@ class geographical_cell : public cell<T, string, sevirds, vicinity>
                 // in place in the current cell if the current cell has a more restrictive movement.
                 neighbor_correction = min(current_cell_correction_factor, neighbor_correction);
 
-                inner_sum = 0; // Reset the inner sum for the next neighbor
+                // Reset the inner sum for the next neighbor
+                inner_sum = 0; inner_sumV1 = 0; inner_sumV2;
 
                 // bϵ{1...A}
                 for (unsigned int age_group = 0; age_group < nstate.num_age_groups; ++age_group)
                 {
                     // nϵ{1...Ti}
-                    // TODO: Split this up for each population type
-                    for (unsigned int n = 0; n <= age_data.get()->GetInfectedPhase(); ++n)
+                    for (unsigned int n = 0; n < res.infected.size(); ++n)
                     {
                         inner_sum +=
-                            virulence_rates.at(age_group).at(n)   // λ(n)
-                            * nstate.infected.at(age_group).at(n) // I(n)
-                        ;
+                                mobility_rates.at(age_group).at(n)    // μ(n)
+                                * virulence_rates.at(age_group).at(n) // λ(n)
+                                * nstate.infected.at(age_group).at(n) // I(n)
+                            ;
+                    }
 
-                        if (is_vaccination)
+                    if (is_vaccination)
+                    {
+                        // nϵ{1...Ti,V1}
+                        for (unsigned int n = 0; n < res.infectedD1.size(); ++n)
                         {
-                            inner_sum +=
-                                virulence_rates.at(age_group).at(n)     // λ(n) TODO: Change this with λV1(n)
-                                * nstate.infectedD1.at(age_group).at(n) // I(n)
-                                ;
-                            inner_sum +=
-                                virulence_rates.at(age_group).at(n)     // λ(n) TODO: Change this with λV1(n)=
-                                * nstate.infectedD2.at(age_group).at(n) // I(n)
+                            inner_sumV1 +=
+                                    mobility_rates.at(age_group).at(n)      // μ(n)
+                                    * virulence_rates.at(age_group).at(n)   // λ(n)
+                                    * nstate.infectedD1.at(age_group).at(n) // IV1(n)
                                 ;
                         }
 
-                        inner_sum *= mobility_rates.at(age_group).at(n); // μ(n);
+                        // nϵ{1...Ti,V2}
+                        for (unsigned int n = 0; n < res.infectedD2.size(); ++n)
+                        {
+                            inner_sumV2 +=
+                                mobility_rates.at(age_group).at(n)      // μ(n)
+                                * virulence_rates.at(age_group).at(n)   // λ(n)
+                                * nstate.infectedD2.at(age_group).at(n) // IV2(n)
+                                ;
+                        }
                     }
 
                     sum += v.correlation                                // cij
-                            * neighbor_correction                        // kij
-                            * inner_sum                                  // sum(1...Ti)
-                            * nstate.age_group_proportions.at(age_group) // Njb / Nj
+                           * neighbor_correction                        // kij
+                           * inner_sum                                  // sum(1...Ti)
+                           * nstate.age_group_proportions.at(age_group) // Njb / Nj
                         ;
                 }
             }
@@ -380,12 +393,13 @@ class geographical_cell : public cell<T, string, sevirds, vicinity>
         */
         double new_infections(unique_ptr<AgeData>& age_data) const
         {
-            double inf = age_data.get()->GetOrigExposed().back(); // E(Te), EV1(Te), or EV2(Te)
+            double inf = 0;
 
-            // Scan through all exposed day except last and calculate exposed.at(age).at(q)
+            // Scan through all exposed days and calculate exposed.at(age).at(q)
+            // Incubation Rate on Te must be 1.0
             // Note: age_data.get()->GetExposed(i) == exposed.at(age).at(q)
             // qϵ{1...Te-1}
-            for (unsigned int q = 0; q <= age_data.get()->GetExposedPhase() - 1; ++q)
+            for (unsigned int q = 1; q <= age_data.get()->GetExposedPhase(); ++q)
             {
                 inf += age_data.get()->GetIncubationRate(q) // ε(q), εV1(q), or εV2(q)
                        * age_data.get()->GetOrigExposed(q)  // E(q), EV1(q), or EV2(q)
@@ -405,7 +419,7 @@ class geographical_cell : public cell<T, string, sevirds, vicinity>
         */
         void increment_infections(unique_ptr<AgeData>& age_data) const
         {
-            double curr_inf, fatals = 0, recovs = 0;
+            double curr_inf;
 
             // qϵ{2...Ti}
             for (unsigned int q = age_data.get()->GetInfectedPhase(); q > 0; --q)
@@ -731,16 +745,11 @@ class geographical_cell : public cell<T, string, sevirds, vicinity>
                 // </RECOVERIES>
 
                 // <EXPOSED>
-                    if (age_data->get()->GetType() == AgeData::PopType::NVAC)
-                        new_expos = new_exposed(res, *age_data);
-                    else
-                    {
-                        new_expos = 0;
+                    new_expos = 0;
 
-                        phase = age_data->get()->GetOrigSusceptible().size();
-                        for (unsigned int q = 0; q < phase; ++q)
-                            new_expos += new_exposed(res, *age_data, q);
-                    }
+                    // qϵ{1...Td2}
+                    for (unsigned int q = 0; q <= age_data->get()->GetSusceptiblePhase(); ++q)
+                        new_expos += new_exposed(res, *age_data, q);
 
                     increment_exposed(*age_data);
 
