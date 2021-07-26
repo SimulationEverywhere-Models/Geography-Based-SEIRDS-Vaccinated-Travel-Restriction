@@ -79,7 +79,7 @@ def state_to_percent_df(sim_time, region_state, line_num):
     percent_new_R = region_state[newrIndex]
 
     psum = percent_S + percent_E + percent_VD1 + percent_VD2 + percent_I + percent_R + percent_D
-    assert 0.95 <= psum < 1.05, ("at time " + str(curr_time))
+    assert 0.995 <= psum < 1.005, ("at time " + str(curr_time))
 
     # return the info in desired format
     return [int(sim_time), percent_S, percent_E, percent_VD1, percent_VD2, percent_I, percent_R, percent_new_E, percent_new_I, percent_new_R, percent_D]
@@ -113,7 +113,7 @@ def state_to_cumulative_df(sim_time, region_state, line_num):
     total_new_R = round(cell_population*percent_new_R)
 
     psum = percent_S + percent_E + percent_VD1 + percent_VD2 + percent_I + percent_R + percent_D
-    assert 0.95 <= psum < 1.05, ("at time " + str(curr_time))
+    assert 0.995 <= psum < 1.005, ("at time " + str(curr_time))
 
     # Return the info in desired format
     return [int(sim_time), total_S, total_E, total_VD1, total_VD2, total_I, total_R, total_new_E, total_new_I, total_new_R, total_D]
@@ -344,7 +344,7 @@ except AssertionError as assertion:
     if not no_progress:
         t.join()
 
-    print("\n\033[31mASSERT:\033[0m 0.95 <= psum < 1.05", assertion)
+    print("\n\033[31mASSERT:\033[0m 0.995 <= psum < 1.005", assertion)
     sys.exit(-1)
 except KeyboardInterrupt as interrupt:
     success = False
