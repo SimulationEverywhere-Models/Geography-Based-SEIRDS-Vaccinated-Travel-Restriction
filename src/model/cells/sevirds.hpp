@@ -390,7 +390,7 @@ void from_json(const nlohmann::json &json, sevirds &current_sevirds)
     for (unsigned int i = 0; i < current_sevirds.num_age_groups; ++i)
         if ( current_sevirds.vaccines && current_sevirds.get_total_vaccinatedD1() + current_sevirds.get_total_vaccinatedD2() > 1.0f )
         {
-            cout << "\033[1;31mASSERT: \033[0;31mPeople can only be in one of three groups: Unvaccinated, Vaccinated-Dose1, or Vaccinated-Dose2. The proportion of people with dose 1 plus those with dose 2 cannot be greater then 1\033[0m" << endl;
+            cout << "\033[1;31mASSERT in sevirds.hpp: \033[0;31mPeople can only be in one of three groups: Unvaccinated, Vaccinated-Dose1, or Vaccinated-Dose2. The proportion of people with dose 1 plus those with dose 2 cannot be greater then 1\033[0m" << endl;
             assert(false);
         }
 }
