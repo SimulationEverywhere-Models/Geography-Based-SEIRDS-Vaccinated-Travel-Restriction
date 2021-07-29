@@ -11,6 +11,22 @@
     ITALIC="\033[3m"
 # </Colors> #
 
+# <Helpers> #
+    GenerateScenario()
+    {
+        mkdir -p Scripts/Input_Generator/output
+
+        # Generate a scenario json file for model input, save it in the config folder
+        echo "Generating Scenario:"
+        cd Scripts/Input_Generator
+        python3 generateScenario.py $AREA $PROGRESS
+        ErrorCheck $? # Check for build errors
+        mv output/scenario_${AREA_FILE}.json ../../config
+        rm -rf output
+        cd ../..
+    }
+# </Helpers> #
+
 # Runs the model and saves the results in the GIS_Viewer directory
 Main()
 {
@@ -35,18 +51,11 @@ Main()
     fi
 
     # Make directories if they don't exist
-    mkdir -p Scripts/Input_Generator/output
     mkdir -p logs
     mkdir -p $VISUALIZATION_DIR
 
-    # Generate a scenario json file for model input, save it in the config folder
-    echo "Generating Scenario:"
-    cd Scripts/Input_Generator
-    python3 generateScenario.py $AREA $PROGRESS
-    ErrorCheck $? # Check for build errors
-    mv output/scenario_${AREA_FILE}.json ../../config
-    rm -rf output
-    cd ../..
+    # Generate Scenario
+    GenerateScenario
 
     # Run the model
     cd bin
@@ -181,6 +190,7 @@ else
     NAME=""
     DAYS="500"
     GRAPH_REGIONS="N"
+    GEN_SCENARIO="N"
 
     # Loop through the flags
     while test $# -gt 0; do
@@ -201,6 +211,10 @@ else
             --flags|-f)
                 Help 1;
                 exit 1;
+            ;;
+            --gen-scenario|-gn)
+                GEN_SCENARIO="Y"
+                shift
             ;;
             --graph-regions|-gr)
                 GRAPH_REGIONS="Y"
@@ -292,6 +306,7 @@ else
     fi
 
     if [[ $CLEAN == "Y" ]]; then Clean;
+    elif [[ $GEN_SCENARIO == "Y" ]]; then GenerateScenario;
     else
         Main;
 
