@@ -1228,7 +1228,6 @@
                         0.005
                     ]
                 ],
-                "has_exposed_phase": true,
                 "incubation_rates": [
                     [
                         0.0007,

@@ -47,7 +47,6 @@ config
 * **vaccinaterd_rates_dose2** : Rate at which each age group is being vaccinated, varying on a daily basis as some people are eligible to get their second dose sooner. The length of each list represents the length of days set in **vaccinatedD1** minus the **min_interval_between_doses** (the first index in the list is the minimal interval and the last index is the interval of those with dose 1)
 * **SIIRS_model**: Can recovered individuals become re-susceptible? ```true``` or ```false```
 * **Vaccinations**: Toggle for whether the effect of vaccines should be simulated. Set this to ```false``` to simulate a scenario where vaccines don't exist
-* **has_exposed_state**: Is there an _exposed_ state, where the population may or may not become infected (rather then just moving immediately to infected upon exposure)?
 
 neighborhood
 * **default_cell_id**: _N/A_
