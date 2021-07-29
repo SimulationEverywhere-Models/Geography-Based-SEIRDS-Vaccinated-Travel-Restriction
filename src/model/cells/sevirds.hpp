@@ -53,6 +53,7 @@ struct sevirds
     proportionVector immunityD1_rate;
     proportionVector immunityD2_rate;
     unsigned int min_interval_doses;
+    unsigned int min_interval_recovery_to_vaccine;
 
     unordered_map<string, hysteresis_factor> hysteresis_factors;
     unsigned int num_age_groups;
@@ -377,8 +378,9 @@ void from_json(const nlohmann::json &json, sevirds &current_sevirds)
     json.at("fatality_modifier").get_to(current_sevirds.fatality_modifier);
 
     json.at("immunityD1").get_to(current_sevirds.immunityD1_rate);
-    json.at("min_interval_between_doses").get_to(current_sevirds.min_interval_doses);
     json.at("immunityD2").get_to(current_sevirds.immunityD2_rate);
+    json.at("min_interval_between_doses").get_to(current_sevirds.min_interval_doses);
+    json.at("min_interval_between_recoverie_and_vaccine").get_to(current_sevirds.min_interval_recovery_to_vaccine);
 
     current_sevirds.num_age_groups = current_sevirds.age_group_proportions.size();
 
@@ -388,11 +390,19 @@ void from_json(const nlohmann::json &json, sevirds &current_sevirds)
 
     // Three options: unvaccinated, dose 1 or dose 2. Can only be in one of those groups
     for (unsigned int i = 0; i < current_sevirds.num_age_groups; ++i)
+    {
         if ( current_sevirds.vaccines && current_sevirds.get_total_vaccinatedD1() + current_sevirds.get_total_vaccinatedD2() > 1.0f )
         {
             cout << "\033[1;31mASSERT in sevirds.hpp: \033[0;31mPeople can only be in one of three groups: Unvaccinated, Vaccinated-Dose1, or Vaccinated-Dose2. The proportion of people with dose 1 plus those with dose 2 cannot be greater then 1\033[0m" << endl;
             assert(false);
         }
+    }
+
+    if (current_sevirds.recoveredD1.front().size() < current_sevirds.vaccinatedD1.front().size())
+    {
+        cout << "\033[1;31mASSERT in from_json() (sevirds.hpp): \033[0;31mThe recovery phase for those vaccinated with their first dose needs to be smaller then vaccinatedD1!\033[0m" << endl;
+        assert(false);
+    }
 }
 
 #endif //PANDEMIC_HOYA_2002_SEIRD_HPP
