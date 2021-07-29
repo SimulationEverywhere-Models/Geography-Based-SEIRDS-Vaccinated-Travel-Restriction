@@ -146,14 +146,12 @@ class geographical_cell : public cell<T, string, sevirds, vicinity>
                                                     fatality_rates, vac2_rates.at(age_segment_index),
                                                     res.immunityD2_rate.at(age_segment_index), AgeData::PopType::DOSE2));
 
-                    // Equations for Vaccinated population (eg. EV1, RV2...) 
+                    // Equations for Vaccinated population (eg. EV1, RV2...)
                     compute_vaccinated(datas, res);
 
-                    new_s -= age_data_vac1.get()->GetTotalSusceptible(); // 1g
-                    //new_s -= res.get_total_vaccinatedD1();
+                    new_s -= age_data_vac1.get()->GetTotalSusceptible(); // 1e
                     sanity_check(new_s);
-                    new_s -= age_data_vac2.get()->GetTotalSusceptible();
-                    //new_s -= res.get_total_vaccinatedD2();
+                    new_s -= age_data_vac2.get()->GetTotalSusceptible(); // 2d
                     sanity_check(new_s);
                 }
 
@@ -195,7 +193,7 @@ class geographical_cell : public cell<T, string, sevirds, vicinity>
          * @param datas: Vector containing the three population types and their data
          * @return double: New proportion of vaccinated dose 1
          */
-        double new_vaccinated1(vector<unique_ptr<AgeData> *> datas) const
+        double new_vaccinated1(vector<unique_ptr<AgeData> *> datas, sevirds const& res) const
         {
             // Vaccination rate with those who are susceptible
             // vd1 * S
@@ -203,10 +201,10 @@ class geographical_cell : public cell<T, string, sevirds, vicinity>
 
             // And those who are in the recovery phase
             double sum = 0;
-            for (unsigned int q = 0; q <= datas.at(NVAC)->get()->GetRecoveredPhase(); ++q)
-                sum += datas.at(NVAC)->get()->GetOrigRecovered(q);
+            // for (unsigned int q = res.min_interval_recovery_to_vaccine; q <= datas.at(NVAC)->get()->GetRecoveredPhase(); ++q)
+            //     sum += datas.at(NVAC)->get()->GetOrigRecovered(q);
 
-            return new_vac1;
+            return new_vac1 + sum;
         }
 
         /**
@@ -233,17 +231,18 @@ class geographical_cell : public cell<T, string, sevirds, vicinity>
                     ;
             }
 
-            // Some people are eligible to receive their second dose sooner from the dose 1 recovery pop
-            // qϵ{mtd1...Tr}
-            for (unsigned int q = res.min_interval_doses; q <= age_data_vac1.get()->GetRecoveredPhase(); ++q)
-            {
-                vac2 += age_data_vac2.get()->GetVaccinationRate(q - res.min_interval_doses) // v(q)
-                        * age_data_vac1.get()->GetOrigRecovered(q)                          // RV1(q)
-                    ;
-            }
+            // // Some people are eligible to receive their second dose sooner from the dose 1 recovery pop
+            // // qϵ{mtd1...Tr}
+            // for (unsigned int q = res.min_interval_recovery_to_vaccine; q <= age_data_vac1.get()->GetRecoveredPhase(); ++q)
+            // {
+            //     vac2 += age_data_vac2.get()->GetVaccinationRate(q - res.min_interval_recovery_to_vaccine) // v(q)
+            //             * age_data_vac1.get()->GetOrigRecovered(q)                                        // RV1(q)
+            //         ;
+            // }
 
             // - V1(td1) * sum(1...k and 1...Ti))
             vac2 -= new_exposed(res, age_data_vac1, age_data_vac1.get()->GetSusceptiblePhase(), false);
+            sanity_check(vac2);
 
             return vac2;
         }
@@ -478,19 +477,19 @@ class geographical_cell : public cell<T, string, sevirds, vicinity>
             {
                 vaccinated = 1;
 
-                if (is_vaccination)
-                {
-                    if (age_data.get()->GetType() == AgeData::PopType::NVAC)
-                    {
-                        // USed in 5d
-                        vaccinated -= age_data_vac->get()->GetVaccinationRate(0); // 1 - vd1
-                    }
-                    else if (age_data.get()->GetType() == AgeData::PopType::DOSE1 && q > res->min_interval_doses)
-                    {
-                        // Used in 5e
-                        vaccinated -= age_data_vac->get()->GetVaccinationRate(q - 1 - res->min_interval_doses); // 1 - vd2(q - 1)
-                    }
-                }
+                // if (is_vaccination)
+                // {
+                //     if (age_data.get()->GetType() == AgeData::PopType::NVAC && q > res->min_interval_recovery_to_vaccine)
+                //     {
+                //         // Used in 5d
+                //         vaccinated -= age_data_vac->get()->GetVaccinationRate(0); // 1 - vd1
+                //     }
+                //     else if (age_data.get()->GetType() == AgeData::PopType::DOSE1 && q > res->min_interval_recovery_to_vaccine)
+                //     {
+                //         // Used in 5e
+                //         vaccinated -= age_data_vac->get()->GetVaccinationRate(q - 1 - res->min_interval_recovery_to_vaccine); // 1 - vd2(q - 1)
+                //     }
+                // }
 
                 // Each day of the recovered phase is the value of the previous day. The population on the last day is
                 // now susceptible (assuming a re-susceptible model); this is implicitly done already as the susceptible value was set to 1.0 and the
@@ -608,10 +607,10 @@ class geographical_cell : public cell<T, string, sevirds, vicinity>
 
             // <VACCINATED DOSE 1>
                 // Calculate the number of new vaccinated dose 1
-                double new_vac1 = new_vaccinated1(datas); // 1a
+                double new_vac1 = new_vaccinated1(datas, res); // 1a
 
-                // qϵ{2...td1 - 1}
-                for (unsigned int q = age_data_vac1.get()->GetSusceptiblePhase() - 1; q > 0; --q)
+                // qϵ{2...td1}
+                for (unsigned int q = age_data_vac1.get()->GetSusceptiblePhase(); q > 0; --q)
                 {
                     // 1b
                     curr_vac1 = age_data_vac1.get()->GetOrigSusceptible(q - 1)  // V1(q - 1)
@@ -624,15 +623,6 @@ class geographical_cell : public cell<T, string, sevirds, vicinity>
                         curr_vac1 -= age_data_vac2.get()->GetVaccinationRate(q - 1 - res.min_interval_doses) // vd2(q - 1)
                                      * age_data_vac1.get()->GetOrigSusceptible(q - 1)                        // * V1(q - 1)
                             ;
-
-                        // Re-susceptibility is on, q is the last day of Recovered phase, and there are more vac1 phases then recovered
-                        if (reSusceptibility && q == age_data_vac1.get()->GetRecoveredPhase() && age_data_vac1.get()->GetRecoveredPhase() < age_data_vac1.get()->GetSusceptiblePhase())
-                        {
-                            // 1d adds recoveries to 1c
-                            curr_vac1 += age_data_vac1.get()->GetOrigRecoveredBack()                                                                     // RV1(Tr)
-                                         * (1 - age_data_vac2.get()->GetVaccinationRate(age_data_vac1.get()->GetRecoveredPhase() - res.min_interval_doses)) // * (1 - vd2(Tr))
-                                ;
-                        }
                     }
 
                     sanity_check(curr_vac1);
@@ -641,22 +631,16 @@ class geographical_cell : public cell<T, string, sevirds, vicinity>
                     age_data_vac1.get()->SetSusceptible(q, curr_vac1);
                 }
 
-                // 1e
-                end = age_data_vac1.get()->GetOrigSusceptible(age_data_vac1.get()->GetSusceptiblePhase() - 1)                                  // V1(td1 - 1)
-                      * (1 - age_data_vac2.get()->GetVaccinationRate(age_data_vac1.get()->GetSusceptiblePhase() - 1 - res.min_interval_doses)) // * (1 - vd2(td1 - 1))
-                      - new_exposed(res, age_data_vac1, age_data_vac1.get()->GetSusceptiblePhase() - 1)                                        // - ( V1(Td1 - 1) * (1 - iv1(Td1 - 1)) * sum(1...k and 1...Ti) )
-                    ;
-
-                // 1f adds recoveries to 1e
+                // 1d
                 if (reSusceptibility && age_data_vac1.get()->GetRecoveredPhase() >= age_data_vac1.get()->GetSusceptiblePhase())
                 {
-                    end += age_data_vac1.get()->GetOrigRecoveredBack()                                                                     // RV1(Tr)
-                           * (1 - age_data_vac2.get()->GetVaccinationRate(age_data_vac1.get()->GetRecoveredPhase() - res.min_interval_doses)) // * (1 - vd2(Tr))
+                    end = age_data_vac1.get()->GetOrigRecoveredBack()                                                                                      // RV1(Tr)
+                          * (1 - age_data_vac2.get()->GetVaccinationRate(age_data_vac1.get()->GetRecoveredPhase() - res.min_interval_recovery_to_vaccine)) // * (1 - vd2(Tr))
                         ;
-                }
 
-                sanity_check(end);
-                age_data_vac1.get()->SetSusceptible(age_data_vac1.get()->GetSusceptiblePhase(), end);
+                    sanity_check(end);
+                    age_data_vac1.get()->SetSusceptible(age_data_vac1.get()->GetSusceptiblePhase(), end);
+                }
 
                 // Set the new dose1 proportion to the beginning of the phase
                 age_data_vac1.get()->SetSusceptible(0, new_vac1);
@@ -676,24 +660,17 @@ class geographical_cell : public cell<T, string, sevirds, vicinity>
                                 - new_exposed(res, age_data_vac2, q - 1)       // - V2(q - 1) * (1 - iv2(q - 1)) * sum( jϵ{1…k}(cij * kij * sum(bϵ{1...A} and nϵ{1...Ti}[...])) )
                         ;
 
-                    // 2c adds recoveries to 2b
-                    if (reSusceptibility && q == age_data_vac2.get()->GetRecoveredPhase() && age_data_vac2.get()->GetRecoveredPhase() < age_data_vac2.get()->GetSusceptiblePhase())
-                        curr_vac2 += age_data_vac2.get()->GetOrigRecovered(age_data_vac2.get()->GetRecoveredPhase()); // + RV2(Tr)
-
                     sanity_check(curr_vac2);
                     age_data_vac2.get()->SetSusceptible(q, curr_vac2);
                 }
 
-                // 2d
+                // 2c
                 end = age_data_vac2.get()->GetOrigSusceptible(age_data_vac2.get()->GetSusceptiblePhase() - 1) // V2(td2 - 1)
-                      + age_data_vac2.get()->GetOrigSusceptibleBack()                                        // V2(td2)
+                      + age_data_vac2.get()->GetOrigSusceptibleBack()                                         // V2(td2)
+                      + age_data_vac2.get()->GetOrigRecoveredBack()                                           // + RV2(Tr)
                       - new_exposed(res, age_data_vac2, age_data_vac2.get()->GetSusceptiblePhase() - 1)       // - V2(td2 - 1) * (1 - iV2(td2 - 1)) * sum( jϵ{1...k}(cij * kij * sum(bϵ{1...A} and nϵ{1...Ti}[...]) )
                       - new_exposed(res, age_data_vac2, age_data_vac2.get()->GetSusceptiblePhase())           // - V2(td2) * (1 - iV2(td2)) * sum( jϵ{1...k}(cij * kij * sum(bϵ{1...A} and nϵ{1...Ti}[...]) )
                     ;
-
-                // 2e adds recoveries to 2d
-                if (reSusceptibility && age_data_vac2.get()->GetRecoveredPhase() >= age_data_vac2.get()->GetSusceptiblePhase())
-                    end += age_data_vac2.get()->GetOrigRecoveredBack(); // + RV2(Tr)
 
                 sanity_check(end);
                 age_data_vac2.get()->SetSusceptible(age_data_vac2.get()->GetSusceptiblePhase(), end);
@@ -722,7 +699,7 @@ class geographical_cell : public cell<T, string, sevirds, vicinity>
                 // </FATALITIES>
 
                 // <RECOVERIES>
-                    new_rec = new_recoveries(*age_data);
+                    // new_rec = new_recoveries(*age_data);
                 // </RECOVERIES>
 
                 // <EXPOSED>
@@ -746,36 +723,36 @@ class geographical_cell : public cell<T, string, sevirds, vicinity>
                 // </INFECTED>
 
                 // <RECOVERED>
-                    recovered_index = age_data->get()->GetRecoveredPhase();
+                    // recovered_index = age_data->get()->GetRecoveredPhase();
 
-                    // If re-susceptibility is off
-                    if (!reSusceptibility)
-                    {
-                        // Add the population on the second last day of recovery to the population on the last day of recovery.
-                        // This entire population on the last day of recovery is then subtracted from the susceptible population
-                        // to take into account that the population on the last day of recovery will not be subtracted from the susceptible
-                        // population in the Equation 6a for loop.
-                        age_data->get()->SetRecovered(
-                            recovered_index,                                                                                // Tr
-                            age_data->get()->GetRecoveredBack() + age_data->get()->GetOrigRecovered(recovered_index - 1) // R(Tr) + R(Tr - 1)
-                        );
+                    // // If re-susceptibility is off
+                    // if (!reSusceptibility)
+                    // {
+                    //     // Add the population on the second last day of recovery to the population on the last day of recovery.
+                    //     // This entire population on the last day of recovery is then subtracted from the susceptible population
+                    //     // to take into account that the population on the last day of recovery will not be subtracted from the susceptible
+                    //     // population in the Equation 6a for loop.
+                    //     age_data->get()->SetRecovered(
+                    //         recovered_index,                                                                             // Tr
+                    //         age_data->get()->GetRecoveredBack() + age_data->get()->GetOrigRecovered(recovered_index - 1) // R(Tr) + R(Tr - 1)
+                    //     );
 
-                        // Avoid processing the population on the last day of recovery in the equation 6a for loop. This will
-                        // update all stages of recovery population except the last one, which grows with every time step
-                        // as it is only added to from the population on the second last day of recovery.
-                        recovered_index -= 1;
-                    }
+                    //     // Avoid processing the population on the last day of recovery in the equation 6a for loop. This will
+                    //     // update all stages of recovery population except the last one, which grows with every time step
+                    //     // as it is only added to from the population on the second last day of recovery.
+                    //     recovered_index -= 1;
+                    // }
 
-                    if (age_data->get()->GetType() == AgeData::PopType::DOSE1)
-                        increment_recoveries(*age_data, recovered_index, datas.at(VAC2), &res);
-                    else if (age_data->get()->GetType() == AgeData::PopType::DOSE2)
-                        increment_recoveries(*age_data, recovered_index);
-                    else
-                        increment_recoveries(*age_data, recovered_index, datas.size() > 1 ? datas.at(VAC1) : nullptr);
+                    // if (age_data->get()->GetType() == AgeData::PopType::DOSE1)
+                    //     increment_recoveries(*age_data, recovered_index, datas.at(VAC2), &res);
+                    // else if (age_data->get()->GetType() == AgeData::PopType::DOSE2)
+                    //     increment_recoveries(*age_data, recovered_index);
+                    // else
+                    //     increment_recoveries(*age_data, recovered_index, (is_vaccination ? datas.at(VAC1) : nullptr), (is_vaccination ? &res : nullptr));
 
-                    // The people on the first day of recovery are those that were on the last stage of infection (minus those who died;
-                    // already accounted for) in the previous time step plus those that recovered early during an infection stage.
-                    age_data->get()->SetRecovered(0, new_rec);
+                    // // The people on the first day of recovery are those that were on the last stage of infection (minus those who died;
+                    // // already accounted for) in the previous time step plus those that recovered early during an infection stage.
+                    // age_data->get()->SetRecovered(0, new_rec);
                 // </RECOVERED>
             }
         }

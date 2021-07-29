@@ -50,7 +50,7 @@
                 [0.95, 0.99]
             ],
             "min_interval_between_doses": 14,
-            "min_interval_between_recoverie_and_vaccine": 90
+            "min_interval_between_recoverie_and_vaccine": 25
         },
         "config": {
             "precision": 10000000000,
@@ -89,7 +89,7 @@
             ],
             "vaccination_rates_dose1": [[0.1]],
             "vaccination_rates_dose2": [
-                [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0.08, 0.09, 0.10, 0.11, 0.12, 0.13, 0.14]
+                [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0.08, 0.09, 0.10, 0.11, 0.12, 0.13, 0.14]
             ],
             "Re-Susceptibility": false,
             "Vaccinations": true
