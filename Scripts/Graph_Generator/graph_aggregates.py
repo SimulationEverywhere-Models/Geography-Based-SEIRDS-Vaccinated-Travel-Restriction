@@ -45,7 +45,6 @@ if not no_progress:
 
 # Setup paths, filenames, and folders
 log_file_folder = "../../logs"
-# log_file_folder = "/home/ericmereu/Documents/Geography-Based-SEIRDS-Vaccinated/GIS_Viewer/ontario/simulation_runs/run11/logs"
 log_filename = log_file_folder + "/pandemic_state.txt"
 path = log_file_folder + "/stats/aggregate"
 base_name = path + "/"
@@ -236,6 +235,8 @@ try:
         fig, axs = plt.subplots(2, figsize=(15,6))
 
         axs[0].plot(x, 100*df_vis["susceptible"],   label="Susceptible",    color=COLOR_SUSCEPTIBLE, linestyle=STYLE_SUSCEPTIBLE)
+        axs[0].plot(x, 100*df_vis["vaccinatedD1"], label="Vaccinated 1 Dose",   color=COLOR_DOSE1, linestyle=STYLE_DOSE1)
+        axs[0].plot(x, 100*df_vis["vaccinatedD2"], label="Vaccinated 2 Doses",  color=COLOR_DOSE2, linestyle=STYLE_DOSE2)
         axs[0].plot(x, 100*df_vis["exposed"],       label="Exposed",        color=COLOR_EXPOSED,     linestyle=STYLE_EXPOSED)
         axs[0].plot(x, 100*df_vis["infected"],      label="Infected",       color=COLOR_INFECTED,    linestyle=STYLE_INFECTED)
         axs[0].plot(x, 100*df_vis["recovered"],     label="Recovered",      color=COLOR_RECOVERED,   linestyle=STYLE_RECOVERED)
@@ -245,9 +246,11 @@ try:
 
         axs[1].plot(x, 100*df_vis["vaccinatedD1"], label="Vaccinated 1 Dose",   color=COLOR_DOSE1, linestyle=STYLE_DOSE1)
         axs[1].plot(x, 100*df_vis["vaccinatedD2"], label="Vaccinated 2 Doses",  color=COLOR_DOSE2, linestyle=STYLE_DOSE2)
+        axs[1].plot(x, 100*df_vis["susceptible"],  label="Susceptible",         color=COLOR_SUSCEPTIBLE, linestyle=STYLE_SUSCEPTIBLE)
         axs[1].set_xlabel("Time (days)")
         axs[1].set_ylabel("Population (%)")
         axs[1].legend()
+        axs[1].legend(loc="upper right")
 
         plt.savefig(base_name + "SEIRD+V.png")
 
