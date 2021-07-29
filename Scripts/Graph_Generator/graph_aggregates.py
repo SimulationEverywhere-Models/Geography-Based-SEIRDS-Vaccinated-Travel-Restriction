@@ -215,12 +215,17 @@ try:
     fig, axs = plt.subplots(2, figsize=(15,6))
 
     axs[0].plot(x, 100*df_vis["susceptible"],   label="Susceptible",    color=COLOR_SUSCEPTIBLE, linestyle=STYLE_SUSCEPTIBLE)
+    if not (sum(df_vis['vaccinatedD1']) == 0 and sum(df_vis['vaccinatedD2']) == 0):
+        axs[0].plot(x, 100*df_vis["vaccinatedD1"], label="Vaccinated 1 Dose", color=COLOR_DOSE1, linestyle=STYLE_DOSE1)
+        axs[0].plot(x, 100*df_vis["vaccinatedD2"], label="Vaccinated 2 Doses",  color=COLOR_DOSE2, linestyle=STYLE_DOSE2)
+        axs[0].set_title("Epidemic Aggregate SEVIRD Percentages")
+    else:
+        axs[0].set_title("Epidemic Aggregate SEIR+D Percentages")
     axs[0].plot(x, 100*df_vis["exposed"],       label="Exposed",        color=COLOR_EXPOSED,     linestyle=STYLE_EXPOSED)
     axs[0].plot(x, 100*df_vis["infected"],      label="Infected",       color=COLOR_INFECTED,    linestyle=STYLE_INFECTED)
     axs[0].plot(x, 100*df_vis["recovered"],     label="Recovered",      color=COLOR_RECOVERED,   linestyle=STYLE_RECOVERED)
     axs[0].set_ylabel("Population (%)")
     axs[0].legend(loc="upper right")
-    axs[0].set_title("Epidemic Aggregate SEIR+D Percentages")
 
     axs[1].plot(x, 100*df_vis["deaths"], label="Deaths", color=COLOR_DEAD, linestyle=STYLE_DEAD)
     axs[1].set_xlabel("Time (days)")
@@ -232,25 +237,16 @@ try:
 
     ### --- SEIRD+V --- ###
     if not (sum(df_vis['vaccinatedD1']) == 0 and sum(df_vis['vaccinatedD2']) == 0):
-        fig, axs = plt.subplots(2, figsize=(15,6))
+        fig, axs = plt.subplots(figsize=(15,6))
 
-        axs[0].plot(x, 100*df_vis["susceptible"],   label="Susceptible",    color=COLOR_SUSCEPTIBLE, linestyle=STYLE_SUSCEPTIBLE)
-        axs[0].plot(x, 100*df_vis["vaccinatedD1"], label="Vaccinated 1 Dose",   color=COLOR_DOSE1, linestyle=STYLE_DOSE1)
-        axs[0].plot(x, 100*df_vis["vaccinatedD2"], label="Vaccinated 2 Doses",  color=COLOR_DOSE2, linestyle=STYLE_DOSE2)
-        axs[0].plot(x, 100*df_vis["exposed"],       label="Exposed",        color=COLOR_EXPOSED,     linestyle=STYLE_EXPOSED)
-        axs[0].plot(x, 100*df_vis["infected"],      label="Infected",       color=COLOR_INFECTED,    linestyle=STYLE_INFECTED)
-        axs[0].plot(x, 100*df_vis["recovered"],     label="Recovered",      color=COLOR_RECOVERED,   linestyle=STYLE_RECOVERED)
-        axs[0].set_ylabel("Population (%)")
-        axs[0].legend(loc="upper right")
-        axs[0].set_title("Epidemic Aggregate SEIRD+V Percentages")
-
-        axs[1].plot(x, 100*df_vis["vaccinatedD1"], label="Vaccinated 1 Dose",   color=COLOR_DOSE1, linestyle=STYLE_DOSE1)
-        axs[1].plot(x, 100*df_vis["vaccinatedD2"], label="Vaccinated 2 Doses",  color=COLOR_DOSE2, linestyle=STYLE_DOSE2)
-        axs[1].plot(x, 100*df_vis["susceptible"],  label="Susceptible",         color=COLOR_SUSCEPTIBLE, linestyle=STYLE_SUSCEPTIBLE)
-        axs[1].set_xlabel("Time (days)")
-        axs[1].set_ylabel("Population (%)")
-        axs[1].legend()
-        axs[1].legend(loc="upper right")
+        axs.plot(x, 100*df_vis["vaccinatedD1"], label="Vaccinated 1 Dose",   color=COLOR_DOSE1, linestyle=STYLE_DOSE1)
+        axs.plot(x, 100*df_vis["vaccinatedD2"], label="Vaccinated 2 Doses",  color=COLOR_DOSE2, linestyle=STYLE_DOSE2)
+        axs.plot(x, 100*df_vis["susceptible"],  label="Susceptible",         color=COLOR_SUSCEPTIBLE, linestyle=STYLE_SUSCEPTIBLE)
+        axs.set_xlabel("Time (days)")
+        axs.set_ylabel("Population (%)")
+        axs.legend()
+        axs.legend(loc="upper right")
+        axs.set_title("Epidemic Aggregate SEVIRD Percentages")
 
         plt.savefig(base_name + "SEIRD+V.png")
 
