@@ -26,9 +26,6 @@ class AgeData
             DOSE2
         };
     private:
-        // The current age the data is referencing
-        unsigned int m_currAge;
-
         // Proportion Vectors for timestep t+1
         // These will be at a current age segment index so only one vector of doubles
         vecDouble& m_susceptible;
@@ -61,9 +58,7 @@ class AgeData
         vecDouble const& m_incubRates;
         vecDouble const& m_recovRates;
         vecDouble const& m_fatalRates;
-        vecDouble const& m_mobilityRates;
         vecDouble const& m_vacRates;
-        vecDouble const& m_virulRates;
         vecDouble const& m_immuneRates;
 
         // Phase Lengths
@@ -77,9 +72,7 @@ class AgeData
     public:
         AgeData(unsigned int age, vecVecDouble& susc, vecVecDouble& exp, vecVecDouble& inf,
                 vecVecDouble& rec, vecVecDouble const& incub_r, vecVecDouble const& rec_r,
-                vecVecDouble const& fat_r, vecDouble const& vac_r, vecVecDouble const& mob_r,
-                vecVecDouble const& vir_r, vecDouble const& immu_r, PopType type=PopType::NVAC) :
-            m_currAge(age),
+                vecVecDouble const& fat_r, vecDouble const& vac_r, vecDouble const& immu_r, PopType type=PopType::NVAC) :
             m_susceptible(susc.at(age)),
             m_exposed(exp.at(age)),
             m_infected(inf.at(age)),
@@ -94,9 +87,7 @@ class AgeData
             m_incubRates(incub_r.at(age)),
             m_recovRates(rec_r.at(age)),
             m_fatalRates(fat_r.at(age)),
-            m_mobilityRates(mob_r.at(age)),
             m_vacRates(vac_r), // Don't .at() this one since it may be EMPTY_VEC
-            m_virulRates(vir_r.at(age)),
             m_immuneRates(immu_r), // This one too may be EMPTY_VEC
             m_popType(type),
             m_OriginalSusceptible(susc.at(age)),
@@ -119,55 +110,35 @@ class AgeData
         // Non-Vaccinated
         //  No vaccination or immunity rates
         AgeData(unsigned int age, vecVecDouble& susc, vecVecDouble& exp, vecVecDouble& inf,
-            vecVecDouble& rec, vecVecDouble const& incub_r, vecVecDouble const& rec_r,
-            vecVecDouble const& fat_r, vecVecDouble const& mob_r, vecVecDouble const& vir_r) :
-            AgeData(age, susc, exp, inf, rec, incub_r, rec_r, fat_r, EMPTY_VEC, mob_r, vir_r, EMPTY_VEC)
+            vecVecDouble& rec, vecVecDouble const& incub_r, vecVecDouble const& rec_r, vecVecDouble const& fat_r) :
+            AgeData(age, susc, exp, inf, rec, incub_r, rec_r, fat_r, EMPTY_VEC, EMPTY_VEC)
         { }
 
         // GETTERS
-        vecDouble&  GetSusceptible() { return m_susceptible; }
-        vecDouble&  GetExposed()     { return m_exposed;     }
-        vecDouble&  GetInfected()    { return m_infected;    }
-        vecDouble&  GetRecovered()   { return m_recovered;   }
-        vecDouble&  GetNewFatalities() { return m_newFatalities; }
-        vecDouble&  GetNewRecoveries() { return m_newRecoveries; }
+        double GetRecoveredBack()       { return m_recovered.back();           }
+        double GetNewFatalitiesBack()   { return m_newFatalities.back();       }
+        double GetNewRecoveredBack()    { return m_newRecoveries.back();       }
+        double GetOrigSusceptibleBack() { return m_OriginalSusceptible.back(); }
+        double GetOrigInfectedBack()    { return m_OriginalInfected.back();    }
+        double GetOrigRecoveredBack()   { return m_OriginalRecovered.back();   }
 
-        double& GetTotalSusceptible() { return m_totalSusceptible; }
-        double& GetTotalExposed()     { return m_totalExposed;     }
-        double& GetTotalInfected()    { return m_totalInfected;    }
-        double& GetTotalRecovered()   { return m_totalRecoveries;  }
-        double& GetTotalFatalities()  { return m_totalFatalities;  }
+        double GetTotalSusceptible() { return m_totalSusceptible; }
+        double GetTotalExposed()     { return m_totalExposed;     }
+        double GetTotalInfected()    { return m_totalInfected;    }
+        double GetTotalRecovered()   { return m_totalRecoveries;  }
+        double GetTotalFatalities()  { return m_totalFatalities;  }
 
-        vecDouble const& GetOrigSusceptible() { return m_OriginalSusceptible; }
-        vecDouble const& GetOrigExposed()     { return m_OriginalExposed;     }
-        vecDouble const& GetOrigInfected()    { return m_OriginalInfected;    }
-        vecDouble const& GetOrigRecovered()   { return m_OriginalRecovered;   }
-
-        double& GetSusceptible(int index)   { return m_susceptible.at(index);   }
-        double& GetExposed(int index)       { return m_exposed.at(index);       }
-        double& GetInfected(int index)      { return m_infected.at(index);      }
-        double& GetRecovered(int index)     { return m_recovered.at(index);     }
-        double& GetNewFatalities(int index) { return m_newFatalities.at(index); }
-        double& GetNewRecoveries(int index) { return m_newRecoveries.at(index); }
-
-        double const& GetOrigSusceptible(int index) { return m_OriginalSusceptible.at(index); }
-        double const& GetOrigExposed(int index)     { return m_OriginalExposed.at(index);     }
-        double const& GetOrigInfected(int index)    { return m_OriginalInfected.at(index);    }
-        double const& GetOrigRecovered(int index)   { return m_OriginalRecovered.at(index);   }
-
-        vecDouble const& GetRecoveryRates()    { return m_recovRates;    }
-        vecDouble const& GetFatalityRates()    { return m_fatalRates;    }
-        vecDouble const& GetMobilityRates()    { return m_mobilityRates; }
-        vecDouble const& GetVaccinationRates() { return m_vacRates;      }
-        vecDouble const& GetVirulenceRates()   { return m_virulRates;    }
-        vecDouble const& GetImmunityRates()    { return m_immuneRates;   }
+        double GetNewFatalities(int index)   { return m_newFatalities.at(index);       }
+        double GetNewRecovered(int index)    { return m_newRecoveries.at(index);       }
+        double GetOrigSusceptible(int index) { return m_OriginalSusceptible.at(index); }
+        double GetOrigExposed(int index)     { return m_OriginalExposed.at(index);     }
+        double GetOrigInfected(int index)    { return m_OriginalInfected.at(index);    }
+        double GetOrigRecovered(int index)   { return m_OriginalRecovered.at(index);   }
 
         double GetIncubationRate(int index)  { return m_incubRates.at(index);    }
         double GetRecoveryRate(int index)    { return m_recovRates.at(index);    }
         double GetFatalityRate(int index)    { return m_fatalRates.at(index);    }
-        double GetMobilityRate(int index)    { return m_mobilityRates.at(index); }
         double GetVaccinationRate(int index) { return m_vacRates.at(index);      }
-        double GetVirulenceRate(int index)   { return m_virulRates.at(index);    }
         double GetImmunityRate(int index)    { return m_immuneRates.at(index);   }
 
         unsigned int GetSusceptiblePhase() { return m_susceptiblePhase; }
@@ -176,7 +147,37 @@ class AgeData
         unsigned int GetRecoveredPhase()   { return m_recoveredPhase;   }
 
         PopType& GetType() { return m_popType; }
-        int      GetAge()  { return m_currAge; }
+
+        // SETTERS
+        void SetNewRecovered(unsigned int q, double value)  { m_newRecoveries.at(q) = value; }
+        void SetNewFatalities(unsigned int q, double value) { m_newFatalities.at(q) = value; }
+
+        void SetTotalFatalities(double fatals) { m_totalFatalities = fatals; }
+
+        void SetSusceptible(unsigned int q, double value)
+        {
+            m_susceptible.at(q) = value;
+            m_totalSusceptible += value;
+        }
+
+        void SetExposed(unsigned int q, double value)
+        {
+            m_exposed.at(q) = value;
+            m_totalExposed += value;
+        }
+
+        void SetInfected(unsigned int q, double value)
+        {
+            m_infected.at(q) = value;
+            m_totalInfected += value;
+        }
+
+        void SetRecovered(unsigned int q, double value)
+        {
+            m_recovered.at(q)  = value;
+            m_totalRecoveries += value;
+        }
+
 };
 
 #endif // AGE_DATA_HPP

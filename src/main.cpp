@@ -62,7 +62,7 @@ int main(int argc, char** argv)
         return -1;
     }
 
-    try
+    // try
     {
         // The C++ standard filesystem library is not used as it may require an additional linker flag (-std=c++17),
         // but more importantly that in certain versions of GCC the filesystem is contained in an experimental folder (GCC 7).
@@ -125,14 +125,14 @@ int main(int argc, char** argv)
         }
         cout << "\033[1;32mDone.       \033[0m" << endl;
     } //try{}
-    catch(exception &e)
-    {
-        // With cygwin, an exception that terminates the program may not be printed to the screen, making it unclear
-        // if an error occurred. Thus an explicit print is done, along with a rethrowing of the exception to keep
-        // the original termination logic the same.
-        cerr << "A fatal error occurred: " << e.what() << endl;
-        throw;
-    }
+    // catch(exception &e)
+    // {
+    //     // With cygwin, an exception that terminates the program may not be printed to the screen, making it unclear
+    //     // if an error occurred. Thus an explicit print is done, along with a rethrowing of the exception to keep
+    //     // the original termination logic the same.
+    //     cerr << "A fatal error occurred: " << e.what() << endl;
+    //     throw;
+    // }
 
     return 0;
 } //main()
