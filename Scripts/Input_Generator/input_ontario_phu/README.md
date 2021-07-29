@@ -45,7 +45,7 @@ config
 * **fatality_rates**: Same as previous but with the chance of fatalities
 * **vaccinaterd_rates_dose1** : Rate at which each age group is being vaccinated daily
 * **vaccinaterd_rates_dose2** : Rate at which each age group is being vaccinated, varying on a daily basis as some people are eligible to get their second dose sooner. The length of each list represents the length of days set in **vaccinatedD1** minus the **min_interval_between_doses** (the first index in the list is the minimal interval and the last index is the interval of those with dose 1)
-* **SIIRS_model**: Can recovered individuals become re-susceptible? ```true``` or ```false```
+* **Re-Susceptibility**: Can recovered individuals become re-susceptible? ```true``` or ```false```
 * **Vaccinations**: Toggle for whether the effect of vaccines should be simulated. Set this to ```false``` to simulate a scenario where vaccines don't exist
 
 neighborhood

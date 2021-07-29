@@ -1155,7 +1155,7 @@
         "default": {
             "cell_type": "zhong",
             "config": {
-                "SIIRS_model": false,
+                "Re-Susceptibility": false,
                 "fatality_rates": [
                     [
                         0.005,

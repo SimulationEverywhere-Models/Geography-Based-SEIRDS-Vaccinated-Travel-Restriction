@@ -55,7 +55,7 @@ class geographical_cell : public cell<T, string, sevirds, vicinity>
         using infection_threshold        = float;
         using mobility_correction_factor = array<float, 2>;  // array<mobility correction factor, hysteresis factor>;
 
-        bool SIIRS_model, is_vaccination;
+        bool reSusceptibility, is_vaccination;
 
         unsigned int age_segments;
 
@@ -81,7 +81,7 @@ class geographical_cell : public cell<T, string, sevirds, vicinity>
             fatality_rates   = move(config.fatality_rates);
 
             // Multiplication is always faster then division so set this up to be 1/prec_divider to be multiplied later
-            SIIRS_model  = config.SIIRS_model;
+            reSusceptibility  = config.reSusceptibility;
             age_segments = initial_state.get_num_age_segments();
 
             if (is_vaccination)
@@ -493,7 +493,7 @@ class geographical_cell : public cell<T, string, sevirds, vicinity>
                 }
 
                 // Each day of the recovered phase is the value of the previous day. The population on the last day is
-                // now susceptible (assuming a SIIRS model); this is implicitly done already as the susceptible value was set to 1.0 and the
+                // now susceptible (assuming a re-susceptible model); this is implicitly done already as the susceptible value was set to 1.0 and the
                 // population on the last day of recovery is never subtracted from the susceptible value.
                 // 5d, 5e, 5f
                 curr_rec = age_data.get()->GetOrigRecovered(q - 1) * vaccinated; // R(q - 1) * (1 - vd(q - 1))
@@ -626,7 +626,7 @@ class geographical_cell : public cell<T, string, sevirds, vicinity>
                             ;
 
                         // Re-susceptibility is on, q is the last day of Recovered phase, and there are more vac1 phases then recovered
-                        if (SIIRS_model && q == age_data_vac1.get()->GetRecoveredPhase() && age_data_vac1.get()->GetRecoveredPhase() < age_data_vac1.get()->GetSusceptiblePhase())
+                        if (reSusceptibility && q == age_data_vac1.get()->GetRecoveredPhase() && age_data_vac1.get()->GetRecoveredPhase() < age_data_vac1.get()->GetSusceptiblePhase())
                         {
                             // 1d adds recoveries to 1c
                             curr_vac1 += age_data_vac1.get()->GetOrigRecoveredBack()                                                                     // RV1(Tr)
@@ -648,7 +648,7 @@ class geographical_cell : public cell<T, string, sevirds, vicinity>
                     ;
 
                 // 1f adds recoveries to 1e
-                if (SIIRS_model && age_data_vac1.get()->GetRecoveredPhase() >= age_data_vac1.get()->GetSusceptiblePhase())
+                if (reSusceptibility && age_data_vac1.get()->GetRecoveredPhase() >= age_data_vac1.get()->GetSusceptiblePhase())
                 {
                     end += age_data_vac1.get()->GetOrigRecoveredBack()                                                                     // RV1(Tr)
                            * (1 - age_data_vac2.get()->GetVaccinationRate(age_data_vac1.get()->GetRecoveredPhase() - res.min_interval_doses)) // * (1 - vd2(Tr))
@@ -677,7 +677,7 @@ class geographical_cell : public cell<T, string, sevirds, vicinity>
                         ;
 
                     // 2c adds recoveries to 2b
-                    if (SIIRS_model && q == age_data_vac2.get()->GetRecoveredPhase() && age_data_vac2.get()->GetRecoveredPhase() < age_data_vac2.get()->GetSusceptiblePhase())
+                    if (reSusceptibility && q == age_data_vac2.get()->GetRecoveredPhase() && age_data_vac2.get()->GetRecoveredPhase() < age_data_vac2.get()->GetSusceptiblePhase())
                         curr_vac2 += age_data_vac2.get()->GetOrigRecovered(age_data_vac2.get()->GetRecoveredPhase()); // + RV2(Tr)
 
                     sanity_check(curr_vac2);
@@ -692,7 +692,7 @@ class geographical_cell : public cell<T, string, sevirds, vicinity>
                     ;
 
                 // 2e adds recoveries to 2d
-                if (SIIRS_model && age_data_vac2.get()->GetRecoveredPhase() >= age_data_vac2.get()->GetSusceptiblePhase())
+                if (reSusceptibility && age_data_vac2.get()->GetRecoveredPhase() >= age_data_vac2.get()->GetSusceptiblePhase())
                     end += age_data_vac2.get()->GetOrigRecoveredBack(); // + RV2(Tr)
 
                 sanity_check(end);
@@ -749,7 +749,7 @@ class geographical_cell : public cell<T, string, sevirds, vicinity>
                     recovered_index = age_data->get()->GetRecoveredPhase();
 
                     // If re-susceptibility is off
-                    if (!SIIRS_model)
+                    if (!reSusceptibility)
                     {
                         // Add the population on the second last day of recovery to the population on the last day of recovery.
                         // This entire population on the last day of recovery is then subtracted from the susceptible population
