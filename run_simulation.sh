@@ -22,7 +22,6 @@ Main()
     # Always creates a new directory instead of replacing a previous one
     if [[ $NAME != "" ]]; then
         VISUALIZATION_DIR="${VISUALIZATION_DIR}${NAME}"
-        break;
     else
         declare -i RUN_INDEX=1
         while true; do
