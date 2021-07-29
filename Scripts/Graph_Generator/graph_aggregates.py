@@ -116,7 +116,7 @@ def curr_states_to_df_row(sim_time, curr_states, total_pop, line_num):
     percent_new_R = new_R / total_pop
     psum = percent_S + percent_E + percent_VD1 + percent_VD2 + percent_I + percent_R + percent_D
 
-    assert 0.995 <= psum < 1.005, ("at time " + str(curr_time))
+    # assert 0.95 <= psum < 1.05, ("at time " + str(curr_time))
 
     return [int(sim_time), percent_S, percent_E, percent_VD1, percent_VD2, percent_I, percent_R, percent_new_E, percent_new_I, percent_new_R, percent_D, psum]
 
@@ -230,7 +230,7 @@ try:
     axs[1].plot(x, 100*df_vis["deaths"], label="Deaths", color=COLOR_DEAD, linestyle=STYLE_DEAD)
     axs[1].set_xlabel("Time (days)")
     axs[1].set_ylabel("Population (%)")
-    axs[1].set_ylim([0,6])
+    # axs[1].set_ylim([0,6])
     axs[1].legend(loc="upper right")
 
     plt.savefig(base_name + "SEIR+D.png")
