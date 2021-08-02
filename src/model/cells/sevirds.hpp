@@ -91,9 +91,9 @@ struct sevirds
                 immunityD1_rate{move(immuD1)},
                 immunityD2_rate{move(immuD2)},
                 min_interval_doses{min_interval},
+                vaccines{vac},
                 prec_divider{divider},
-                one_over_prec_divider{1.0 / divider},
-                vaccines{vac}
+                one_over_prec_divider{1.0 / divider}
     { num_age_groups = age_group_proportions.size(); }
 
     unsigned int get_num_age_segments() const       { return num_age_groups;                }
