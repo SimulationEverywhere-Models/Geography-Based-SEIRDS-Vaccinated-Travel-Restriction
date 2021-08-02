@@ -25,8 +25,11 @@ no_progress = len(sys.argv) > 2 and sys.argv[2] == "N"
 # Setup variables that handle the area
 input_area  = str(sys.argv[1]).lower()
 cadmium_dir = "../../cadmium_gis/"
+cadmium_dir = "/home/ericmereu/Documents/Geography-Based-SEIRDS-Vaccinated/cadmium_gis/"
 input_dir   = "input_"
+input_dir = "/home/ericmereu/Documents/Geography-Based-SEIRDS-Vaccinated/Scripts/Input_Generator/input_"
 output_json = "output/scenario_"
+output_json = "/home/ericmereu/Documents/Geography-Based-SEIRDS-Vaccinated/Scripts/Input_Generator/output/scenario_"
 
 # Set the data based on the area passed in
 if input_area == "ottawa":
@@ -156,9 +159,12 @@ for key, value in adj_full.items():
     if key in infected_index:
         template["cells"][key]["state"]["susceptible"] = infectedCells[key]["state"]["susceptible"]
         template["cells"][key]["state"]["exposed"]     = infectedCells[key]["state"]["exposed"]
-        template["cells"][key]["state"]["infected"]    = infectedCells[key]["state"]["infected"]
-        template["cells"][key]["state"]["recovered"]   = infectedCells[key]["state"]["recovered"]
-        template["cells"][key]["state"]["fatalities"]  = infectedCells[key]["state"]["fatalities"]
+        if "infected" in infectedCells[key]["state"]:
+            template["cells"][key]["state"]["infected"]    = infectedCells[key]["state"]["infected"]
+        if "recovered" in infectedCells[key]["state"]:
+            template["cells"][key]["state"]["recovered"]   = infectedCells[key]["state"]["recovered"]
+        if "fatalities" in infectedCells[key]["state"]:
+            template["cells"][key]["state"]["fatalities"]  = infectedCells[key]["state"]["fatalities"]
 
 # Insert fields object at the end of the json for use with the GIS Webviewer V2
 template["fields"] = fields["fields"]
