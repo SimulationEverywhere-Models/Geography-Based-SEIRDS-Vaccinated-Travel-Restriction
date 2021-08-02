@@ -32,8 +32,10 @@ class AgeData
         vecDouble& m_exposed;
         vecDouble& m_infected;
         vecDouble& m_recovered;
-        vecDouble  m_newFatalities;
-        vecDouble  m_newRecoveries;
+
+        vecDouble m_newFatalities;
+        vecDouble m_newRecoveries;
+        vecDouble m_newVacFromRec;
 
         double m_totalSusceptible;
         double m_totalExposed;
@@ -79,21 +81,22 @@ class AgeData
             m_recovered(rec.at(age)),
             m_newFatalities(inf.at(age).size(), 0.0),
             m_newRecoveries(inf.at(age).size(), 0.0),
+            m_newVacFromRec(rec.at(age).size(), 0.0),
             m_totalSusceptible(0.0),
             m_totalExposed(0.0),
             m_totalInfected(0.0),
-            m_totalRecoveries(0.0),
             m_totalFatalities(0.0),
-            m_incubRates(incub_r.at(age)),
-            m_recovRates(rec_r.at(age)),
-            m_fatalRates(fat_r.at(age)),
-            m_vacRates(vac_r), // Don't .at() this one since it may be EMPTY_VEC
-            m_immuneRates(immu_r), // This one too may be EMPTY_VEC
-            m_popType(type),
+            m_totalRecoveries(0.0),
             m_OriginalSusceptible(susc.at(age)),
             m_OriginalExposed(exp.at(age)),
             m_OriginalInfected(inf.at(age)),
-            m_OriginalRecovered(rec.at(age))
+            m_OriginalRecovered(rec.at(age)),
+            m_incubRates(incub_r.at(age)),
+            m_recovRates(rec_r.at(age)),
+            m_fatalRates(fat_r.at(age)),
+            m_vacRates(vac_r),     // Don't .at() this one since it may be EMPTY_VEC
+            m_immuneRates(immu_r), // This one too may be EMPTY_VEC
+            m_popType(type)
         {
             // -1 so for loops are easier
             m_susceptiblePhase = m_susceptible.size() - 1;
@@ -130,6 +133,7 @@ class AgeData
 
         double GetNewFatalities(int index)   { return m_newFatalities.at(index);       }
         double GetNewRecovered(int index)    { return m_newRecoveries.at(index);       }
+        double GetVacFromRec(int index)      { return m_newVacFromRec.at(index);       }
         double GetOrigSusceptible(int index) { return m_OriginalSusceptible.at(index); }
         double GetOrigExposed(int index)     { return m_OriginalExposed.at(index);     }
         double GetOrigInfected(int index)    { return m_OriginalInfected.at(index);    }
@@ -150,6 +154,7 @@ class AgeData
 
         // SETTERS
         void SetNewRecovered(unsigned int q, double value)  { m_newRecoveries.at(q) = value; }
+        void SetVacFromRec(unsigned int q, double value)    { m_newVacFromRec.at(q) = value; }
         void SetNewFatalities(unsigned int q, double value) { m_newFatalities.at(q) = value; }
 
         void SetTotalFatalities(double fatals) { m_totalFatalities = fatals; }

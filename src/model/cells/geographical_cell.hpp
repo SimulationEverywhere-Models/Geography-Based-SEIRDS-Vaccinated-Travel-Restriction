@@ -138,11 +138,11 @@ class geographical_cell : public cell<T, string, sevirds, vicinity>
                 if (is_vaccination)
                 {
                     age_data_vac1.reset(new AgeData(age_segment_index, res.vaccinatedD1, res.exposedD1, res.infectedD1,
-                                                    res.recoveredD1, incubationD1_rates, recovery_rates,
+                                                    res.recoveredD1, incubation_rates, recovery_rates,
                                                     fatality_rates, vac1_rates.at(age_segment_index),
                                                     res.immunityD1_rate.at(age_segment_index), AgeData::PopType::DOSE1));
                     age_data_vac2.reset(new AgeData(age_segment_index, res.vaccinatedD2, res.exposedD2, res.infectedD2,
-                                                    res.recoveredD2, incubationD2_rates, recovery_rates,
+                                                    res.recoveredD2, incubation_rates, recovery_rates,
                                                     fatality_rates, vac2_rates.at(age_segment_index),
                                                     res.immunityD2_rate.at(age_segment_index), AgeData::PopType::DOSE2));
 
@@ -201,8 +201,15 @@ class geographical_cell : public cell<T, string, sevirds, vicinity>
 
             // And those who are in the recovery phase
             double sum = 0;
-            // for (unsigned int q = res.min_interval_recovery_to_vaccine; q <= datas.at(NVAC)->get()->GetRecoveredPhase(); ++q)
-            //     sum += datas.at(NVAC)->get()->GetOrigRecovered(q);
+            for (unsigned int q = datas.at(NVAC)->get()->GetRecoveredPhase() - 1; q > res.min_interval_recovery_to_vaccine; --q)
+            {
+                datas.at(NVAC)->get()->SetVacFromRec(q - 1, 
+                                                    datas.at(NVAC)->get()->GetOrigRecovered(q - 1)
+                                                    * datas.at(VAC1)->get()->GetVaccinationRate(0)
+                );
+
+                sum += datas.at(NVAC)->get()->GetVacFromRec(q - 1);
+            }
 
             return new_vac1 + sum;
         }
@@ -216,11 +223,11 @@ class geographical_cell : public cell<T, string, sevirds, vicinity>
          */
         double new_vaccinated2(vector<unique_ptr<AgeData> *> datas, sevirds& res, vecDouble const& earlyVac2) const
         {
-            unique_ptr<AgeData>& age_data_vac1 = *(datas.at(VAC1));
-            unique_ptr<AgeData>& age_data_vac2 = *(datas.at(VAC2));
+            AgeData& age_data_vac1 = *(datas.at(VAC1))->get();
+            AgeData& age_data_vac2 = *(datas.at(VAC2))->get();
 
             // Everybody on the last day of dose 1 is moved to dose 2
-            double vac2 = age_data_vac1.get()->GetOrigSusceptibleBack(); // V1(td1)
+            double vac2 = age_data_vac1.GetOrigSusceptibleBack(); // V1(td1)
 
             // Some people are eligible to receive their second dose sooner
             // qϵ{mtd1...td1 - 1}
@@ -228,15 +235,18 @@ class geographical_cell : public cell<T, string, sevirds, vicinity>
 
             // Some people are eligible to receive their second dose sooner from the dose 1 recovery pop
             // qϵ{mtd1...Tr}
-            // for (unsigned int q = res.min_interval_recovery_to_vaccine; q <= age_data_vac1.get()->GetRecoveredPhase(); ++q)
-            // {
-            //     vac2 += age_data_vac2.get()->GetVaccinationRate(q - res.min_interval_recovery_to_vaccine) // v(q)
-            //             * age_data_vac1.get()->GetOrigRecovered(q)                                        // RV1(q)
-            //         ;
-            // }
+            for (unsigned int q = age_data_vac1.GetRecoveredPhase() - 1; q >  res.min_interval_recovery_to_vaccine; --q)
+            {
+                age_data_vac1.SetVacFromRec(q - 1,
+                                            age_data_vac2.GetVaccinationRate(q - 1 - res.min_interval_recovery_to_vaccine) // v(q)
+                                                * age_data_vac1.GetOrigRecovered(q - 1)                                // RV1(q)
+                );
+
+                vac2 += age_data_vac1.GetVacFromRec(q - 1);
+            }
 
             // - V1(td1) * sum(1...k and 1...Ti))
-            vac2 -= new_exposed(res, age_data_vac1, age_data_vac1.get()->GetSusceptiblePhase(), false);
+            vac2 -= new_exposed(res, *(datas.at(VAC1)), age_data_vac1.GetSusceptiblePhase(), false);
             sanity_check(vac2);
 
             return vac2;
@@ -462,35 +472,19 @@ class geographical_cell : public cell<T, string, sevirds, vicinity>
          * @param age_data_vac: Pointer to a vaccinated age_data object that is used for R(q) and RV1(q)
          * @param res: Used to get the minimum interval between doses needed in RV1(q)
         */
-        void increment_recoveries(unique_ptr<AgeData>& age_data, unsigned int recovered_index,
-                                unique_ptr<AgeData>* age_data_vac=nullptr, sevirds* res=nullptr) const
+        void increment_recoveries(unique_ptr<AgeData>& age_data, unsigned int recovered_index) const
         {
             double vaccinated, curr_rec;
 
             // qϵ{2...Tr}
             for (unsigned int q = recovered_index; q > 0; --q)
             {
-                vaccinated = 1;
-
-                if (is_vaccination)
-                {
-                    // if (age_data.get()->GetType() == AgeData::PopType::NVAC && q > res->min_interval_recovery_to_vaccine)
-                    // {
-                    //     // Used in 5d
-                    //     vaccinated -= age_data_vac->get()->GetVaccinationRate(0); // 1 - vd1
-                    // }
-                    // else if (age_data.get()->GetType() == AgeData::PopType::DOSE1 && q > res->min_interval_recovery_to_vaccine)
-                    // {
-                    //     // Used in 5e
-                    //     vaccinated -= age_data_vac->get()->GetVaccinationRate(q - 1 - res->min_interval_recovery_to_vaccine); // 1 - vd2(q - 1)
-                    // }
-                }
 
                 // Each day of the recovered phase is the value of the previous day. The population on the last day is
                 // now susceptible (assuming a re-susceptible model); this is implicitly done already as the susceptible value was set to 1.0 and the
                 // population on the last day of recovery is never subtracted from the susceptible value.
                 // 5d, 5e, 5f
-                curr_rec = age_data.get()->GetOrigRecovered(q - 1) * vaccinated; // R(q - 1) * (1 - vd(q - 1))
+                curr_rec = age_data.get()->GetOrigRecovered(q - 1) - age_data.get()->GetVacFromRec(q - 1); // R(q - 1) * (1 - vd(q - 1))
                 sanity_check(curr_rec);
 
                 age_data.get()->SetRecovered(q, curr_rec);
@@ -595,7 +589,7 @@ class geographical_cell : public cell<T, string, sevirds, vicinity>
         */
         void compute_vaccinated(vector<unique_ptr<AgeData> *> datas, sevirds& res) const
         {
-            double curr_vac1 = 0.0, curr_vac2 = 0.0, end, new_exp;
+            double curr_vac1 = 0.0, curr_vac2 = 0.0, end;
 
             unique_ptr<AgeData>& age_data_vac1 = *(datas.at(VAC1));
             unique_ptr<AgeData>& age_data_vac2 = *(datas.at(VAC2));
@@ -696,7 +690,7 @@ class geographical_cell : public cell<T, string, sevirds, vicinity>
         void compute_EIRD(vector<unique_ptr<AgeData> *> datas, sevirds& res) const
         {
             double new_expos, new_inf, new_rec;
-            unsigned int recovered_index, phase;
+            unsigned int recovered_index;
 
             for (unique_ptr<AgeData>* age_data : datas)
             {
@@ -750,12 +744,7 @@ class geographical_cell : public cell<T, string, sevirds, vicinity>
                         recovered_index -= 1;
                     }
 
-                    if (age_data->get()->GetType() == AgeData::PopType::DOSE1)
-                        increment_recoveries(*age_data, recovered_index, datas.at(VAC2), &res);
-                    else if (age_data->get()->GetType() == AgeData::PopType::DOSE2)
-                        increment_recoveries(*age_data, recovered_index);
-                    else
-                        increment_recoveries(*age_data, recovered_index, (is_vaccination ? datas.at(VAC1) : nullptr), (is_vaccination ? &res : nullptr));
+                    increment_recoveries(*age_data, recovered_index);
 
                     // The people on the first day of recovery are those that were on the last stage of infection (minus those who died;
                     // already accounted for) in the previous time step plus those that recovered early during an infection stage.
