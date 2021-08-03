@@ -13,6 +13,7 @@ default.json
 default
 * **delay**: How many days each simulation step represents
 * **cell_type**: The type of cell used for simulating regions. Best to leave this as _zhong_ unless you know what you're doing
+* **population**: _N/A_
 * **age_group_proportions**: Splits the population into 5 age groups from youngest to eldest (left to right)
 * **susceptible**: Proportion of each age group that are susceptible to Covid 19
 * **vaccinatedD1**: Proportion of each age group (follows the same order as _age_group_proportions_) that have their first dose. Length represents time in days till dose 2
