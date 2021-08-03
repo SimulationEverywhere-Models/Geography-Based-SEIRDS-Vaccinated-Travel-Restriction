@@ -19,6 +19,8 @@ static vecDouble EMPTY_VEC; // Used as a null
 class AgeData
 {
     public:
+        // Helps identify which type of data
+        // the object contains
         enum PopType
         {
             NVAC,
@@ -33,10 +35,17 @@ class AgeData
         vecDouble& m_infected;
         vecDouble& m_recovered;
 
+        // Reduces the amount of math that is done twice.
+        // The values will be added in these when first done
+        // then accessed later by other equations
         vecDouble m_newFatalities;
         vecDouble m_newRecoveries;
         vecDouble m_newVacFromRec;
 
+        // Keeps track of the totals for the current
+        // day in the simulation which saves time having
+        // to compute the totals at the end of each loop
+        // in local compute
         double m_totalSusceptible;
         double m_totalExposed;
         double m_totalInfected;
@@ -44,12 +53,12 @@ class AgeData
         double m_totalRecoveries;
 
         // Proportion Vectors for timestep t
-        /* Since the original vectors (the ones directly above)
-        *   are being changed by the equations and later equations
-        *   will need their values BEFORE they are changed let's copy them
-        *   before they are change in seperate vectors. This way we don't overcount and
-        *   we don't have to do the math twice in certain cases (ex: any equation that needs
-        *   F(q) can just reference this list instead of calculating it again).
+        /* Since the original vectors are being changed by the equations 
+        *   and later equations will need their values BEFORE they are 
+        *   changed let's copy them before they are change in seperate vectors.
+        *   This way we don't overcount and we don't have to do the math twice in
+        *   certain cases (ex: any equation that needs F(q) can just reference this
+        *   list instead of calculating it again).
         */
         vecDouble m_OriginalSusceptible;
         vecDouble m_OriginalExposed;
@@ -156,27 +165,54 @@ class AgeData
         void SetNewRecovered(unsigned int q, double value)  { m_newRecoveries.at(q) = value; }
         void SetVacFromRec(unsigned int q, double value)    { m_newVacFromRec.at(q) = value; }
         void SetNewFatalities(unsigned int q, double value) { m_newFatalities.at(q) = value; }
+        void SetTotalFatalities(double fatals)              { m_totalFatalities = fatals;    }
 
-        void SetTotalFatalities(double fatals) { m_totalFatalities = fatals; }
-
+        /**
+         * @brief Sets the value on the specified day
+         * and increments the total
+         * 
+         * @param q Index
+         * @param value New value to set on day q
+        */
         void SetSusceptible(unsigned int q, double value)
         {
             m_susceptible.at(q) = value;
             m_totalSusceptible += value;
         }
 
+        /**
+         * @brief Sets the value on the specified day
+         * and increments the total
+         * 
+         * @param q Index
+         * @param value New value to set on day q
+        */
         void SetExposed(unsigned int q, double value)
         {
             m_exposed.at(q) = value;
             m_totalExposed += value;
         }
 
+        /**
+         * @brief Sets the value on the specified day
+         * and increments the total
+         * 
+         * @param q Index
+         * @param value New value to set on day q
+        */
         void SetInfected(unsigned int q, double value)
         {
             m_infected.at(q) = value;
             m_totalInfected += value;
         }
 
+        /**
+         * @brief Sets the value on the specified day
+         * and increments the total
+         * 
+         * @param q Index
+         * @param value New value to set on day q
+        */
         void SetRecovered(unsigned int q, double value)
         {
             m_recovered.at(q)  = value;

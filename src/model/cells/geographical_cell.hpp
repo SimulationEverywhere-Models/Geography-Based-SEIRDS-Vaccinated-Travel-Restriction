@@ -68,9 +68,13 @@ class geographical_cell : public cell<T, string, sevirds, vicinity>
             for (const auto& i : neighborhood)
                 state.current_state.hysteresis_factors.insert({i.first, hysteresis_factor{}});
 
+            // Set whether or not vaccines are being modeled
+            // to be used in the getters found in sevirds.hpp
+            // and later in this file
             is_vaccination               = config.is_vaccination;
             state.current_state.vaccines = is_vaccination;
 
+            // Set the precision divider in the sevirds object
             state.current_state.prec_divider          = (double)config.prec_divider;
             state.current_state.one_over_prec_divider = 1.0 / (double)config.prec_divider;
 
@@ -93,15 +97,23 @@ class geographical_cell : public cell<T, string, sevirds, vicinity>
                 incubationD2_rates = move(config.incubationD2_rates);
             }
 
+            // Checks if the rates vectors have the correct number of age groups
             assert(virulence_rates.size() == recovery_rates.size() && virulence_rates.size() == mobility_rates.size() &&
                 virulence_rates.size() == incubation_rates.size() &&
                 "\n\nThere must be an equal number of age segments between all configuration rates.\n\n");
         }
 
-        // Whenever referring to a "population", it is meant the current age group's population.
-        // The state of each age group's population is calculated individually.
+        /**
+         * @brief This is the 'main' function for the class
+         * and is where all the equations for the the current cell
+         * and on the current day are computed for each age group
+         * 
+         * @return sevirds
+        */
         sevirds local_computation() const override
         {
+            // Can't be a reference since it would need to be
+            // const and then we wouldn't be allowed to change its values
             sevirds res = state.current_state;
 
             // Three pointers to hold the simulation data for each group
@@ -110,6 +122,7 @@ class geographical_cell : public cell<T, string, sevirds, vicinity>
             unique_ptr<AgeData> age_data_vac1 = nullptr;
             unique_ptr<AgeData> age_data_vac2 = nullptr;
 
+            // Vector to hold all three pointers
             vector<unique_ptr<AgeData>*> datas{&age_data_nvac};
 
             // Caution when changing the order these are pushed in
@@ -129,14 +142,16 @@ class geographical_cell : public cell<T, string, sevirds, vicinity>
             // Calculate the next new sevirds variables for each age group
             for (unsigned int age_segment_index = 0; age_segment_index < age_segments; ++age_segment_index)
             {
-                // Reset for new susceptible equation
+                // Reset for susceptible equation
                 new_s = 1;
 
+                // Init the non-vac object for the current age group
                 age_data_nvac.reset(new AgeData(age_segment_index, res.susceptible, res.exposed, res.infected,
                                                 res.recovered, incubation_rates, recovery_rates, fatality_rates));
 
                 if (is_vaccination)
                 {
+                    // Init the vac object for the current age group
                     age_data_vac1.reset(new AgeData(age_segment_index, res.vaccinatedD1, res.exposedD1, res.infectedD1,
                                                     res.recoveredD1, incubation_rates, recovery_rates,
                                                     fatality_rates, vac1_rates.at(age_segment_index),
@@ -149,17 +164,18 @@ class geographical_cell : public cell<T, string, sevirds, vicinity>
                     // Equations for Vaccinated population (eg. EV1, RV2...)
                     compute_vaccinated(datas, res);
 
+                    // S = 1 - V1 - V2
                     new_s -= age_data_vac1.get()->GetTotalSusceptible(); // 1e
                     sanity_check(new_s);
                     new_s -= age_data_vac2.get()->GetTotalSusceptible(); // 2d
                     sanity_check(new_s);
                 }
 
-                // Computer the Exposed, Infected, Recovered, and Fatalities equations
+                // Compute the Exposed, Infected, Recovered, and Fatalities equations
                 // for all population types
                 compute_EIRD(datas, res);
 
-                // Compute Susceptible
+                // S = 1 - E - I - R - F
                 for (unique_ptr<AgeData> *data : datas)
                 {
                     new_s -= data->get()->GetTotalExposed();
@@ -190,8 +206,8 @@ class geographical_cell : public cell<T, string, sevirds, vicinity>
         /**
          * @brief Vaccinated Dose 1 - Equation 1a
          * 
-         * @param datas: Vector containing the three population types and their data
-         * @return double: New proportion of vaccinated dose 1
+         * @param datas Vector containing the three population types and their data
+         * @return double
          */
         double new_vaccinated1(vector<unique_ptr<AgeData> *> datas, sevirds const& res) const
         {
@@ -203,7 +219,10 @@ class geographical_cell : public cell<T, string, sevirds, vicinity>
             double sum = 0;
             for (unsigned int q = datas.at(NVAC)->get()->GetRecoveredPhase() - 1; q > res.min_interval_recovery_to_vaccine; --q)
             {
-                datas.at(NVAC)->get()->SetVacFromRec(q - 1, 
+                // Remember these values in the non-vac object as
+                // they are removed from the susceptible group
+                // in increment_recoveries()
+                datas.at(NVAC)->get()->SetVacFromRec(q - 1,
                                                     datas.at(NVAC)->get()->GetOrigRecovered(q - 1)
                                                     * datas.at(VAC1)->get()->GetVaccinationRate(0)
                 );
@@ -217,9 +236,9 @@ class geographical_cell : public cell<T, string, sevirds, vicinity>
         /**
          * @brief Vaccinated Dose 2 - Equation 2a
          * 
-         * @param datas: Vector containing the three population types with their respective data
-         * @param res: Current state of the cell
-         * @return double: New proportion of vaccinated dose 2
+         * @param datas Vector containing the three population types with their respective data
+         * @param res Current state of the cell
+         * @return double
          */
         double new_vaccinated2(vector<unique_ptr<AgeData> *> datas, sevirds& res, vecDouble const& earlyVac2) const
         {
@@ -230,6 +249,7 @@ class geographical_cell : public cell<T, string, sevirds, vicinity>
             double vac2 = age_data_vac1.GetOrigSusceptibleBack(); // V1(td1)
 
             // Some people are eligible to receive their second dose sooner
+            // and this was already computed ealier in compute_vaccinated()
             // qϵ{mtd1...td1 - 1}
             vac2 += accumulate(earlyVac2.begin(), earlyVac2.end(), 0.0);
 
@@ -237,6 +257,8 @@ class geographical_cell : public cell<T, string, sevirds, vicinity>
             // qϵ{mtd1...Tr}
             for (unsigned int q = age_data_vac1.GetRecoveredPhase() - 1; q >  res.min_interval_recovery_to_vaccine; --q)
             {
+                // Remember these values for when they are removed from the
+                // vac1 susceptible group in increment_recoveries()
                 age_data_vac1.SetVacFromRec(q - 1,
                                             age_data_vac2.GetVaccinationRate(q - 1 - res.min_interval_recovery_to_vaccine) // v(q)
                                                 * age_data_vac1.GetOrigRecovered(q - 1)                                // RV1(q)
@@ -256,13 +278,13 @@ class geographical_cell : public cell<T, string, sevirds, vicinity>
          * @brief Calculates proportion of new exposures from either non-vac or vac (dose 1 or 2) population.
          * 1b, 1c, 1d, 1e, 1f, 2b, 2c, 2d, 2e, 3a, 3b and 3c use this
          * 
-         * @param res: State machine object that holds simulation config data
-         * @param age_data: Pointer to current simulation data
-         * @param q: Index to compute equation
-         * @param immunity: Whether immunity should be factored in (only works on vaccinated age_data types)
-         * @return double: Number of new exposures
+         * @param re: State machine object that holds simulation config data
+         * @param age_data Pointer to current simulation data
+         * @param q Index to compute equation
+         * @param immunity Whether immunity should be factored in (only works on vaccinated age_data object)
+         * @return double
         */
-        double new_exposed(sevirds &res, unique_ptr<AgeData> &age_data, int q = 0, bool immunity = true) const
+        double new_exposed(sevirds &res, unique_ptr<AgeData> &age_data, int q=0, bool immunity=true) const
         {
             double expos = 0, sum = 0, inner_sum, inner_sumV1, inner_sumV2;
 
@@ -355,7 +377,7 @@ class geographical_cell : public cell<T, string, sevirds, vicinity>
          * @brief Exposed: E(q), EV1(q), EV2(q)
          *  Advance all exposed forward a day, with some proportion leaving exposed(q-1) and entering infected(1)
          * 
-         * @param age_data: Pointer to current simulation data for current age group (nvac, dose1, dose2) and age group
+         * @param age_data Pointer to current simulation data for current age group (nvac, dose1, dose2) and age group
         */
         void increment_exposed(unique_ptr<AgeData>& age_data) const
         {
@@ -364,13 +386,13 @@ class geographical_cell : public cell<T, string, sevirds, vicinity>
             // qϵ{2...Te}
             for (unsigned int q = age_data.get()->GetExposedPhase(); q > 0; --q)
             {
-                // Calculate new exposed based on the incubation rate and the previous days exposed
+                // Moves each proportion group in the phase to the next day and removes
+                // those who become infected earlier via the incubation rate
                 curr_expos = (1 - age_data.get()->GetIncubationRate(q - 1)) // 1 - ε(q - 1)
                              * age_data.get()->GetOrigExposed(q - 1)        // * E(q - 1)
                     ;
 
                 sanity_check(curr_expos);
-
                 age_data.get()->SetExposed(q, curr_expos);
             }
         }
@@ -379,8 +401,8 @@ class geographical_cell : public cell<T, string, sevirds, vicinity>
          * @brief Infection: I(1), IV1(1), or IV2(1)
          *  Calculates proportion of new infections from either non-vac or vac (dose 1 or 2) population
          * 
-         * @param age_data: Reference to current simulation data
-         * @return Number of new infections
+         * @param age_data Reference to current simulation data
+         * @return double
         */
         double new_infections(unique_ptr<AgeData>& age_data) const
         {
@@ -394,6 +416,9 @@ class geographical_cell : public cell<T, string, sevirds, vicinity>
             */
             for (unsigned int q = 1; q <= age_data.get()->GetExposedPhase(); ++q)
             {
+                // TODO: This math is being done in increment_exposed()
+                // Calculates those who move early to the infected phase
+                // and automatically moves those on the last day to the infected phase
                 inf += age_data.get()->GetIncubationRate(q) // ε(q), εV1(q), or εV2(q)
                        * age_data.get()->GetOrigExposed(q)  // E(q), EV1(q), or EV2(q)
                     ;
@@ -407,8 +432,8 @@ class geographical_cell : public cell<T, string, sevirds, vicinity>
          * @brief Infectd: I(q), IV1(q), IV2(q)
          *  Advances all infected forward a day, with some already moved to fatalities or recovered prior
          * 
-         * @param age_data: Pointer to current simulation data for current age group (nvac, dose1, dose2) and age group
-         * @param recovered: Vector of new recoveries from each day
+         * @param age_data Pointer to current simulation data for current age group (nvac, dose1, dose2) and age group
+         * @param recovered Vector of new recoveries from each day
         */
         void increment_infections(unique_ptr<AgeData>& age_data) const
         {
@@ -417,14 +442,14 @@ class geographical_cell : public cell<T, string, sevirds, vicinity>
             // qϵ{2...Ti}
             for (unsigned int q = age_data.get()->GetInfectedPhase(); q > 0; --q)
             {
-                // The previous day of infection
+                // The previous day of infections minus those
+                // who have died and those who have recovered
                 curr_inf = age_data.get()->GetOrigInfected(q - 1)    // I(q - 1)
                            - age_data.get()->GetNewFatalities(q - 1) // - D(q - 1)
-                           - age_data.get()->GetNewRecovered(q - 1) // - R(q - 1)
+                           - age_data.get()->GetNewRecovered(q - 1)  // - R(q - 1)
                     ;
 
                 sanity_check(curr_inf);
-
                 age_data.get()->SetInfected(q, curr_inf);
             }
         }
@@ -433,8 +458,8 @@ class geographical_cell : public cell<T, string, sevirds, vicinity>
          * @brief Recovered: R(1), RV1(1), or RV2(1)
          *  Calculates proportion of new new recoveries from either non-vac or vac (dose 1 or 2) population
          * 
-         * @param age_data: Reference to simulation data
-         * @return: The new proportion of R(1)
+         * @param age_data Reference to simulation data for the current age group and population type
+         * @return double
         */
         double new_recoveries(unique_ptr<AgeData>& age_data) const
         {
@@ -442,15 +467,15 @@ class geographical_cell : public cell<T, string, sevirds, vicinity>
             double recoveries = age_data.get()->GetOrigInfectedBack()    // I(q)
                                 - age_data.get()->GetNewFatalitiesBack() // - D(q)
                 ;
+
             sanity_check(recoveries);
             age_data.get()->SetNewRecovered(age_data.get()->GetInfectedPhase(), recoveries);
 
-            double sum;
-
             // qϵ{1...Ti - 1}
+            double sum;
             for (unsigned int q = 0; q <= age_data.get()->GetInfectedPhase() - 1; ++q)
             {
-                // Calculate all of the new recovered for every day that a population is infected, some recover.
+                // Calculate all of the new recoveries for every day that a population is infected, some recover
                 sum = age_data.get()->GetRecoveryRate(q)   // γ(q)
                       * age_data.get()->GetOrigInfected(q) // I(q)
                     ;
@@ -467,10 +492,10 @@ class geographical_cell : public cell<T, string, sevirds, vicinity>
          * @brief Infectd: R(q), RV1(q), RV2(q)
          *  Advances all infected forward a day, with some already moved to fatalities or recovered prior
          * 
-         * @param age_data: Pointer to current simulation data for current age group (nvac, dose1, dose2) and age group
-         * @param recovered_index: If res-susc is turned on this will avoid processing the population on the last day
-         * @param age_data_vac: Pointer to a vaccinated age_data object that is used for R(q) and RV1(q)
-         * @param res: Used to get the minimum interval between doses needed in RV1(q)
+         * @param age_data Pointer to current simulation data for current age group (nvac, dose1, dose2) and age group
+         * @param recovered_index If res-susc is turned on this will avoid processing the population on the last day
+         * @param age_data_vac Pointer to a vaccinated age_data object that is used for R(q) and RV1(q)
+         * @param res Used to get the minimum interval between doses needed in RV1(q)
         */
         void increment_recoveries(unique_ptr<AgeData>& age_data, unsigned int recovered_index) const
         {
@@ -479,14 +504,13 @@ class geographical_cell : public cell<T, string, sevirds, vicinity>
             // qϵ{2...Tr}
             for (unsigned int q = recovered_index; q > 0; --q)
             {
-
                 // Each day of the recovered phase is the value of the previous day. The population on the last day is
                 // now susceptible (assuming a re-susceptible model); this is implicitly done already as the susceptible value was set to 1.0 and the
                 // population on the last day of recovery is never subtracted from the susceptible value.
                 // 5d, 5e, 5f
                 curr_rec = age_data.get()->GetOrigRecovered(q - 1) - age_data.get()->GetVacFromRec(q - 1); // R(q - 1) * (1 - vd(q - 1))
-                sanity_check(curr_rec);
 
+                sanity_check(curr_rec);
                 age_data.get()->SetRecovered(q, curr_rec);
             }
         }
@@ -500,18 +524,21 @@ class geographical_cell : public cell<T, string, sevirds, vicinity>
          *  not vaccinated when in reality the maximum number of recoveries for dose1 is limited to those who are infected
          *  with dose 1 and still alive so we only want to remove those who are dose 1 fatality.
          *
-         * @param current_state: State of the geographical cell (holds some global data)
-         * @param age_data: Contains the data of the proportion. In this function the infections proportion as well as
+         * @param current_state State of the geographical cell (holds some global data)
+         * @param age_data Contains the data of the proportion. In this function the infections proportion as well as
          *                  the fatality rates are used from here
-         * @return vector of doubles pertaining to the number of deaths per day in the infected phase
+         * @return double
         */
         double new_fatalities(sevirds const& res, unique_ptr<AgeData>& age_data) const
         {
             double new_f = 0.0, sum;
 
             // Calculate all those who have died during an infection stage.
+            // qϵ{1...Ti}
+            // TODO: This should be from day 2 (index 1)
             for (unsigned int q = 0; q <= age_data.get()->GetInfectedPhase(); ++q)
             {
+                // fa(q) * I(q)
                 sum = age_data.get()->GetFatalityRate(q) * age_data.get()->GetOrigInfected(q);
 
                 // Amplify fatality rate if the hospitals are full
@@ -526,14 +553,6 @@ class geographical_cell : public cell<T, string, sevirds, vicinity>
             return new_f;
         }
 
-        /**
-         * @brief TODO: Needs Comments
-         * 
-         * @param mobility_correction_factors:
-         * @param infectious_population:
-         * @param hysteresisFactor:
-         * @return double:
-         */
         double movement_correction_factor(const map<infection_threshold, mobility_correction_factor> &mobility_correction_factors,
                                         double infectious_population, hysteresis_factor &hysteresisFactor) const
         {
@@ -584,8 +603,8 @@ class geographical_cell : public cell<T, string, sevirds, vicinity>
         /**
          * @brief Computes all the equations specific to the vaccinated population
          * 
-         * @param datas: List of AgeData objects containing current age group data
-         * @param res: The current state of the geographical cell
+         * @param datas List of AgeData objects containing current age group data
+         * @param res The current state of the geographical cell
         */
         void compute_vaccinated(vector<unique_ptr<AgeData> *> datas, sevirds& res) const
         {
@@ -597,32 +616,33 @@ class geographical_cell : public cell<T, string, sevirds, vicinity>
             vecDouble earlyVac2(age_data_vac1.get()->GetSusceptiblePhase(), 0.0);
 
             // <VACCINATED DOSE 1>
-            // Calculate the number of new vaccinated dose 1
-            double new_vac1 = new_vaccinated1(datas, res); // 1a
+                // Calculate the number of new vaccinated dose 1
+                double new_vac1 = new_vaccinated1(datas, res); // 1a
 
-            // qϵ{2...td1}
-            for (unsigned int q = age_data_vac1.get()->GetSusceptiblePhase() - 1; q > 0; --q)
-            {
-                // 1b
-                curr_vac1 = age_data_vac1.get()->GetOrigSusceptible(q - 1) // V1(q - 1)
-                            - new_exposed(res, age_data_vac1, q - 1)       // - ( V1(q - 1) * (1 - iv1(q - 1)) * sum(1..k and 1...Ti) )
-                    ;
-
-                if (q > res.min_interval_doses)
+                // qϵ{2...td1}
+                for (unsigned int q = age_data_vac1.get()->GetSusceptiblePhase() - 1; q > 0; --q)
                 {
-                    // 1c substracts early dose2 vaccinations from 1b
-                    earlyVac2.at(q - 1) = age_data_vac2.get()->GetVaccinationRate(q - 1 - res.min_interval_doses) // vd2(q - 1)
-                                      * age_data_vac1.get()->GetOrigSusceptible(q - 1)                        // * V1(q - 1)
+                    // 1b
+                    curr_vac1 = age_data_vac1.get()->GetOrigSusceptible(q - 1) // V1(q - 1)
+                                - new_exposed(res, age_data_vac1, q - 1)       // - ( V1(q - 1) * (1 - iv1(q - 1)) * sum(1..k and 1...Ti) )
                         ;
 
-                    curr_vac1 -= earlyVac2.at(q - 1);
+                    // Early dose 2
+                    if (q > res.min_interval_doses)
+                    {
+                        // 1c substracts early dose2 vaccinations from 1b
+                        earlyVac2.at(q - 1) = age_data_vac2.get()->GetVaccinationRate(q - 1 - res.min_interval_doses) // vd2(q - 1)
+                                        * age_data_vac1.get()->GetOrigSusceptible(q - 1)                        // * V1(q - 1)
+                            ;
+
+                        curr_vac1 -= earlyVac2.at(q - 1);
+                    }
+
+                    sanity_check(curr_vac1);
+
+                    // Update the current day with the modified exposed from yesterday
+                    age_data_vac1.get()->SetSusceptible(q, curr_vac1);
                 }
-
-                sanity_check(curr_vac1);
-
-                // Update the current day with the modified exposed from yesterday
-                age_data_vac1.get()->SetSusceptible(q, curr_vac1);
-            }
 
                 end = (age_data_vac1.get()->GetOrigSusceptible(age_data_vac1.get()->GetSusceptiblePhase() - 1) // V1(q - 1)
                        * (1 - age_data_vac2.get()->GetVaccinationRate(age_data_vac1.get()->GetRecoveredPhase() - res.min_interval_recovery_to_vaccine))) // * (1 - vd2)
@@ -684,8 +704,8 @@ class geographical_cell : public cell<T, string, sevirds, vicinity>
          * @brief Computes the exposed, infected, recovered, and dead equations for all population types
          * Setup the the datas vector to hold all the population types and they'll be looped through
          * 
-         * @param datas: Vector of pointers holding the population states (i.e., NVac, Dose1, Dose2)
-         * @param res: Current cell data
+         * @param datas Vector of pointers holding the population states (i.e., NVac, Dose1, Dose2)
+         * @param res Current cell data
          */
         void compute_EIRD(vector<unique_ptr<AgeData> *> datas, sevirds& res) const
         {
@@ -695,11 +715,14 @@ class geographical_cell : public cell<T, string, sevirds, vicinity>
             for (unique_ptr<AgeData>* age_data : datas)
             {
                 // <FATALITIES>
+                    // Calculates the new fatalities on each day of the infected phase
+                    // for easy use and less repetive code later
                     age_data->get()->SetTotalFatalities(new_fatalities(res, *age_data));
                     sanity_check(age_data->get()->GetTotalFatalities());
                 // </FATALITIES>
 
                 // <RECOVERIES>
+                    // Calculates the new recoveries on each day of the infected phase
                     new_rec = new_recoveries(*age_data);
                 // </RECOVERIES>
 
@@ -757,17 +780,19 @@ class geographical_cell : public cell<T, string, sevirds, vicinity>
          * @brief Basic check that the proportion is not
          * less then 0 or bigger then 1
          * 
-         * @param value:   Proportion to check
-         * @param message: Custom message to print when proportion fails checks
+         * @param value   Proportion to check
+         * @param message Custom message to print when proportion fails checks
          */
         void sanity_check(double value, string message="") const
         {
+            // Can't be bigger then 1 or less then 0
             if (value < 0 || value > 1)
             {
                 cout << "\n\033[31m" << value << "\033[0m is \033[33m"
                     << (value < 0 ? "less then zero" : "bigger then one") << "\033[0m on day "
                     << simulation_clock << endl;
 
+                // Custom message
                 if (!message.empty())
                     cout << message;
 
