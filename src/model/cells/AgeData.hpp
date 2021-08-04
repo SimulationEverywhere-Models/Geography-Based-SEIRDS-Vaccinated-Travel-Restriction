@@ -41,6 +41,7 @@ class AgeData
         vecDouble m_newFatalities;
         vecDouble m_newRecoveries;
         vecDouble m_newVacFromRec;
+        vecDouble m_newExposed;
 
         // Keeps track of the totals for the current
         // day in the simulation which saves time having
@@ -91,6 +92,7 @@ class AgeData
             m_newFatalities(inf.at(age).size(), 0.0),
             m_newRecoveries(inf.at(age).size(), 0.0),
             m_newVacFromRec(rec.at(age).size(), 0.0),
+            m_newExposed(susc.at(age).size(), 0.0),
             m_totalSusceptible(0.0),
             m_totalExposed(0.0),
             m_totalInfected(0.0),
@@ -143,6 +145,8 @@ class AgeData
         double GetNewFatalities(int index)   { return m_newFatalities.at(index);       }
         double GetNewRecovered(int index)    { return m_newRecoveries.at(index);       }
         double GetVacFromRec(int index)      { return m_newVacFromRec.at(index);       }
+        double GetNewExposed(int index)      { return m_newExposed.at(index);          }
+
         double GetOrigSusceptible(int index) { return m_OriginalSusceptible.at(index); }
         double GetOrigExposed(int index)     { return m_OriginalExposed.at(index);     }
         double GetOrigInfected(int index)    { return m_OriginalInfected.at(index);    }
@@ -162,10 +166,11 @@ class AgeData
         PopType& GetType() { return m_popType; }
 
         // SETTERS
-        void SetNewRecovered(unsigned int q, double value)  { m_newRecoveries.at(q) = value; }
-        void SetVacFromRec(unsigned int q, double value)    { m_newVacFromRec.at(q) = value; }
-        void SetNewFatalities(unsigned int q, double value) { m_newFatalities.at(q) = value; }
-        void SetTotalFatalities(double fatals)              { m_totalFatalities = fatals;    }
+        void SetNewRecovered(unsigned int q, double value)  { m_newRecoveries.at(q) = value;  }
+        void SetVacFromRec(unsigned int q, double value)    { m_newVacFromRec.at(q) = value;  }
+        void SetNewFatalities(unsigned int q, double value) { m_newFatalities.at(q) = value;  }
+        void SetNewExposed(unsigned int q, double value)    { m_newExposed.at(q)    = value;  }
+        void SetTotalFatalities(double fatals)              { m_totalFatalities     = fatals; }
 
         /**
          * @brief Sets the value on the specified day
@@ -218,7 +223,6 @@ class AgeData
             m_recovered.at(q)  = value;
             m_totalRecoveries += value;
         }
-
 };
 
 #endif // AGE_DATA_HPP

@@ -162,6 +162,7 @@ class geographical_cell : public cell<T, string, sevirds, vicinity>
                                                     res.immunityD2_rate.at(age_segment_index), AgeData::PopType::DOSE2));
 
                     // Equations for Vaccinated population (eg. EV1, RV2...)
+                    sanity_check(res.precision_divider(res.get_total_susceptible(true, age_segment_index)));
                     compute_vaccinated(datas, res);
 
                     // S = 1 - V1 - V2
@@ -192,7 +193,7 @@ class geographical_cell : public cell<T, string, sevirds, vicinity>
                 sanity_check(new_s);
                 old_s = new_s;
                 new_s -= res.fatalities.at(age_segment_index);
-                sanity_check(new_s);
+                sanity_check(res.precision_divider(new_s), "local_compute(), ln 196");
 
                 res.susceptible.at(age_segment_index).front() = new_s;
             } //for(age_groups)
@@ -213,7 +214,8 @@ class geographical_cell : public cell<T, string, sevirds, vicinity>
         {
             // Vaccination rate with those who are susceptible
             // vd1 * S
-            double new_vac1 = datas.at(VAC1)->get()->GetVaccinationRate(0) * datas.at(NVAC)->get()->GetOrigSusceptible(0);
+            double new_vac1 = datas.at(VAC1)->get()->GetVaccinationRate(0)  // vd1
+                            * datas.at(NVAC)->get()->GetOrigSusceptible(0); // * S
 
             // And those who are in the recovery phase
             double sum = 0;
@@ -221,10 +223,10 @@ class geographical_cell : public cell<T, string, sevirds, vicinity>
             {
                 // Remember these values in the non-vac object as
                 // they are removed from the susceptible group
-                // in increment_recoveries()
+                // in increment_recoveries(). Only do math once!!
                 datas.at(NVAC)->get()->SetVacFromRec(q - 1,
-                                                    datas.at(NVAC)->get()->GetOrigRecovered(q - 1)
-                                                    * datas.at(VAC1)->get()->GetVaccinationRate(0)
+                                                    datas.at(NVAC)->get()->GetOrigRecovered(q - 1) // R(q)
+                                                    * datas.at(VAC1)->get()->GetVaccinationRate(0) // vd1
                 );
 
                 sum += datas.at(NVAC)->get()->GetVacFromRec(q - 1);
@@ -255,20 +257,20 @@ class geographical_cell : public cell<T, string, sevirds, vicinity>
 
             // Some people are eligible to receive their second dose sooner from the dose 1 recovery pop
             // qϵ{mtd1...Tr}
-            for (unsigned int q = age_data_vac1.GetRecoveredPhase() - 1; q >  res.min_interval_recovery_to_vaccine; --q)
+            for (unsigned int q = age_data_vac1.GetRecoveredPhase() - 1; q > res.min_interval_recovery_to_vaccine; --q)
             {
                 // Remember these values for when they are removed from the
                 // vac1 susceptible group in increment_recoveries()
                 age_data_vac1.SetVacFromRec(q - 1,
                                             age_data_vac2.GetVaccinationRate(q - 1 - res.min_interval_recovery_to_vaccine) // v(q)
-                                                * age_data_vac1.GetOrigRecovered(q - 1)                                // RV1(q)
+                                                * age_data_vac1.GetOrigRecovered(q - 1)                                    // RV1(q)
                 );
 
                 vac2 += age_data_vac1.GetVacFromRec(q - 1);
             }
 
             // - V1(td1) * sum(1...k and 1...Ti))
-            vac2 -= new_exposed(res, *(datas.at(VAC1)), age_data_vac1.GetSusceptiblePhase(), false);
+            vac2 -= age_data_vac1.GetNewExposed(age_data_vac1.GetSusceptiblePhase());
             sanity_check(vac2);
 
             return vac2;
@@ -535,7 +537,6 @@ class geographical_cell : public cell<T, string, sevirds, vicinity>
 
             // Calculate all those who have died during an infection stage.
             // qϵ{1...Ti}
-            // TODO: This should be from day 2 (index 1)
             for (unsigned int q = 0; q <= age_data.get()->GetInfectedPhase(); ++q)
             {
                 // fa(q) * I(q)
@@ -613,6 +614,8 @@ class geographical_cell : public cell<T, string, sevirds, vicinity>
             unique_ptr<AgeData>& age_data_vac1 = *(datas.at(VAC1));
             unique_ptr<AgeData>& age_data_vac2 = *(datas.at(VAC2));
 
+            // Holds those who get their second dose earlier from the susceptible dose 1 group
+            // This is not the same as vacFromRec in AgeData.hpp
             vecDouble earlyVac2(age_data_vac1.get()->GetSusceptiblePhase(), 0.0);
 
             // <VACCINATED DOSE 1>
@@ -624,15 +627,17 @@ class geographical_cell : public cell<T, string, sevirds, vicinity>
                 {
                     // 1b
                     curr_vac1 = age_data_vac1.get()->GetOrigSusceptible(q - 1) // V1(q - 1)
-                                - new_exposed(res, age_data_vac1, q - 1)       // - ( V1(q - 1) * (1 - iv1(q - 1)) * sum(1..k and 1...Ti) )
                         ;
+
+                    age_data_vac1.get()->SetNewExposed(q, new_exposed(res, age_data_vac1, q - 1));
+                    curr_vac1 -= age_data_vac1.get()->GetNewExposed(q); // - ( V1(q - 1) * (1 - iv1(q - 1)) * sum(1..k and 1...Ti) )
 
                     // Early dose 2
                     if (q > res.min_interval_doses)
                     {
                         // 1c substracts early dose2 vaccinations from 1b
                         earlyVac2.at(q - 1) = age_data_vac2.get()->GetVaccinationRate(q - 1 - res.min_interval_doses) // vd2(q - 1)
-                                        * age_data_vac1.get()->GetOrigSusceptible(q - 1)                        // * V1(q - 1)
+                                              * age_data_vac1.get()->GetOrigSusceptible(q - 1)                        // * V1(q - 1)
                             ;
 
                         curr_vac1 -= earlyVac2.at(q - 1);
@@ -648,14 +653,19 @@ class geographical_cell : public cell<T, string, sevirds, vicinity>
                        * (1 - age_data_vac2.get()->GetVaccinationRate(age_data_vac1.get()->GetRecoveredPhase() - res.min_interval_recovery_to_vaccine))) // * (1 - vd2)
                     ;
                 earlyVac2.back() = end;
-                end -= new_exposed(res, age_data_vac1, age_data_vac1.get()->GetSusceptiblePhase() - 1); // - ( V1(q - 1) * (1 - iv1(q - 1)) * sum(1..k and 1...Ti) )
+
+                double back = new_exposed(res, age_data_vac1, age_data_vac1.get()->GetSusceptiblePhase() - 1);
+                age_data_vac1.get()->SetNewExposed(age_data_vac1.get()->GetSusceptiblePhase(), back);
+                end -= back; // - ( V1(q - 1) * (1 - iv1(q - 1)) * sum(1..k and 1...Ti) )
 
                 // 1d
                 if (reSusceptibility && age_data_vac1.get()->GetRecoveredPhase() >= age_data_vac1.get()->GetSusceptiblePhase())
                 {
-                    end = age_data_vac1.get()->GetOrigRecoveredBack()                                                                                      // RV1(Tr)
+                    back = age_data_vac1.get()->GetOrigRecoveredBack()                                                                                      // RV1(Tr)
                           * (1 - age_data_vac2.get()->GetVaccinationRate(age_data_vac1.get()->GetRecoveredPhase() - res.min_interval_recovery_to_vaccine)) // * (1 - vd2(Tr))
                         ;
+                    end -= back;
+                    earlyVac2.back() += back;
 
                     sanity_check(end);
                     age_data_vac1.get()->SetSusceptible(age_data_vac1.get()->GetSusceptiblePhase(), end);
@@ -675,9 +685,10 @@ class geographical_cell : public cell<T, string, sevirds, vicinity>
                 for (unsigned int q = age_data_vac2.get()->GetSusceptiblePhase() - 1; q > 0; --q)
                 {
                     // 2b
-                    curr_vac2 = age_data_vac2.get()->GetOrigSusceptible(q - 1) // V2(q - 1)
-                                - new_exposed(res, age_data_vac2, q - 1)       // - V2(q - 1) * (1 - iv2(q - 1)) * sum( jϵ{1…k}(cij * kij * sum(bϵ{1...A} and nϵ{1...Ti}[...])) )
-                        ;
+                    curr_vac2 = age_data_vac2.get()->GetOrigSusceptible(q - 1); // V2(q - 1)
+
+                    age_data_vac2.get()->SetNewExposed(q, new_exposed(res, age_data_vac2, q - 1));
+                    curr_vac2 -= age_data_vac2.get()->GetNewExposed(q); // - V2(q - 1) * (1 - iv2(q - 1)) * sum( jϵ{1…k}(cij * kij * sum(bϵ{1...A} and nϵ{1...Ti}[...])) )
 
                     sanity_check(curr_vac2);
                     age_data_vac2.get()->SetSusceptible(q, curr_vac2);
@@ -686,9 +697,12 @@ class geographical_cell : public cell<T, string, sevirds, vicinity>
                 // 2c
                 end = age_data_vac2.get()->GetOrigSusceptible(age_data_vac2.get()->GetSusceptiblePhase() - 1) // V2(td2 - 1)
                       + age_data_vac2.get()->GetOrigSusceptibleBack()                                         // V2(td2)
-                      - new_exposed(res, age_data_vac2, age_data_vac2.get()->GetSusceptiblePhase() - 1)       // - V2(td2 - 1) * (1 - iV2(td2 - 1)) * sum( jϵ{1...k}(cij * kij * sum(bϵ{1...A} and nϵ{1...Ti}[...]) )
-                      - new_exposed(res, age_data_vac2, age_data_vac2.get()->GetSusceptiblePhase())           // - V2(td2) * (1 - iV2(td2)) * sum( jϵ{1...k}(cij * kij * sum(bϵ{1...A} and nϵ{1...Ti}[...]) )
                     ;
+
+                age_data_vac2.get()->SetNewExposed(age_data_vac2.get()->GetSusceptiblePhase() - 1, new_exposed(res, age_data_vac2, age_data_vac2.get()->GetSusceptiblePhase() - 1));
+                age_data_vac2.get()->SetNewExposed(age_data_vac2.get()->GetSusceptiblePhase(), new_exposed(res, age_data_vac2, age_data_vac2.get()->GetSusceptiblePhase()));
+                end -= age_data_vac2.get()->GetNewExposed(age_data_vac2.get()->GetSusceptiblePhase() - 1); // - V2(td2 - 1) * (1 - iV2(td2 - 1)) * sum( jϵ{1...k}(cij * kij * sum(bϵ{1...A} and nϵ{1...Ti}[...]) )
+                end -= age_data_vac2.get()->GetNewExposed(age_data_vac2.get()->GetSusceptiblePhase());     // - V2(td2) * (1 - iV2(td2)) * sum( jϵ{1...k}(cij * kij * sum(bϵ{1...A} and nϵ{1...Ti}[...]) )
 
                 if (reSusceptibility)
                     end += age_data_vac2.get()->GetOrigRecoveredBack(); // + RV2(Tr)
@@ -731,7 +745,12 @@ class geographical_cell : public cell<T, string, sevirds, vicinity>
 
                     // qϵ{1...Td2}
                     for (unsigned int q = 0; q <= age_data->get()->GetSusceptiblePhase(); ++q)
-                        new_expos += new_exposed(res, *age_data, q);
+                    {
+                        if (age_data->get()->GetType() != AgeData::PopType::NVAC)
+                            new_expos += age_data->get()->GetNewExposed(q);
+                        else
+                            new_expos += new_exposed(res, *age_data, q);
+                    }
 
                     increment_exposed(*age_data);
 
@@ -794,7 +813,7 @@ class geographical_cell : public cell<T, string, sevirds, vicinity>
 
                 // Custom message
                 if (!message.empty())
-                    cout << message;
+                    cout << "\033[33m" << message << "\033[0m" << endl;
 
                 assert(false);
             }

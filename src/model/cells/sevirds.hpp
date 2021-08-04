@@ -127,21 +127,34 @@ struct sevirds
      * @param getNVac Used when only wanting to get the non-vaccinated susceptible population.
      * @return double
     */
-    double get_total_susceptible(bool getNVac=false) const
+    double get_total_susceptible(bool getNVac=false, int age_group=-1) const
     {
         double total_susceptible = 0;
 
-        // Loop for the age groups
-        for (unsigned int i = 0; i < num_age_groups; ++i)
+        if (age_group == -1)
         {
-            // Total non-vaccinated
-            total_susceptible += susceptible.at(i).front() * age_group_proportions.at(i);
-
-            // Total vaccianted (Dose1 + Dose2)
-            if (vaccines && !getNVac)
+            // Loop for the age groups
+            for (unsigned int i = 0; i < num_age_groups; ++i)
             {
-                total_susceptible += sum_state_vector(vaccinatedD1.at(i)) * age_group_proportions.at(i);
-                total_susceptible += sum_state_vector(vaccinatedD2.at(i)) * age_group_proportions.at(i);
+                // Total non-vaccinated
+                total_susceptible += susceptible.at(i).front() * age_group_proportions.at(i);
+
+                // Total vaccianted (Dose1 + Dose2)
+                if (vaccines && !getNVac)
+                {
+                    total_susceptible += sum_state_vector(vaccinatedD1.at(i)) * age_group_proportions.at(i);
+                    total_susceptible += sum_state_vector(vaccinatedD2.at(i)) * age_group_proportions.at(i);
+                }
+            }
+        }
+        else
+        {
+            total_susceptible = susceptible.at(age_group).front();
+
+            if (vaccines)
+            {
+                total_susceptible += sum_state_vector(vaccinatedD1.at(age_group));
+                total_susceptible += sum_state_vector(vaccinatedD2.at(age_group));
             }
         }
 
