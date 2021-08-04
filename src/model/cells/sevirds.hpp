@@ -469,17 +469,22 @@ void from_json(const nlohmann::json &json, sevirds &current_sevirds)
 
     current_sevirds.num_age_groups = current_sevirds.age_group_proportions.size();
 
+    int age_groups = current_sevirds.num_age_groups;
+
     // Checks if the phases have the correct number of age groups
-    assert(current_sevirds.age_group_proportions.size() == current_sevirds.susceptible.size() && current_sevirds.age_group_proportions.size() == current_sevirds.exposed.size() &&
-            current_sevirds.age_group_proportions.size() == current_sevirds.infected.size() && current_sevirds.age_group_proportions.size() == current_sevirds.recovered.size() &&
+    assert(age_groups == current_sevirds.susceptible.size() && age_groups == current_sevirds.exposed.size() && age_groups == current_sevirds.infected.size() &&
+            age_groups == current_sevirds.recovered.size() && age_groups == current_sevirds.fatalities.size() && age_groups == current_sevirds.vaccinatedD1.size() &&
+            age_groups == current_sevirds.vaccinatedD2.size() && age_groups == current_sevirds.immunityD1_rate.size() && age_groups == current_sevirds.immunityD2_rate.size() &&
+            age_groups == current_sevirds.exposedD1.size() && age_groups == current_sevirds.infectedD2.size() && age_groups == current_sevirds.recoveredD2.size() &&
+            age_groups == current_sevirds.exposedD2.size() && age_groups == current_sevirds.infectedD2.size() && age_groups == current_sevirds.recoveredD2.size() &&
             "There must be an equal number of age groups between age_group_proportions, susceptible, exposed, infected, and recovered!\n");
 
     // Three options: unvaccinated, dose 1 or dose 2. Can only be in one of those groups
-    for (unsigned int i = 0; i < current_sevirds.num_age_groups; ++i)
+    for (unsigned int i = 0; i < age_groups; ++i)
     {
         if ( current_sevirds.vaccines && current_sevirds.get_total_vaccinatedD1() + current_sevirds.get_total_vaccinatedD2() > 1.0f )
         {
-            cout << "\033[1;31mASSERT in sevirds.hpp: \033[0;31mPeople can only be in one of three groups: Unvaccinated, Vaccinated-Dose1, or Vaccinated-Dose2. The proportion of people with dose 1 plus those with dose 2 cannot be greater then 1\033[0m" << endl;
+            cout << "\033[1;31mASSERT in sevirds.hpp: \033[0;31mPeople can only be in one of three groups: Unvaccinated, Vaccinated-Dose1, or Vaccinated-Dose2.\nThe proportion of people with dose 1 plus those with dose 2 cannot be greater then 1\033[0m" << endl;
             assert(false);
         }
     }
