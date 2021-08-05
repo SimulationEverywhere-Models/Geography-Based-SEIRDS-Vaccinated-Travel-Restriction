@@ -495,18 +495,24 @@ class geographical_cell : public cell<T, string, sevirds, vicinity>
          * @param age_data_vac Pointer to a vaccinated age_data object that is used for R(q) and RV1(q)
          * @param res Used to get the minimum interval between doses needed in RV1(q)
         */
-        void increment_recoveries(unique_ptr<AgeData>& age_data, unsigned int recovered_index) const
+        void increment_recoveries(unique_ptr<AgeData>& age_data) const
         {
             double vaccinated, curr_rec;
 
             // qϵ{2...Tr}
-            for (unsigned int q = recovered_index; q > 0; --q)
+            for (unsigned int q = age_data.get()->GetRecoveredPhase(); q > 0; --q)
             {
+                curr_rec = 0;
+
+                // When resusceptibility is off then those who are recovered stay in that phase
+                if (!reSusceptibility && q == age_data.get()->GetRecoveredPhase())
+                    curr_rec += age_data.get()->GetRecoveredBack();
+
                 // Each day of the recovered phase is the value of the previous day. The population on the last day is
-                // now susceptible (assuming a re-susceptible model); this is implicitly done already as the susceptible value was set to 1.0 and the
-                // population on the last day of recovery is never subtracted from the susceptible value.
-                // 5d, 5e, 5f
-                curr_rec = age_data.get()->GetOrigRecovered(q - 1) - age_data.get()->GetVacFromRec(q - 1); // R(q - 1) * (1 - vd(q - 1))
+            // now susceptible (assuming a re-susceptible model); this is implicitly done already as the susceptible value was set to 1.0 and the
+            // population on the last day of recovery is never subtracted from the susceptible value.
+            // 5d, 5e, 5f
+                curr_rec += age_data.get()->GetOrigRecovered(q - 1) - age_data.get()->GetVacFromRec(q - 1); // R(q - 1) * (1 - vd(q - 1))
 
                 sanity_check(curr_rec, "increment_recoveries(), curr_rec");
                 age_data.get()->SetRecovered(q, curr_rec);
@@ -762,27 +768,7 @@ class geographical_cell : public cell<T, string, sevirds, vicinity>
                 // </INFECTED>
 
                 // <RECOVERED>
-                    recovered_index = age_data->get()->GetRecoveredPhase();
-
-                    // If re-susceptibility is off
-                    if (!reSusceptibility)
-                    {
-                        // Add the population on the second last day of recovery to the population on the last day of recovery.
-                        // This entire population on the last day of recovery is then subtracted from the susceptible population
-                        // to take into account that the population on the last day of recovery will not be subtracted from the susceptible
-                        // population in the Equation 6a for loop.
-                        age_data->get()->SetRecovered(
-                            recovered_index,                                                                             // Tr
-                            age_data->get()->GetRecoveredBack() + age_data->get()->GetOrigRecovered(recovered_index - 1) // R(Tr) + R(Tr - 1)
-                        );
-
-                        // Avoid processing the population on the last day of recovery in the equation 6a for loop. This will
-                        // update all stages of recovery population except the last one, which grows with every time step
-                        // as it is only added to from the population on the second last day of recovery.
-                        recovered_index -= 1;
-                    }
-
-                    increment_recoveries(*age_data, recovered_index);
+                    increment_recoveries(*age_data);
 
                     // The people on the first day of recovery are those that were on the last stage of infection (minus those who died;
                     // already accounted for) in the previous time step plus those that recovered early during an infection stage.
