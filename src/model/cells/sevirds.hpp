@@ -471,13 +471,22 @@ void from_json(const nlohmann::json &json, sevirds &current_sevirds)
 
     int age_groups = current_sevirds.num_age_groups;
 
+    if (accumulate(current_sevirds.age_group_proportions.begin(), current_sevirds.age_group_proportions.end(), 0.0) != 1)
+    {
+        cout << "\033[1;31mASSERT in sevirds.hpp: \033[0;31mThe age group proportions need to add up to 1\033[0m" << endl;
+        assert(false);
+    }
+
     // Checks if the phases have the correct number of age groups
-    assert(age_groups == current_sevirds.susceptible.size() && age_groups == current_sevirds.exposed.size() && age_groups == current_sevirds.infected.size() &&
-            age_groups == current_sevirds.recovered.size() && age_groups == current_sevirds.fatalities.size() && age_groups == current_sevirds.vaccinatedD1.size() &&
-            age_groups == current_sevirds.vaccinatedD2.size() && age_groups == current_sevirds.immunityD1_rate.size() && age_groups == current_sevirds.immunityD2_rate.size() &&
-            age_groups == current_sevirds.exposedD1.size() && age_groups == current_sevirds.infectedD2.size() && age_groups == current_sevirds.recoveredD2.size() &&
-            age_groups == current_sevirds.exposedD2.size() && age_groups == current_sevirds.infectedD2.size() && age_groups == current_sevirds.recoveredD2.size() &&
-            "There must be an equal number of age groups between age_group_proportions, susceptible, exposed, infected, and recovered!\n");
+    if (age_groups > current_sevirds.susceptible.size() && age_groups > current_sevirds.exposed.size() && age_groups > current_sevirds.infected.size() &&
+        age_groups > current_sevirds.recovered.size() && age_groups > current_sevirds.fatalities.size() && age_groups > current_sevirds.vaccinatedD1.size() &&
+        age_groups > current_sevirds.vaccinatedD2.size() && age_groups > current_sevirds.immunityD1_rate.size() && age_groups > current_sevirds.immunityD2_rate.size() &&
+        age_groups > current_sevirds.exposedD1.size() && age_groups > current_sevirds.infectedD2.size() && age_groups > current_sevirds.recoveredD2.size() &&
+        age_groups > current_sevirds.exposedD2.size() && age_groups > current_sevirds.infectedD2.size() && age_groups > current_sevirds.recoveredD2.size())
+    {
+        cout << "\033[1;31mASSERT in sevirds.hpp: \033[0;31mThere must be at least " << age_groups << " age groups for each of the lists under the 'states' parameter in default.json as well as in infectedCell.json\033[0m" << endl;
+        assert(false);
+        }
 
     // Three options: unvaccinated, dose 1 or dose 2. Can only be in one of those groups
     for (unsigned int i = 0; i < age_groups; ++i)
