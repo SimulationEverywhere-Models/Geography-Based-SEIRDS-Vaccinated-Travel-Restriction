@@ -364,8 +364,8 @@ class geographical_cell : public cell<T, string, sevirds, vicinity>
 
             expos = age_data.get()->GetOrigSusceptible(q) * sum; // S * sum(1...k)
 
-            // if (immunity && age_data.get()->GetType() != AgeData::PopType::NVAC)
-            //     expos *= 1.0 - age_data.get()->GetImmunityRate( (int)(q * 0.14f) ); // 1 - i(1)
+            if (immunity && age_data.get()->GetType() != AgeData::PopType::NVAC)
+                expos *= 1.0 - age_data.get()->GetImmunityRate( int((q - 1) * 0.14f) ); // 1 - i(q)
 
             sanity_check(expos, "new_exposed()");
             return expos;
