@@ -111,6 +111,8 @@ int main(int argc, char** argv)
 
         // Start the thread
         thread th_obj(lm, &noProgress);
+        if (noProgress)
+            th_obj.join();
 
         cadmium::dynamic::engine::runner<TIME, logger_top> r(t, {0});
         float sim_time = (argc > 2) ? atof(argv[2]) : 500;
