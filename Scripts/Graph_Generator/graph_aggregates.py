@@ -13,12 +13,19 @@ import matplotlib
 import shutil
 
 no_progress = False
+log_file_folder = ""
 
 # Handles command line flags
 for flag in sys.argv:
-    flag = flag.lower()
-    if flag == "--no-progress" or flag == "-np":
+    lowered = flag.lower()
+    if lowered == "--no-progress" or lowered == "-np":
         no_progress = True
+    elif "-log-dir" in lowered or "-ld" in lowered:
+        log_file_folder = flag.split("=",1)[1]
+
+if log_file_folder == "":
+    print("\n\033[31mASSERT:\033[m Must set a log folder path using the flag -log-dir=<path to logs folder>\033[0m")
+    exit(-1)
 
 # Loading animation
 done = False
@@ -44,7 +51,6 @@ if not no_progress:
     t.start()
 
 # Setup paths, filenames, and folders
-log_file_folder = "../../logs"
 log_filename = log_file_folder + "/pandemic_state.txt"
 path = log_file_folder + "/stats/aggregate"
 base_name = path + "/"
@@ -195,7 +201,7 @@ try:
                 "recovered", "new_exposed", "new_infected", "new_recovered", "deaths", "error"]
     df_vis = pd.DataFrame(data, columns=columns)
     df_vis = df_vis.set_index("time")
-    df_vis.to_csv("states.csv")
+    df_vis.to_csv(log_file_folder+"/states.csv")
     df_vis.head()
     x = list(df_vis.index)
 

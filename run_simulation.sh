@@ -25,6 +25,35 @@
         rm -rf output
         cd ../..
     }
+
+    # $1: Gen Per Region?
+    # $2: Gen Aggregate?
+    # $3: Path to logs folder
+    GenerateGraphs()
+    {
+        echo "Generating graphs and stats:"
+
+        LOG_FOLDER=$3
+        GEN_FOLDER=Scripts/Graph_Generator/
+
+        if [[ $3 == "" ]]; then
+            rm -rf logs/stats
+            mkdir -p logs/stats
+            LOG_FOLDER="logs"
+        fi
+
+        # Per region
+        if [[ $1 == "Y" ]]; then
+            python3 ${GEN_FOLDER}graph_per_regions.py $GRAPHS_FLAGS-ld=$LOG_FOLDER
+            ErrorCheck $? # Check for build errors
+        fi
+
+        # Aggregate
+        if [[ $2 == "Y" ]]; then
+            python3 ${GEN_FOLDER}graph_aggregates.py $GRAPHS_FLAGS-ld=$LOG_FOLDER
+            ErrorCheck $? # Check for build errors
+        fi
+    }
 # </Helpers> #
 
 # Runs the model and saves the results in the GIS_Viewer directory
@@ -54,7 +83,7 @@ Main()
     mkdir -p logs
     mkdir -p $VISUALIZATION_DIR
 
-    # Generate Scenario
+    # Generate scenario
     GenerateScenario
 
     # Run the model
@@ -62,20 +91,22 @@ Main()
     echo; echo "Executing model for $DAYS days:"
     $SIMULATE
     ErrorCheck $? # Check for build errors
+    cd ..
 
     # Generate SIRDS graphs
-    echo; echo "Generating graphs and stats (will be found in logs folder):"
-    cd ../Scripts/Graph_Generator/
-    if [[ $GRAPH_REGIONS == "Y" ]]; then
-        python3 graph_per_regions.py $GRAPHS_FLAGS
-        ErrorCheck $? # Check for build errors
-    else
-        mkdir -p ../../logs/stats
-    fi
+    echo #echo "Generating graphs and stats (will be found in logs folder):"
+    #cd Scripts/Graph_Generator/
+    # mkdir -p ../../logs/stats
+    # if [[ $GRAPH_REGIONS == "Y" ]]; then
+    #    python3 graph_per_regions.py "$GRAPHS_FLAGS -ld=../../logs"
+    #     ErrorCheck $? # Check for build errors
+    # fi
 
-    python3 graph_aggregates.py $GRAPHS_FLAGS
-    ErrorCheck $? # Check for build errors
-    cd ../..
+    GenerateGraphs $GRAPH_REGIONS "Y"
+
+    # python3 graph_aggregates.py $GRAPHS_FLAGS
+    # ErrorCheck $? # Check for build errors
+    # cd ../..
 
     # Copy the message log + scenario to message log parser's input
     # Note this deletes the contents of input/output folders of the message log parser before executing
@@ -158,14 +189,16 @@ Main()
     {
         if [[ $1 == 1 ]]; then
             echo -e "${YELLOW}Flags:${RESET}"
-            echo -e " ${YELLOW}--clean|-c|--clean=#|-c=#${RESET} \t Cleans all simulation runs for the selected area if no # is set, \n \t\t\t\t otherwise cleans the specified run using the folder name inputed such as 'clean=run1'"
+            echo -e " ${YELLOW}--clean|-c|--clean=*|-c=*${RESET} \t Cleans all simulation runs for the selected area if no # is set, \n \t\t\t\t otherwise cleans the specified run using the folder name inputed such as 'clean=run1'"
             echo -e " ${YELLOW}--days=#|-d=#${RESET} \t\t\t Sets the number of days to run a simulation (default=500)"
             echo -e " ${YELLOW}--flags, -f${RESET}\t\t\t Displays all flags"
+            echo -e " ${YELLOW}--gen-scenario, -gn${RESET}\t\t Generates a scenario json file (an area flag needs to be set)"
+            echo -e " ${YELLOW}--gen-region-graphs=*, -grg=*${RESET}\t Generates graphs per region for previously completed simulation. Folder name set after '=' and area flag needed"
             echo -e " ${YELLOW}--graph-region, -gr${RESET}\t\t Generates graphs per region (default=off)"
             echo -e " ${YELLOW}--help, -h${RESET}\t\t\t Displays the help"
             echo -e " ${YELLOW}--no-progress, -np${RESET}\t\t Turns off the progress bars and loading animations"
-            echo -e " ${YELLOW}--Ontario, --ontario, -On, -on${RESET}  Runs a simulation in Ontario"
-            echo -e " ${YELLOW}--Ottawa, --ottawa, -Ot, -ot${RESET}\t Runs a simulation in Ottawa"
+            echo -e " ${YELLOW}--Ontario, --ontario, -On, -on${RESET}  Ontario AREA Flag. Runs a simulation for Ontario when used on it's own"
+            echo -e " ${YELLOW}--Ottawa, --ottawa, -Ot, -ot${RESET}\t Ottawa AREA Flag. Runs a simulation for Ottawa when used on it's own"
             echo -e " ${YELLOW}--profile, -p${RESET}\t\t\t Builds using the ${ITALIC}pg${RESET} profiler tool, runs the model, then exports the results in a text file"
             echo -e " ${YELLOW}--rebuild, -r${RESET}\t\t\t Rebuilds the model"
             echo -e " ${YELLOW}--valgrind|-v${RESET}\t\t\t Runs using valgrind, a memory error and leak check tool"
@@ -173,7 +206,7 @@ Main()
         else
             echo -e "${BOLD}Usage:${RESET}"
             echo -e " ./run_simulation.sh ${ITALIC}<area flag>${RESET}"
-            echo -e " where ${ITALIC}<area flag>${RESET}is either --Ottawa ${BOLD}OR${RESET}--Ontario"
+            echo -e " where ${ITALIC}<area flag>${RESET} is either --Ottawa ${BOLD}OR${RESET} --Ontario"
             echo -e " example: ./run_simulation.sh --Ottawa"
             echo -e "Use \033[1;33m--flags${RESET} to see a list of all the flags and their meanings"
         fi
@@ -190,7 +223,7 @@ else
     NAME=""
     DAYS="500"
     GRAPH_REGIONS="N"
-    GEN_SCENARIO="N"
+    GENERATE="N"
 
     # Loop through the flags
     while test $# -gt 0; do
@@ -202,7 +235,7 @@ else
                 CLEAN=Y
                 shift
             ;;
-            --days*|-d*)
+            --days=*|-d=*)
                 if [[ $1 == *"="* ]]; then
                     DAYS=`echo $1 | sed -e 's/^[^=]*=//g'`;
                 fi
@@ -213,25 +246,32 @@ else
                 exit 1;
             ;;
             --gen-scenario|-gn)
-                GEN_SCENARIO="Y"
+                GENERATE="S"
                 shift
             ;;
             --graph-regions|-gr)
                 GRAPH_REGIONS="Y"
                 shift
             ;;
+            --gen-region-graphs=*|-grg=*)
+                if [[ $1 == *"="* ]]; then
+                    NAME=`echo $1 | sed -e 's/^[^=]*=//g'`; # Set custom folder name
+                fi
+                GENERATE="R"
+                shift
+            ;;
             --help|-h)
                 Help;
                 exit 1;
             ;;
-            --name*|-n*)
+            --name=*|-n=*)
                 if [[ $1 == *"="* ]]; then
                     NAME=`echo $1 | sed -e 's/^[^=]*=//g'`; # Set custom folder name
                 fi
                 shift
             ;;
             --no-progress|-np)
-                GRAPHS_FLAGS=${GRAPHS_FLAGS}" -np"
+                GRAPHS_FLAGS=${GRAPHS_FLAGS}"-np "
                 PROGRESS=N
                 shift
             ;;
@@ -295,19 +335,22 @@ else
     fi
 
     # If not are is set or is set incorrectly, then exit
-    if [[ $AREA == "" || $AREA_FILE == "" ]]; then echo -e "${RED}Please set a valid area flag..${RESET}Use ${YELLOW}--flags${RESET}to see them"; exit -1; fi
+    if [[ $AREA == "" || $AREA_FILE == "" ]]; then echo -e "${RED}Please set a valid area flag... ${RESET}Use ${YELLOW}--flags${RESET} to see them"; exit -1; fi
 
     # Used both in Clean() and Main() so we set it here
     VISUALIZATION_DIR="GIS_Viewer/${AREA}/simulation_runs/"
 
-    if [[ $NAME != "" && -d ${VISUALIZATION_DIR}${NAME} ]]; then
-        echo -e "${RED}'${NAME}' Already exists!${RESET}"
-        exit -1
-    fi
-
     if [[ $CLEAN == "Y" ]]; then Clean;
-    elif [[ $GEN_SCENARIO == "Y" ]]; then GenerateScenario;
+    elif [[ $GENERATE == "S" ]]; then GenerateScenario;
+    elif [[ $GENERATE == "R" ]]; then
+        VISUALIZATION_DIR="${VISUALIZATION_DIR}${NAME}"
+        GenerateGraphs "Y" "N" "$VISUALIZATION_DIR/logs";
     else
+        if [[ $NAME != "" && -d ${VISUALIZATION_DIR}${NAME} ]]; then
+            echo -e "${RED}'${NAME}' Already exists!${RESET}"
+            exit -1
+        fi
+
         Main;
 
         if [[ $PROFILE == "Y" ]]; then

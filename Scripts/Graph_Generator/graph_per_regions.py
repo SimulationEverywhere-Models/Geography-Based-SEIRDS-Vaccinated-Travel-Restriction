@@ -1,5 +1,5 @@
 # Original author: Glenn - 24/03/2021
-# Edited by Eric - Jun/2021
+# Edited by Eric - Jun-August 2021
 
 #!/usr/bin/env python
 # coding: utf-8
@@ -11,11 +11,20 @@ import matplotlib
 import shutil
 
 no_progress = False
+log_file_folder = ""
 
 # Handles command line flags
 for word in sys.argv:
-    if word.lower() == "--no-progress" or word.lower() == "-np":
+    lowered = word.lower()
+
+    if lowered == "--no-progress" or lowered == "-np":
         no_progress = True
+    elif "-log-dir" in lowered or "-ld" in lowered:
+        log_file_folder = word.split("=",1)[1]
+
+if len(log_file_folder) == 0:
+    print("\n\033[31mASSERT:\033[m Must set a log folder path using the flag -log-dir=<path to logs folder>\033[0m")
+    exit(-1)
 
 # Loading animation
 done = False
@@ -41,10 +50,8 @@ if not no_progress:
     t.start()
 
 # Setup paths, filenames, and folders
-log_file_folder = "../../logs"
-# log_file_folder = "/home/ericmereu/Documents/Geography-Based-SEIRDS-Vaccinated/GIS_Viewer/ontario/simulation_runs/run11/logs"
 log_filename = log_file_folder + "/pandemic_state.txt"
-path = log_file_folder + "/stats"
+path = log_file_folder + "/stats/per-region"
 shutil.rmtree(path, ignore_errors=True)
 
 # Regex str to find underscore and one or more characters after the underscore (model id)
@@ -277,7 +284,7 @@ try:
         axs[0].plot(x, 100*df_vis_p["recovered"],   label="Recovered",      color=COLOR_RECOVERED,   linestyle=STYLE_RECOVERED)
         axs[0].plot(x, 100*df_vis_p["deaths"],      label="Deaths",         color=COLOR_DEAD,        linestyle=STYLE_DEAD)
         if vaccines:
-            axs[0].plot(x, 100*df_vis_p["vaccinatedD1"], label="Vaccinated 1 dose",  color=COLOR_DOSE1, linesyle=STYLE_DOSE1)
+            axs[0].plot(x, 100*df_vis_p["vaccinatedD1"], label="Vaccinated 1 dose",  color=COLOR_DOSE1, linestyle=STYLE_DOSE1)
             axs[0].plot(x, 100*df_vis_p["vaccinatedD2"], label="Vaccinated 2 dose",  color=COLOR_DOSE2, linestyle=STYLE_DOSE2)
             axs[0].set_title('Epidemic SEVIRD Percentages and Totals for ' + foldername)
         else:
