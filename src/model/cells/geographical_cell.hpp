@@ -137,7 +137,6 @@ class geographical_cell : public cell<T, string, sevirds, vicinity>
             // remove their proportions from this one leaving it with
             // the remaning susceptible proportion
             double new_s;
-            double old_s;
 
             // Calculate the next new sevirds variables for each age group
             for (unsigned int age_segment_index = 0; age_segment_index < age_segments; ++age_segment_index)
@@ -190,7 +189,6 @@ class geographical_cell : public cell<T, string, sevirds, vicinity>
                     sanity_check(res.fatalities.at(age_segment_index), "local_compute(), Total Fatalities");
                 }
 
-                old_s = new_s;
                 new_s -= res.fatalities.at(age_segment_index);
                 sanity_check(new_s, "local_compute(), Susceptible - Total Fatalities");
 
@@ -496,7 +494,7 @@ class geographical_cell : public cell<T, string, sevirds, vicinity>
         */
         void increment_recoveries(unique_ptr<AgeData>& age_data) const
         {
-            double vaccinated, curr_rec;
+            double curr_rec;
 
             // qϵ{2...Tr}
             for (unsigned int q = age_data.get()->GetRecoveredPhase(); q > 0; --q)
@@ -610,7 +608,7 @@ class geographical_cell : public cell<T, string, sevirds, vicinity>
         */
         void compute_vaccinated(vector<unique_ptr<AgeData> *> datas, sevirds& res) const
         {
-            double curr_vac1 = 0.0, curr_vac2 = 0.0, end;
+            double curr_vac1 = 0.0, curr_vac2 = 0.0;
 
             unique_ptr<AgeData>& age_data_vac1 = *(datas.at(VAC1));
             unique_ptr<AgeData>& age_data_vac2 = *(datas.at(VAC2));
@@ -659,10 +657,10 @@ class geographical_cell : public cell<T, string, sevirds, vicinity>
                 // 1d
                 if (reSusceptibility)
                 {
-                    double new_vac_from_rec = age_data_vac1.get()->GetOrigRecoveredBack()                                                                                      // RV1(Tr)
-                                              * (1 - age_data_vac2.get()->GetVaccinationRate(age_data_vac1.get()->GetRecoveredPhase() - res.min_interval_recovery_to_vaccine)) // * (1 - vd2(Tr))
+                    double susc_from_rec = age_data_vac1.get()->GetOrigRecoveredBack()                                                                                       // RV1(Tr)
+                                            * (1 - age_data_vac2.get()->GetVaccinationRate(age_data_vac1.get()->GetRecoveredPhase() - res.min_interval_recovery_to_vaccine)) // * (1 - vd2(Tr))
                         ;
-                    end -= new_vac_from_rec;
+                    age_data_vac1.get()->SetSusceptible(age_data_vac1.get()->GetSusceptiblePhase(), age_data_vac1.get()->GetOrigSusceptibleBack() - susc_from_rec);
                 }
 
                 // Set the new dose1 proportion to the beginning of the phase
@@ -689,7 +687,7 @@ class geographical_cell : public cell<T, string, sevirds, vicinity>
                 }
 
                 // 2c
-                end = age_data_vac2.get()->GetOrigSusceptible(age_data_vac2.get()->GetSusceptiblePhase() - 1) // V2(td2 - 1)
+                double end = age_data_vac2.get()->GetOrigSusceptible(age_data_vac2.get()->GetSusceptiblePhase() - 1) // V2(td2 - 1)
                       + age_data_vac2.get()->GetOrigSusceptibleBack()                                         // V2(td2)
                     ;
 
@@ -718,7 +716,6 @@ class geographical_cell : public cell<T, string, sevirds, vicinity>
         void compute_EIRD(vector<unique_ptr<AgeData> *> datas, sevirds& res) const
         {
             double new_expos, new_inf, new_rec;
-            unsigned int recovered_index;
 
             for (unique_ptr<AgeData>* age_data : datas)
             {

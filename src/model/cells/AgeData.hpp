@@ -129,6 +129,7 @@ class AgeData
         { }
 
         // GETTERS
+        double GetSusceptibleBack()     { return m_susceptible.back();         }
         double GetRecoveredBack()       { return m_recovered.back();           }
         double GetNewFatalitiesBack()   { return m_newFatalities.back();       }
         double GetNewRecoveredBack()    { return m_newRecoveries.back();       }

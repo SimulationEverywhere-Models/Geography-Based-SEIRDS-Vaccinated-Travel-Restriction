@@ -469,7 +469,7 @@ void from_json(const nlohmann::json &json, sevirds &current_sevirds)
 
     current_sevirds.num_age_groups = current_sevirds.age_group_proportions.size();
 
-    int age_groups = current_sevirds.num_age_groups;
+    unsigned int age_groups = current_sevirds.num_age_groups;
 
     if (accumulate(current_sevirds.age_group_proportions.begin(), current_sevirds.age_group_proportions.end(), 0.0) != 1)
     {
