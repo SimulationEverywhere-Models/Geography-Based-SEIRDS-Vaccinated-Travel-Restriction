@@ -186,6 +186,12 @@ class AgeData
             m_totalSusceptible += value;
         }
 
+        void AddSusceptibleBack(double value)
+        {
+            m_susceptible.back() += value;
+            m_totalSusceptible   += value;
+        }
+
         /**
          * @brief Sets the value on the specified day
          * and increments the total

@@ -506,9 +506,9 @@ class geographical_cell : public cell<T, string, sevirds, vicinity>
                     curr_rec += age_data.get()->GetRecoveredBack();
 
                 // Each day of the recovered phase is the value of the previous day. The population on the last day is
-            // now susceptible (assuming a re-susceptible model); this is implicitly done already as the susceptible value was set to 1.0 and the
-            // population on the last day of recovery is never subtracted from the susceptible value.
-            // 5d, 5e, 5f
+                // now susceptible (assuming a re-susceptible model); this is implicitly done already as the susceptible value was set to 1.0 and the
+                // population on the last day of recovery is never subtracted from the susceptible value.
+                // 5d, 5e, 5f
                 curr_rec += age_data.get()->GetOrigRecovered(q - 1) - age_data.get()->GetVacFromRec(q - 1); // R(q - 1) * (1 - vd(q - 1))
 
                 sanity_check(curr_rec, "increment_recoveries(), curr_rec");
@@ -660,7 +660,7 @@ class geographical_cell : public cell<T, string, sevirds, vicinity>
                     double susc_from_rec = age_data_vac1.get()->GetOrigRecoveredBack()                                                                                       // RV1(Tr)
                                             * (1 - age_data_vac2.get()->GetVaccinationRate(age_data_vac1.get()->GetRecoveredPhase() - res.min_interval_recovery_to_vaccine)) // * (1 - vd2(Tr))
                         ;
-                    age_data_vac1.get()->SetSusceptible(age_data_vac1.get()->GetSusceptiblePhase(), age_data_vac1.get()->GetOrigSusceptibleBack() - susc_from_rec);
+                    age_data_vac1.get()->AddSusceptibleBack(susc_from_rec);
                 }
 
                 // Set the new dose1 proportion to the beginning of the phase
