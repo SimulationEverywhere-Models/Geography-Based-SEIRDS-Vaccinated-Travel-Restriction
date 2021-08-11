@@ -354,6 +354,7 @@ else
         Main;
 
         if [[ $PROFILE == "Y" ]]; then
+            # TODO: Investigate Valgrind Profiling
             gprof bin/pandemic-geographical_model bin/gmon.out > bin/performance.txt
             echo -e "Check ${GREEN}bin\performance.txt${RESET} for profiler results"
         fi

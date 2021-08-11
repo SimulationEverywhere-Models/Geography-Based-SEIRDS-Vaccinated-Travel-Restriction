@@ -25,11 +25,8 @@ no_progress = len(sys.argv) > 2 and sys.argv[2] == "N"
 # Setup variables that handle the area
 input_area  = str(sys.argv[1]).lower()
 cadmium_dir = "../../cadmium_gis/"
-cadmium_dir = "/home/ericmereu/Documents/Geography-Based-SEIRDS-Vaccinated/cadmium_gis/"
 input_dir   = "input_"
-input_dir = "/home/ericmereu/Documents/Geography-Based-SEIRDS-Vaccinated/Scripts/Input_Generator/input_"
 output_json = "output/scenario_"
-output_json = "/home/ericmereu/Documents/Geography-Based-SEIRDS-Vaccinated/Scripts/Input_Generator/output/scenario_"
 
 # Set the data based on the area passed in
 if input_area == "ottawa":

@@ -188,7 +188,7 @@ try:
     matplotlib.rc("lines", linewidth=2)
 
     try:
-        os.mkdir(path)
+        os.makedirs(path)
     except OSError as error:
         raise error
 
@@ -227,6 +227,7 @@ try:
         axs[0].set_title("Epidemic Aggregate SEVIRD Percentages")
     else:
         axs[0].set_title("Epidemic Aggregate SEIR+D Percentages")
+
     axs[0].plot(x, 100*df_vis["exposed"],       label="Exposed",        color=COLOR_EXPOSED,     linestyle=STYLE_EXPOSED)
     axs[0].plot(x, 100*df_vis["infected"],      label="Infected",       color=COLOR_INFECTED,    linestyle=STYLE_INFECTED)
     axs[0].plot(x, 100*df_vis["recovered"],     label="Recovered",      color=COLOR_RECOVERED,   linestyle=STYLE_RECOVERED)
