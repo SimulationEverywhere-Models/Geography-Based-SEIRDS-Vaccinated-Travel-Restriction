@@ -5,6 +5,7 @@
 #define PANDEMIC_HOYA_2002_SIMULATION_CONFIG_HPP
 
 #include <nlohmann/json.hpp>
+#include "../Helpers/Assert.hpp"
 
 struct simulation_config
 {
@@ -53,10 +54,10 @@ void from_json(const nlohmann::json& json, simulation_config& v)
 
         for (unsigned int k = 0; k < recovery_days; ++k)
             // A sum of greater than one refers to more than the entire population of an infection stage.
-            assert(v_recovery_rates.at(k) + v_fatality_rates.at(k) <= 1.0f && "The recovery rate + fatality rate cannot exceed 1!");
+            Assert::AssertLong(v_recovery_rates.at(k) + v_fatality_rates.at(k) <= 1.0f, __FILE__, __LINE__, "The recovery rate + fatality rate cannot exceed 1!");
 
-        assert(v_fatality_rates.back() <= 1.0f && "The fatality rate cannot exceed one!"); // Assert because the recovery rate has
-                                                                                           // one less entry than the fatality rates.
+        // Assert because the recovery rate has one less entry than the fatality rates.
+        Assert::AssertLong(v_fatality_rates.back() <= 1.0f, __FILE__, __LINE__, "The fatality rate cannot exceed one!");
     }
 }
 

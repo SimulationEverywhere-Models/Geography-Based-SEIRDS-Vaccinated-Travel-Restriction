@@ -93,20 +93,8 @@ Main()
     ErrorCheck $? # Check for build errors
     cd ..
 
-    # Generate SIRDS graphs
-    echo #echo "Generating graphs and stats (will be found in logs folder):"
-    #cd Scripts/Graph_Generator/
-    # mkdir -p ../../logs/stats
-    # if [[ $GRAPH_REGIONS == "Y" ]]; then
-    #    python3 graph_per_regions.py "$GRAPHS_FLAGS -ld=../../logs"
-    #     ErrorCheck $? # Check for build errors
-    # fi
-
+    # Generate SEVIRDS graphs
     GenerateGraphs $GRAPH_REGIONS "Y"
-
-    # python3 graph_aggregates.py $GRAPHS_FLAGS
-    # ErrorCheck $? # Check for build errors
-    # cd ../..
 
     # Copy the message log + scenario to message log parser's input
     # Note this deletes the contents of input/output folders of the message log parser before executing
@@ -119,7 +107,6 @@ Main()
     # Run the message log parser
     echo "Running message log parser:"
     cd Scripts/Msg_Log_Parser
-    echo $PARSE_MSG_LOGS
     $PARSE_MSG_LOGS > log 2>&1
     ErrorCheck $? log # Check for build errors
     unzip "output\pandemic_messages.zip" -d output

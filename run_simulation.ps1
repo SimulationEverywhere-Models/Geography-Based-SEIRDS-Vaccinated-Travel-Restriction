@@ -75,11 +75,17 @@ param(
     [switch]$NoProgress = $False,
 
     # Re-Compiles the simulator
-    [switch]$Rebuild = $False
+    [switch]$Rebuild = $False,
+
+    # Builds a debug version of the siomulator
+    [switch]$DebugSim = $False,
+
+    # Enables on build warnings
+    [switch]$Wall = $False
 )
 
 # Check if any of the above params were set
-$params = "Area", "Clean", "CleanAll", "Days", "GenScenario", "GraphPerRegions", "GenRegionsGraphs", "Name", "NoProgress", "Rebuild"
+$params = "Area", "Clean", "CleanAll", "Days", "GenScenario", "GraphPerRegions", "GenRegionsGraphs", "Name", "NoProgress", "Rebuild", "DebugSim", "Wall"
 $ParamsNotNull = $False
 foreach($param in $params) { if ($PSBoundParameters.keys -like "*"+$param+"*") { $ParamsNotNull = $True; break; } }
 
@@ -103,9 +109,9 @@ foreach($param in $params) { if ($PSBoundParameters.keys -like "*"+$param+"*") {
         Set-Location Scripts\Input_Generator
         python.exe generateScenario.py $AREA $PROGRESS
         ErrorCheck
-        Move-Item output\scenario_${AREA_FILE}.json ..\..\config -Force
+        Move-Item output\scenario_${AreaFile}.json ..\..\config -Force
         Remove-Item output -Recurse
-        Set-Location ..\..
+        Set-Location $HomeDir
     }
 
     function Clean
@@ -113,8 +119,8 @@ foreach($param in $params) { if ($PSBoundParameters.keys -like "*"+$param+"*") {
         if ($CleanAll)
         {
             Write-Output "Removing ${YELLOW}all${RESET} runs for ${YELLOW}${AREA}${RESET}"
-            if (Test-Path $visualization_dir) {
-                Remove-Item $visualization_dir -Recurse -Verbose 4>&1 |
+            if (Test-Path $VisualizationDir) {
+                Remove-Item $VisualizationDir -Recurse -Verbose 4>&1 |
                 ForEach-Object{ `Write-Host ($_.Message -replace'(.*)Target "(.*)"(.*)',' $2') -ForegroundColor Red}
             }
             Write-Output ${GREEN}"Done."${RESET}
@@ -122,8 +128,8 @@ foreach($param in $params) { if ($PSBoundParameters.keys -like "*"+$param+"*") {
         else
         {
             Write-Output "Removing ${YELLOW}${Clean}${RESET} simulation run from ${YELLOW}${AREA}${RESET}"
-            if (Test-Path ${visualization_dir}${Clean}) {
-                Remove-Item $visualization_dir$Clean -Recurse -Verbose 4>&1 |
+            if (Test-Path ${VisualizationDir}${Clean}) {
+                Remove-Item $VisualizationDir$Clean -Recurse -Verbose 4>&1 |
                 ForEach-Object { `Write-Host ($_.Message -replace '(.*)Target "(.*)"(.*)', ' $2') -ForegroundColor Red }
             }
             Write-Output ${GREEN}"Done."${RESET}
@@ -133,7 +139,7 @@ foreach($param in $params) { if ($PSBoundParameters.keys -like "*"+$param+"*") {
     function ErrorCheck()
     {
         if ($LASTEXITCODE -ne 0) {
-            Set-Location $Home_Dir
+            Set-Location $HomeDir
             break
         }
     }
@@ -145,7 +151,7 @@ foreach($param in $params) { if ($PSBoundParameters.keys -like "*"+$param+"*") {
         # Test Cadmium
         if ( !(Test-Path "../cadmium") )
         {
-            $parent = Split-Path -Path $Home_Dir -Parent
+            $parent = Split-Path -Path $HomeDir -Parent
             Write-Verbose "Cadmium ${RED}[NOT FOUND]" -Verbose
             Write-Verbose ${YELLOW}"Make sure it's in "${YELLOW}${parent}
             break
@@ -198,80 +204,163 @@ foreach($param in $params) { if ($PSBoundParameters.keys -like "*"+$param+"*") {
             break
         }
 
-        Write-Verbose $GREEN"Completed Dependency Check."$RESET
+        Write-Verbose $GREEN"Completed Dependency Check.`n"$RESET
     }
 
     function BuildSimulator()
     {
         # Remove the current executable
-        if ($Rebuild -and (Test-Path .\bin)) { Remove-Item .\bin -Recurse }
+        if ($Rebuild -and (Test-Path ".\bin\${BuildFolder}\pandemic-geographical_model.exe")) {
+            Remove-Item .\bin\${BuildFolder}\pandemic-geographical_model.exe -Recurse
+        }
 
         # Build the executable if it doesn't exist
-        if ( !(Test-Path .\bin\cmake_install.cmake) ) {
+        if ( !(Test-Path ".\bin\$BuildFolder\pandemic-geographical_model.exe") ) {
             Write-Verbose "Building Model"
-            cmake .\CMakeCache.txt -B .\bin "-DVERBOSE=$Verbose"
+            cmake .\CMakeCache.txt -B .\bin "-DVERBOSE=$Verbose -DWALL=$W"
             ErrorCheck
-            cmake --build .\bin --config Release
+            cmake --build .\bin --config $BuildFolder
             ErrorCheck
             Write-Verbose "${GREEN}Done."
         }
     }
 
-    function GenerateAggregatedGraphs()
+    function GenerateGraphs([string] $LogFolder="", [bool] $GenAggregate=$True, [bool] $GenRegions=$False)
     {
         Write-Output "Generating Graphs:"
-        python .\Scripts\Graph_Generator\graph_aggregates.py "-ld=C:/Users/erme2/Documents/GitHub/Geography-Based-SEIRDS-Vaccinated/logs"
+        $GenFolder = ".\Scripts\Graph_Generator\"
+
+        if ($LogFolder -eq "") {
+            if (Test-Path logs/stats) { Remove-Item logs/stats -Recurse }
+            New-Item logs/stats -ItemType Directory | Out-Null
+            $LogFolder = "logs"
+        }
+
+        if ($GenRegions) {
+            python ${GenFolder}graph_per_regions.py "-ld=$LogFolder"
+            ErrorCheck
+        }
+
+        if ($GenAggregate) {
+            python ${GenFolder}graph_aggregates.py "-ld=$LogFolder"
+        }
     }
 # </Helpers> #
 
 function Main()
 {
-    $visualization_dir=$visualization_dir+"run/"
+    $stopwatch = [System.Diagnostics.Stopwatch]::StartNew()
+
+    if ($Name -ne "") { $VisualizationDir=$VisualizationDir+$Name }
+    else {
+        $i = 1
+        while ($True) {
+            if ( !(Test-Path "${VisualizationDir}run${i}") ) {
+                $VisualizationDir=$VisualizationDir+"run"+$i
+                break
+            }
+            $i++
+        }
+    }
 
     if ( !(Test-Path "logs") ) { New-Item "logs" -ItemType Directory | Out-Null }
-    if ( !(Test-Path $visualization_dir) ) { New-Item $visualization_dir -ItemType Directory | Out-Null }
+    if ( !(Test-Path $VisualizationDir) ) { New-Item $VisualizationDir -ItemType Directory | Out-Null }
 
+    # Generate Scenario file
     GenerateScenario
 
+    # Run simulation
     Set-Location bin
     Write-Output "`nExecuting model for $days days:"
-    ./Release/pandemic-geographical_model.exe ../config/scenario_${Area_File}.json $Days "Y"
+    cmd /c ${BuildFolder}\\pandemic-geographical_model.exe ../config/scenario_${AreaFile}.json $Days Y
     ErrorCheck
-    Set-Location ..
+    Set-Location $HomeDir
+    Write-Output "" # New line
 
-    GenerateAggregatedGraphs
+    # Generate SEVIRDS graphs
+    GenerateGraphs
+
+    # Copy the message log + scenario to message log parser's input
+    # Note this deletes the contents of input/output folders of the message log parser before executing
+    Write-Verbose "Copying simulation results to message log parser:"
+    # if ( !(Test-Path .\Scripts\Msg_Log_Parser\input) )  { New-Item .\Scripts\Msg_Log_Parser\input  -ItemType Directory | Out-Null }
+    # if ( !(Test-Path .\Scripts\Msg_Log_Parser\output) ) { New-Item .\Scripts\Msg_Log_Parser\output -ItemType Directory | Out-Null }
+    # Copy-Item config/scenario_${AreaFile}.json .\Scripts\Msg_Log_Parser\input
+    # Copy-Item .\logs\pandemic_messages.txt .\Scripts\Msg_Log_Parser\input
+    Write-Verbose "${GREEN}Done."
+
+    # Run message log parser
+    Write-Verbose "Running message log parser"
+    # Set-Location .\Scripts\Msg_Log_Parser
+    # java -jar sim.converter.glenn.jar "input" "output"
+    # Expand-Archive -LiteralPath output\pandemic_messages.zip -DestinationPath output
+    # Set-Location $HomeDir
+    Write-Verbose "${GREEN}Done."
+
+    Write-Verbose "Copying converted files to:${BLUE}${VisualizationDir}"
+    # Move-Item .\Scripts\Msg_Log_Parser\output\messages.log $VisualizationDir
+    # Move-Item .\Scripts\Msg_Log_Parser\output\structure.json $VisualizationDir
+    # Remove-Item .\Scripts\Msg_Log_Parser\input
+    # Remove-Item .\Scripts\Msg_Log_Parser\output
+    # Remove-Item .\Scripts\Msg_Log_Parser/*.zip
+    Copy-Item .\GIS_Viewer\${Area}\${AreaFile}.geojson $VisualizationDir
+    Copy-Item .\GIS_Viewer\${Area}\visualization.json $VisualizationDir
+    Move-Item logs $VisualizationDir
+    Write-Verbose "${GREEN}Done.`n"
+
+    $Hours   = $stopwatch.Elapsed.Hours
+    $Minutes = $stopwatch.Elapsed.Minutes
+    $Seconds = $stopwatch.Elapsed.Seconds
+    $stopwatch.Stop()
+
+    Write-Host -NoNewline "${GREEN}Simulation Completed ("
+    if ( $Hours -gt 0) { Write-Host -NoNewline "${GREEN}${Hours}h" }
+    if ( $Minutes -gt 0 ) { Write-Host -NoNewline "${GREEN}${Minutes}m" }
+    Write-Output "${GREEN}${Seconds}s)${RESET}"
+    Write-Output "View results using the files in ${BOLD}${BLUE}run${i}${RESET} and this web viewer: ${BOLD}${BLUE}http://206.12.94.204:8080/arslab-web/1.3/app-gis-v2/index.html${RESET}"
 }
 
 if ($ParamsNotNull) {
     $Progress = (($NoProgress) ? "N" : "Y")
+    $BuildFolder = (($DebugSim) ? "Debug" : "Release")
+    $W = (($Wall) ? "Y" : "N")
     $Verbose  = (($VerbosePreference -eq "SilentlyContinue" ? "N" : "Y"))
-    $Home_Dir = Get-Location
-
-    DependencyCheck
-    BuildSimulator
+    $HomeDir = Get-Location
 
     if ($Area -ne "") {
         if ($Area -eq "ontario" -or $Area -eq "on") {
             $Area = "ontario"
-            $Area_File = "ontario_phu"
+            $AreaFile = "ontario_phu"
         } elseif ($Area -eq "ottawa" -or $Area -eq "ot") {
             $Area = "ottawa"
-            $Area_File = "ottawa_da"
+            $AreaFile = "ottawa_da"
         } else {
             Write-Output "${RED}Unknown Area ${BOLD}${Area}${RESET}"
             exit -1
         }
 
-        $visualization_dir = "GIS_Viewer/${Area}/simulation_runs/"
+        $VisualizationDir = "GIS_Viewer/${Area}/simulation_runs/"
     }
+
+    if ($CleanAll -or $Clean -ne "") {
+        if ($Area -eq "") { Write-Output "${RED}Area must be set${RESET}"; exit -1 }
+        Clean
+        break
+    }
+
+    DependencyCheck
 
     if ($GenScenario) {
         if ($Area -eq "") { Write-Output "${RED}Area must be set${RESET}"; exit -1 }
         GenerateScenario
-    } elseif($CleanAll -or $Clean -ne "") {
+    } elseif ($GenRegionsGraphs) {
         if ($Area -eq "") { Write-Output "${RED}Area must be set${RESET}"; exit -1 }
-        Clean
-    } else { Main }
+        GenerateGraphs "" $False $True
+    } else {
+        BuildSimulator
+
+        if ($Area -ne "") { Main }
+    }
 }
 # Display the help if no params were set
 else {

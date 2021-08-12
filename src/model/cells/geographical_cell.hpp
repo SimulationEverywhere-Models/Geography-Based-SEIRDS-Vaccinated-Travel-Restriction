@@ -14,9 +14,11 @@
 #include "sevirds.hpp"
 #include "simulation_config.hpp"
 #include "AgeData.hpp"
+#include "../Helpers/Assert.hpp"
 
 using namespace std;
 using namespace cadmium::celldevs;
+using namespace Assert;
 
 // Indices for a vector used in local_compute(), compute_vaccinated(),
 // and compute_EIRD()
@@ -98,9 +100,11 @@ class geographical_cell : public cell<T, string, sevirds, vicinity>
             }
 
             // Checks if the rates vectors have the correct number of age groups
-            assert(virulence_rates.size() == recovery_rates.size() && virulence_rates.size() == mobility_rates.size() &&
-                virulence_rates.size() == incubation_rates.size() &&
-                "\n\nThere must be an equal number of age segments between all configuration rates.\n\n");
+            AssertLong(virulence_rates.size() == recovery_rates.size() && virulence_rates.size() == mobility_rates.size() &&
+                        virulence_rates.size() == incubation_rates.size(),
+                        __FILE__,
+                        __LINE__,
+                        "There must be an equal number of age segments between all configuration rates");
         }
 
         /**
@@ -161,14 +165,14 @@ class geographical_cell : public cell<T, string, sevirds, vicinity>
                                                     res.immunityD2_rate.at(age_segment_index), AgeData::PopType::DOSE2));
 
                     // Equations for Vaccinated population (eg. EV1, RV2...)
-                    sanity_check(res.get_total_susceptible(true, age_segment_index), "local_compute(), Total susceptible");
+                    sanity_check(res.get_total_susceptible(true, age_segment_index), __LINE__);
                     compute_vaccinated(datas, res);
 
                     // S = 1 - V1 - V2
                     new_s -= age_data_vac1.get()->GetTotalSusceptible(); // 1e
-                    sanity_check(new_s, "local_compute(), Vac1 Susceptible");
+                    sanity_check(new_s, __LINE__);
                     new_s -= age_data_vac2.get()->GetTotalSusceptible(); // 2d
-                    sanity_check(new_s, "local_compute(), Vac2 Susceptible");
+                    sanity_check(new_s, __LINE__);
                 }
 
                 // Compute the Exposed, Infected, Recovered, and Fatalities equations
@@ -179,18 +183,18 @@ class geographical_cell : public cell<T, string, sevirds, vicinity>
                 for (unique_ptr<AgeData> *data : datas)
                 {
                     new_s -= data->get()->GetTotalExposed();
-                    sanity_check(new_s, "local_compute(), Total Exposed");
+                    sanity_check(new_s, __LINE__);
                     new_s -= data->get()->GetTotalInfected();
-                    sanity_check(new_s, "local_compute(), Total Infected");
+                    sanity_check(new_s, __LINE__);
                     new_s -= data->get()->GetTotalRecovered();
-                    sanity_check(new_s, "local_compute(), Total Recovered");
+                    sanity_check(new_s, __LINE__);
 
                     res.fatalities.at(age_segment_index) += data->get()->GetTotalFatalities();
-                    sanity_check(res.fatalities.at(age_segment_index), "local_compute(), Total Fatalities");
+                    sanity_check(res.fatalities.at(age_segment_index), __LINE__);
                 }
 
                 new_s -= res.fatalities.at(age_segment_index);
-                sanity_check(new_s, "local_compute(), Susceptible - Total Fatalities");
+                sanity_check(new_s, __LINE__);
 
                 res.susceptible.at(age_segment_index).front() = new_s;
             } //for(age_groups)
@@ -364,7 +368,7 @@ class geographical_cell : public cell<T, string, sevirds, vicinity>
             if (age_data.get()->GetType() != AgeData::PopType::NVAC)
                 expos *= 1.0 - age_data.get()->GetImmunityRate( int((q - 1) * 0.14f) ); // 1 - i(q)
 
-            sanity_check(expos, "new_exposed()");
+            sanity_check(expos, __LINE__);
             return expos;
         } //new_exposed()
 
@@ -387,7 +391,7 @@ class geographical_cell : public cell<T, string, sevirds, vicinity>
                              * age_data.get()->GetOrigExposed(q - 1)        // * E(q - 1)
                     ;
 
-                sanity_check(curr_expos, "increment_exposed()");
+                sanity_check(curr_expos, __LINE__);
                 age_data.get()->SetExposed(q, curr_expos);
             }
         }
@@ -419,7 +423,7 @@ class geographical_cell : public cell<T, string, sevirds, vicinity>
                     ;
             }
 
-            sanity_check(inf, "new_infections()");
+            sanity_check(inf, __LINE__);
             return inf;
         }
 
@@ -444,7 +448,7 @@ class geographical_cell : public cell<T, string, sevirds, vicinity>
                            - age_data.get()->GetNewRecovered(q - 1)  // - R(q - 1)
                     ;
 
-                sanity_check(curr_inf, "increment_infections()");
+                sanity_check(curr_inf, __LINE__);
                 age_data.get()->SetInfected(q, curr_inf);
             }
         }
@@ -463,7 +467,7 @@ class geographical_cell : public cell<T, string, sevirds, vicinity>
                                 - age_data.get()->GetNewFatalitiesBack() // - D(q)
                 ;
 
-            sanity_check(recoveries, "new_recoveries(), Recoveries From Infected");
+            sanity_check(recoveries, __LINE__);
             age_data.get()->SetNewRecovered(age_data.get()->GetInfectedPhase(), recoveries);
 
             // qϵ{1...Ti - 1}
@@ -479,7 +483,7 @@ class geographical_cell : public cell<T, string, sevirds, vicinity>
                 age_data.get()->SetNewRecovered(q, sum);
             }
 
-            sanity_check(recoveries, "new_recoveries()");
+            sanity_check(recoveries, __LINE__);
             return recoveries;
         }
 
@@ -511,7 +515,7 @@ class geographical_cell : public cell<T, string, sevirds, vicinity>
                 // 5d, 5e, 5f
                 curr_rec += age_data.get()->GetOrigRecovered(q - 1) - age_data.get()->GetVacFromRec(q - 1); // R(q - 1) * (1 - vd(q - 1))
 
-                sanity_check(curr_rec, "increment_recoveries(), curr_rec");
+                sanity_check(curr_rec, __LINE__);
                 age_data.get()->SetRecovered(q, curr_rec);
             }
         }
@@ -549,7 +553,7 @@ class geographical_cell : public cell<T, string, sevirds, vicinity>
                 age_data.get()->SetNewFatalities(q, sum);
             }
 
-            sanity_check(new_f, "new_fatalities()");
+            sanity_check(new_f, __LINE__);
             return new_f;
         }
 
@@ -583,7 +587,7 @@ class geographical_cell : public cell<T, string, sevirds, vicinity>
                     // effect if the total infections never goes below the lower bound hysteresis factor, but also if it goes
                     // above the original total infection threshold!
                     auto next_pair_iterator = find(mobility_correction_factors.begin(), mobility_correction_factors.end(), pair);
-                    assert(next_pair_iterator != mobility_correction_factors.end());
+                    AssertLong(next_pair_iterator != mobility_correction_factors.end(), __FILE__, __LINE__);
 
                     // If there is a next correction factor (for a higher total infection), then use it's total infection threshold
                     if ((long unsigned int) distance(mobility_correction_factors.begin(), next_pair_iterator) != mobility_correction_factors.size() - 1)
@@ -648,7 +652,7 @@ class geographical_cell : public cell<T, string, sevirds, vicinity>
                         curr_vac1 -= earlyVac2.at(q - 1);
                     }
 
-                    sanity_check(curr_vac1, "new_recoveries(), curr_vac1");
+                    sanity_check(curr_vac1, __LINE__);
 
                     // Update the current day with the modified exposed from yesterday
                     age_data_vac1.get()->SetSusceptible(q, curr_vac1);
@@ -665,13 +669,13 @@ class geographical_cell : public cell<T, string, sevirds, vicinity>
 
                 // Set the new dose1 proportion to the beginning of the phase
                 age_data_vac1.get()->SetSusceptible(0, new_vac1);
-                sanity_check(age_data_vac1.get()->GetTotalSusceptible(), "computer_vaccinated(), Vac1 Susc Total");
+                sanity_check(age_data_vac1.get()->GetTotalSusceptible(), __LINE__);
             // </VACCINATED DOSE 1>
 
             // <VACCINATED DOSE 2>
                 // Calculate the number of new vaccinated dose 2
                 double new_vac2 = new_vaccinated2(datas, res, earlyVac2);
-                sanity_check(new_vac2, "compute_vaccinated(), new_vac2");
+                sanity_check(new_vac2, __LINE__);
 
                 // qϵ{2...td2 - 1}
                 for (unsigned int q = age_data_vac2.get()->GetSusceptiblePhase() - 1; q > 0; --q)
@@ -682,7 +686,7 @@ class geographical_cell : public cell<T, string, sevirds, vicinity>
                     age_data_vac2.get()->SetNewExposed(q, new_exposed(res, age_data_vac2, q - 1));
                     curr_vac2 -= age_data_vac2.get()->GetNewExposed(q); // - V2(q - 1) * (1 - iv2(q - 1)) * sum( jϵ{1…k}(cij * kij * sum(bϵ{1...A} and nϵ{1...Ti}[...])) )
 
-                    sanity_check(curr_vac2, "compute_vaccinated(), curr_vac2");
+                    sanity_check(curr_vac2, __LINE__);
                     age_data_vac2.get()->SetSusceptible(q, curr_vac2);
                 }
 
@@ -699,10 +703,10 @@ class geographical_cell : public cell<T, string, sevirds, vicinity>
                 if (reSusceptibility)
                     end += age_data_vac2.get()->GetOrigRecoveredBack(); // + RV2(Tr)
 
-                sanity_check(end, "compute_vaccinated(), Last Day Susc Vac2");
+                sanity_check(end, __LINE__);
                 age_data_vac2.get()->SetSusceptible(age_data_vac2.get()->GetSusceptiblePhase(), end);
                 age_data_vac2.get()->SetSusceptible(0, new_vac2); // Set the first day of the phase
-                sanity_check(age_data_vac2.get()->GetTotalSusceptible(), "compute_vaccinated(), Vac2 Total Susceptible");
+                sanity_check(age_data_vac2.get()->GetTotalSusceptible(), __LINE__);
             // </VACCINATED DOSE 2>
         }
 
@@ -723,7 +727,7 @@ class geographical_cell : public cell<T, string, sevirds, vicinity>
                     // Calculates the new fatalities on each day of the infected phase
                     // for easy use and less repetive code later
                     age_data->get()->SetTotalFatalities(new_fatalities(res, *age_data));
-                    sanity_check(age_data->get()->GetTotalFatalities(), "compute_EIRD(), Total Fatalities");
+                    sanity_check(age_data->get()->GetTotalFatalities(), __LINE__);
                 // </FATALITIES>
 
                 // <RECOVERIES>
@@ -773,7 +777,7 @@ class geographical_cell : public cell<T, string, sevirds, vicinity>
          * @param value   Proportion to check
          * @param message Custom message to print when proportion fails checks
          */
-        void sanity_check(double value, string message="") const
+        void sanity_check(double value, unsigned int line) const
         {
             sevirds const& res = state.current_state;
 
@@ -781,18 +785,9 @@ class geographical_cell : public cell<T, string, sevirds, vicinity>
             if (value < (0 - res.one_over_prec_divider) || value > (1 + res.one_over_prec_divider))
             {
                 value = res.precision_divider(value);
-                if (value < 0 || value > 1)
-                {
-                    cout << "\n\033[31m" << value << "\033[0m is \033[33m"
-                        << (value < 0 ? "less then zero" : "bigger then one") << "\033[0m on day "
-                        << simulation_clock << endl;
-
-                    // Custom message
-                    if (!message.empty())
-                        cout << "\033[33m" << message << "\033[0m" << endl;
-
-                    assert(false);
-                }
+                    AssertLong(value >= 0 && value <= 1,
+                                __FILE__, line,
+                                to_string(value) + " is \033[33m" + (value < 0 ? "less then zero" : "bigger then one") + "\033[31m on day " + to_string((int)simulation_clock));
             }
         }
 }; //class geographical_cell{}

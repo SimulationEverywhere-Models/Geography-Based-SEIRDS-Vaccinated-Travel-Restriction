@@ -7,8 +7,10 @@
 #include <iostream>
 #include <nlohmann/json.hpp>
 #include "hysteresis_factor.hpp"
+#include "../Helpers/Assert.hpp"
 
 using namespace std;
+using namespace Assert;
 
 /**
  * Keeps track of the model data and is initially
@@ -471,39 +473,34 @@ void from_json(const nlohmann::json &json, sevirds &current_sevirds)
 
     unsigned int age_groups = current_sevirds.num_age_groups;
 
-    if (accumulate(current_sevirds.age_group_proportions.begin(), current_sevirds.age_group_proportions.end(), 0.0) != 1)
-    {
-        cout << "\033[1;31mASSERT in sevirds.hpp: \033[0;31mThe age group proportions need to add up to 1\033[0m" << endl;
-        assert(false);
-    }
+    AssertLong(accumulate(current_sevirds.age_group_proportions.begin(), current_sevirds.age_group_proportions.end(), 0.0) == 1,
+                __FILE__, __LINE__,
+                "The age group proportions need to add up to 1");
 
     // Checks if the phases have the correct number of age groups
-    if (age_groups > current_sevirds.susceptible.size() && age_groups > current_sevirds.exposed.size() && age_groups > current_sevirds.infected.size() &&
-        age_groups > current_sevirds.recovered.size() && age_groups > current_sevirds.fatalities.size() && age_groups > current_sevirds.vaccinatedD1.size() &&
-        age_groups > current_sevirds.vaccinatedD2.size() && age_groups > current_sevirds.immunityD1_rate.size() && age_groups > current_sevirds.immunityD2_rate.size() &&
-        age_groups > current_sevirds.exposedD1.size() && age_groups > current_sevirds.infectedD2.size() && age_groups > current_sevirds.recoveredD2.size() &&
-        age_groups > current_sevirds.exposedD2.size() && age_groups > current_sevirds.infectedD2.size() && age_groups > current_sevirds.recoveredD2.size())
-    {
-        cout << "\033[1;31mASSERT in sevirds.hpp: \033[0;31mThere must be at least " << age_groups << " age groups for each of the lists under the 'states' parameter in default.json as well as in infectedCell.json\033[0m" << endl;
-        assert(false);
-        }
+    AssertLong(age_groups <= current_sevirds.susceptible.size() && age_groups <= current_sevirds.exposed.size() && age_groups <= current_sevirds.infected.size() &&
+                    age_groups <= current_sevirds.recovered.size() && age_groups <= current_sevirds.fatalities.size() && age_groups <= current_sevirds.vaccinatedD1.size() &&
+                    age_groups <= current_sevirds.vaccinatedD2.size() && age_groups <= current_sevirds.immunityD1_rate.size() && age_groups <= current_sevirds.immunityD2_rate.size() &&
+                    age_groups <= current_sevirds.exposedD1.size() && age_groups <= current_sevirds.infectedD2.size() && age_groups <= current_sevirds.recoveredD2.size() &&
+                    age_groups <= current_sevirds.exposedD2.size() && age_groups <= current_sevirds.infectedD2.size() && age_groups <= current_sevirds.recoveredD2.size(),
+                __FILE__, __LINE__,
+                "There must be at least " + to_string(age_groups) + " age groups for each of the lists under the 'states' parameter in default.json as well as in infectedCell.json");
 
     // Three options: unvaccinated, dose 1 or dose 2. Can only be in one of those groups
-    for (unsigned int i = 0; i < age_groups; ++i)
+    if (current_sevirds.vaccines)
     {
-        if ( current_sevirds.vaccines && current_sevirds.get_total_vaccinatedD1() + current_sevirds.get_total_vaccinatedD2() > 1.0f )
+        for (unsigned int i = 0; i < age_groups; ++i)
         {
-            cout << "\033[1;31mASSERT in sevirds.hpp: \033[0;31mPeople can only be in one of three groups: Unvaccinated, Vaccinated-Dose1, or Vaccinated-Dose2.\nThe proportion of people with dose 1 plus those with dose 2 cannot be greater then 1\033[0m" << endl;
-            assert(false);
+            AssertLong(current_sevirds.get_total_vaccinatedD1() + current_sevirds.get_total_vaccinatedD2() <= 1.0f,
+                        __FILE__, __LINE__,
+                        "People can only be in one of three groups: Unvaccinated, Vaccinated-Dose1, or Vaccinated-Dose2.\nThe proportion of people with dose 1 plus those with dose 2 cannot be greater then 1");
         }
     }
 
     // Recovered Dose 1 can't be smaller then Susceptible Vaccinated Dose 1
-    if (current_sevirds.recoveredD1.front().size() < current_sevirds.vaccinatedD1.front().size())
-    {
-        cout << "\033[1;31mASSERT in from_json() (sevirds.hpp): \033[0;31mThe recovery phase for those vaccinated with their first dose needs to be smaller then vaccinatedD1!\033[0m" << endl;
-        assert(false);
-    }
+    AssertLong(current_sevirds.recoveredD1.front().size() >= current_sevirds.vaccinatedD1.front().size(),
+                __FILE__, __LINE__,
+                "The recovery phase for those vaccinated with their first dose needs to be smaller then vaccinatedD1!");
 }
 
 #endif //PANDEMIC_HOYA_2002_SEIRD_HPP
