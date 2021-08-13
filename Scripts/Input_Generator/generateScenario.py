@@ -53,8 +53,7 @@ elif input_area == "ontario":
     progress_freq   = 10
 # Incorrect or unknown area
 else:
-    print("\033[31mOnly accepts 'Ottawa' or 'Ontario' as input areas\033[0m")
-    print("\033[33m" + input_area + "\033[0m")
+    print("\033[31mOnly accepts 'Ottawa' or 'Ontario' as input areas, but got:\033[33m " + input_area + "\033[0m")
     sys.exit(-1)
 
 def shared_boundaries(gdf, id1, id2):
