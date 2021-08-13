@@ -337,12 +337,14 @@ else
             exit -1
         fi
 
-        Main;
-
         if [[ $PROFILE == "Y" ]]; then
             # TODO: Investigate Valgrind Profiling
-            gprof bin/pandemic-geographical_model bin/gmon.out > bin/performance.txt
-            echo -e "Check ${GREEN}bin\performance.txt${RESET} for profiler results"
+            cd bin
+            valgrind --tool=callgrind --dump-instr=yes --simulate-cache=yes --collect-jumps=yes --collect-atstart=no ./pandemic-geographical_model ../config/scenario_${AREA}.json $DAYS $PROGRESS
+            ErrorCheck $?
+            echo -e "Check ${GREEN}bin\callgrind.out${RESET} for profiler results"
+        else
+            Main;
         fi
     fi
 fi
