@@ -21,7 +21,7 @@
         cd Scripts/Input_Generator
         python3 generateScenario.py $AREA $PROGRESS
         ErrorCheck $? # Check for build errors
-        mv output/scenario_${AREA_FILE}.json ../../config
+        mv output/scenario_${AREA}.json ../../config
         rm -rf output
         cd ../..
     }
@@ -60,7 +60,7 @@
 Main()
 {
     # Defining commands used
-    SIMULATE="$VALGRIND ./pandemic-geographical_model ../config/scenario_${AREA_FILE}.json $DAYS $PROGRESS"
+    SIMULATE="$VALGRIND ./pandemic-geographical_model ../config/scenario_${AREA}.json $DAYS $PROGRESS"
     PARSE_MSG_LOGS="java -jar sim.converter.glenn.jar "input" "output""
 
     # Defining directory to save results
@@ -92,6 +92,7 @@ Main()
     $SIMULATE
     ErrorCheck $? # Check for build errors
     cd ..
+    echo
 
     # Generate SEVIRDS graphs
     GenerateGraphs $GRAPH_REGIONS "Y"
@@ -101,7 +102,7 @@ Main()
     echo; echo "Copying simulation results to message log parser:"
     mkdir -p Scripts/Msg_Log_Parser/input
     mkdir -p Scripts/Msg_Log_Parser/output
-    cp config/scenario_${AREA_FILE}.json Scripts/Msg_Log_Parser/input
+    cp config/scenario_${AREA}.json Scripts/Msg_Log_Parser/input
     cp logs/pandemic_messages.txt Scripts/Msg_Log_Parser/input
 
     # Run the message log parser
@@ -119,7 +120,7 @@ Main()
     rm -rf Scripts/Msg_Log_Parser/input
     rm -rf Scripts/Msg_Log_Parser/output
     rm -f Scripts/Msg_Log_Parser/*.zip
-    cp GIS_Viewer/${AREA}/${AREA_FILE}.geojson $VISUALIZATION_DIR
+    cp GIS_Viewer/${AREA}/${AREA}.geojson $VISUALIZATION_DIR
     cp GIS_Viewer/${AREA}/visualization.json $VISUALIZATION_DIR
     mv logs $VISUALIZATION_DIR
 
@@ -316,11 +317,11 @@ else
 
         echo -e "${GREEN}Build Completed${RESET}"
 
-        if [[ $AREA == "" && $AREA_FILE == "" ]]; then exit 1; fi
+        if [[ $AREA == "" ]]; then exit 1; fi
     fi
 
     # If not are is set or is set incorrectly, then exit
-    if [[ $AREA == "" || $AREA_FILE == "" ]]; then echo -e "${RED}Please set a valid area flag... ${RESET}Use ${YELLOW}--flags${RESET} to see them"; exit -1; fi
+    if [[ $AREA == "" ]]; then echo -e "${RED}Please set a valid area flag... ${RESET}Use ${YELLOW}--flags${RESET} to see them"; exit -1; fi
 
     # Used both in Clean() and Main() so we set it here
     VISUALIZATION_DIR="GIS_Viewer/${AREA}/simulation_runs/"
