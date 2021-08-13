@@ -78,15 +78,12 @@ param(
     [switch]$Rebuild = $False,
 
     # Builds a debug version of the siomulator
-    [switch]$DebugSim = $False,
-
-    # Enables on build warnings
-    [switch]$Wall = $False
-)
+    [switch]$DebugSim = $False
+) #params()
 
 # Check if any of the above params were set
-$params = "Area", "Clean", "CleanAll", "Days", "GenScenario", "GraphPerRegions", "GenRegionsGraphs", "Name", "NoProgress", "Rebuild", "DebugSim", "Wall"
-$ParamsNotNull = $False
+$private:params        = "Area", "Clean", "CleanAll", "Days", "GenScenario", "GraphPerRegions", "GenRegionsGraphs", "Name", "NoProgress", "Rebuild", "DebugSim"
+$private:ParamsNotNull = $False
 foreach($param in $params) { if ($PSBoundParameters.keys -like "*"+$param+"*") { $ParamsNotNull = $True; break; } }
 
 # <Colors> #
@@ -99,26 +96,50 @@ foreach($param in $params) { if ($PSBoundParameters.keys -like "*"+$param+"*") {
 # </Colors> #
 
 # <Helpers> #
-    function GenerateScenario
+    <#
+    .SYNOPSIS
+    Generates the scenario file for a region and places it in the config directory
+    .PARAMETER Private:Area
+    Area to generate scenario. Case sensitive
+    .EXAMPLE
+    GenerateScenario ontario
+    .NOTES
+    General notes
+    #>
+    function GenerateScenario([string] $Private:Area)
     {
+        # Create output directory if non-existant
         if (!(Test-Path "Scripts/Input_Generator/output")) {
             New-Item "Scripts/Input_Generator/output" -ItemType Directory | Out-Null
         }
 
-        Write-Output "Generating $BLUE$AREA$RESET Scenario:"
+        Write-Output "Generating $BLUE$Area$RESET Scenario:"
         Set-Location Scripts\Input_Generator
-        python.exe generateScenario.py $AREA $PROGRESS
+        python.exe generateScenario.py $Area $PROGRESS
         ErrorCheck
-        Move-Item output\scenario_${AreaFile}.json ..\..\config -Force
+        Move-Item output\scenario_${Area}.json ..\..\config -Force
         Remove-Item output -Recurse
         Set-Location $HomeDir
-    }
+    } #GenerateScenario()
 
-    function Clean
+    <#
+    .SYNOPSIS
+    Cleans either all runs or a specified run
+    .PARAMETER private:VisualizationDir
+    Path to the simulations runs
+    .PARAMETER private:Run
+    Name of specific run to clean
+    .PARAMETER private:CleanAll
+    True cleans all simulation runs
+    .EXAMPLE
+    Clean "GIS_Viewer/ontario/simulation_runs/" "run1"
+        Cleans run1 found in "GIS_Viewer/ontario/simulation_runs/"
+    #>
+    function Clean([string] $Private:VisualizationDir, [string] $Private:Run, [bool] $Private:CleanAll=$False)
     {
         if ($CleanAll)
         {
-            Write-Output "Removing ${YELLOW}all${RESET} runs for ${YELLOW}${AREA}${RESET}"
+            Write-Output "Removing ${YELLOW}all${RESET} runs for ${YELLOW}${Area}${RESET}"
             if (Test-Path $VisualizationDir) {
                 Remove-Item $VisualizationDir -Recurse -Verbose 4>&1 |
                 ForEach-Object{ `Write-Host ($_.Message -replace'(.*)Target "(.*)"(.*)',' $2') -ForegroundColor Red}
@@ -127,23 +148,78 @@ foreach($param in $params) { if ($PSBoundParameters.keys -like "*"+$param+"*") {
         }
         else
         {
-            Write-Output "Removing ${YELLOW}${Clean}${RESET} simulation run from ${YELLOW}${AREA}${RESET}"
-            if (Test-Path ${VisualizationDir}${Clean}) {
-                Remove-Item $VisualizationDir$Clean -Recurse -Verbose 4>&1 |
+            Write-Output "Removing ${YELLOW}${Run}${RESET} simulation run from ${YELLOW}${AREA}${RESET}"
+            if (Test-Path ${VisualizationDir}${Run}) {
+                Remove-Item $VisualizationDir$Run -Recurse -Verbose 4>&1 |
                 ForEach-Object { `Write-Host ($_.Message -replace '(.*)Target "(.*)"(.*)', ' $2') -ForegroundColor Red }
             }
             Write-Output ${GREEN}"Done."${RESET}
         }
-    }
+    } #Clean()
 
+    <#
+    .SYNOPSIS
+    Computes and diplas whether the build was a success
+    and how much time is took using the the stopwatch
+    .PARAMETER success
+    True if the simulation was a success
+    .PARAMETER private:stopWatch
+    Stopwartch object containing how much time has passed
+    .EXAMPLE
+    ComputeBuildTime $True $null
+        Displays success message but no execution time
+    #>
+    function ComputeBuildTime([bool] $success, [System.Diagnostics.Stopwatch] $private:stopWatch=$null)
+    {
+        if ($stopWatch)
+        {
+            $Hours = $stopWatch.Elapsed.Hours
+            $Minutes = $stopWatch.Elapsed.Minutes
+            $Seconds = $stopWatch.Elapsed.Seconds
+            $stopWatch.Stop()
+        }
+
+        $Color = (($success) ? $GREEN : $RED)
+
+        if ($success) { Write-Host -NoNewline "`n${GREEN}Simulation Completed" }
+        else { Write-Host -NoNewline "`n${RED}Simulation Failed" }
+
+        if ($stopWatch)
+        {
+            Write-Host -NoNewline $Color" ("
+            if ( $Hours -gt 0) { Write-Host -NoNewline "${Color}${Hours}h" }
+            if ( $Minutes -gt 0 ) { Write-Host -NoNewline "${Color}${Minutes}m" }
+            Write-Output "${Color}${Seconds}s)${RESET}"
+        }
+
+        if ($success) {
+            Write-Output "View results using the files in ${BOLD}${BLUE}run${i}${RESET} and this web viewer: ${BOLD}${BLUE}http://206.12.94.204:8080/arslab-web/1.3/app-gis-v2/index.html${RESET}"
+        }
+    } #ComputeBuildTime()
+
+    <#
+    .SYNOPSIS
+    Checks if any errors have been returned and stops scripts if so.
+    Should be placed directly after a program call.
+    .EXAMPLE
+    python generate_scenario.py
+    ErrorCheck
+        If the generate_scenario returns an error the script will exit.
+    #>
     function ErrorCheck()
     {
+        # 0 => All is good
         if ($LASTEXITCODE -ne 0) {
-            Set-Location $HomeDir
+            ComputeBuildTime $False $stopwatch # Display failed message and time
+            Set-Location $HomeDir # Go back to the default location
             break
         }
     }
 
+    <#
+    .SYNOPSIS
+    Verifies ALL dependencies are met
+    #>
     function DependencyCheck()
     {
         Write-Verbose "Checking Dependencies..."
@@ -158,7 +234,7 @@ foreach($param in $params) { if ($PSBoundParameters.keys -like "*"+$param+"*") {
         } else { Write-Verbose "Cadmium ${GREEN}[FOUND]" }
 
         # Setup dependency specific data
-        $Dependencies = @{
+        $private:Dependencies = @{
             # dependency=version, website
             cmake="3.21.0","https://cmake.org/";
             gcc="x86_64-posix-seh-rev0", "https://www.msys2.org/";
@@ -167,12 +243,12 @@ foreach($param in $params) { if ($PSBoundParameters.keys -like "*"+$param+"*") {
         }
 
         # Python Depedencies
-        $Libs = "numpy", "geopandas", "matplotlib"
+        $private:Libs = "numpy", "geopandas", "matplotlib"
         try {
             # Loop through each dependency
-            foreach($depends in $Dependencies.keys) {
+            foreach($private:depends in $Dependencies.keys) {
                 # Try and get the version
-                $version = cmd /c "$depends --version"
+                $private:version = cmd /c "$depends --version"
 
                 # If the version is incorrect or non-existant, throw an error
                 if ( !($version -like "*"+${Dependencies}.${depends}[0]+"*") ) { throw 1 }
@@ -181,8 +257,9 @@ foreach($param in $params) { if ($PSBoundParameters.keys -like "*"+$param+"*") {
                 Write-Verbose "$depends ${GREEN}[FOUND]"
             }
 
-            $condaList = conda list
-            foreach($depends in $Libs) {
+            # Loop through each python dependency
+            $private:condaList = conda list
+            foreach($private:depends in $Libs) {
                 if ( !($condaList -like "*${depends}*") ) { throw 2 }
                 Write-Verbose "$depends ${GREEN}[FOUND]"
             }
@@ -191,40 +268,73 @@ foreach($param in $params) { if ($PSBoundParameters.keys -like "*"+$param+"*") {
 
             # Dependency Prints
             if ($Error[0].Exception.Message -eq 1) {
-                $minVersion = $Dependencies.$depends[0]
+                $private:minVersion = $Dependencies.$depends[0]
                 Write-Verbose $YELLOW"Check that '$depends --version' contains this version $minVersion"
-                $website = $Dependencies.$depends[1]
+                $private:website = $Dependencies.$depends[1]
                 Write-Verbose $YELLOW"$depends for Windows can be installed from here: ${BLUE}$website"
             # Python Dependency Prints
             } else {
-                Write-Verbose ${YELLOW}'Check `conda list  | Select-String "'"$depends"'"`'
-                Write-Verbose ${YELLOW}'It can be installed using `conda install '$depends'`'
+                Write-Verbose $YELLOW'Check `conda list  | Select-String "'"$depends"'"`'
+                Write-Verbose $YELLOW'It can be installed using `conda install '$depends'`'
             }
 
             break
         }
 
         Write-Verbose $GREEN"Completed Dependency Check.`n"$RESET
-    }
+    } #DependencyCheck()
 
-    function BuildSimulator()
+    <#
+    .SYNOPSIS
+    Builds the simulator if it is not and can also be set to rebuild it. Can also build Debug if $BuildFolder set correctly
+    .PARAMETER Rebuild
+    True rebuilds the simulator. Use with Verbose to do a complete rebuild
+    .PARAMETER BuildType
+    The type of build (e.g., Release or Debug)
+    .PARAMETER Verbose
+    True prints out all warnings while building and completely
+    rebuilds the simulator if Rebuild is set to true
+    .EXAMPLE
+    BuiSimulator $True "Debug" "Y" "Y"
+        Completely rebuilds the simulator and creates a debug executable
+    #>
+    function BuildSimulator([bool] $Private:Rebuild=$False, [string] $Private:BuildType="Release", [string] $Private:Verbose="N")
     {
         # Remove the current executable
-        if ($Rebuild -and (Test-Path ".\bin\${BuildFolder}\pandemic-geographical_model.exe")) {
-            Remove-Item .\bin\${BuildFolder}\pandemic-geographical_model.exe -Recurse
+        if ($Rebuild) {
+            # Clean everything for a complete rebuild
+            if ($Verbose -eq "Y" -and (Test-Path ".\bin\")) {
+                Remove-Item .\bin\ -Recurse
+            # Otherwise just clean the executable for a quick rebuild
+            } elseif ( (Test-Path ".\bin\$BuildType\pandemic-geographical_model.exe") ) {
+                Remove-Item .\bin\$BuildType\pandemic-geographical_model.exe
+            }
         }
 
         # Build the executable if it doesn't exist
-        if ( !(Test-Path ".\bin\$BuildFolder\pandemic-geographical_model.exe") ) {
+        if ( !(Test-Path ".\bin\$BuildType\pandemic-geographical_model.exe") ) {
             Write-Verbose "Building Model"
-            cmake .\CMakeCache.txt -B .\bin "-DVERBOSE=$Verbose -DWALL=$W"
+            cmake .\CMakeCache.txt -B .\bin "-DVERBOSE=$Verbose"
             ErrorCheck
-            cmake --build .\bin --config $BuildFolder
+            cmake --build .\bin --config $BuildType
             ErrorCheck
             Write-Verbose "${GREEN}Done."
         }
     }
 
+    <#
+    .SYNOPSIS
+    Generates all the graphs for a single run, provided the correct variables are set
+    .PARAMETER LogFolder
+    Path to the log folder (can be relative to where the script's directory)
+    .PARAMETER GenAggregate
+    True is the aggregated graphs should be generated
+    .PARAMETER GenRegions
+    True if the regional graphs should be generated
+    .EXAMPLE
+    GenerateGraphs "logs" $True $False
+        Will generate the aggregated graphs using the data in the Geographical-Based-SEIRDS-Vaccinated/logs folder
+    #>
     function GenerateGraphs([string] $LogFolder="", [bool] $GenAggregate=$True, [bool] $GenRegions=$False)
     {
         Write-Output "Generating Graphs:"
@@ -237,19 +347,20 @@ foreach($param in $params) { if ($PSBoundParameters.keys -like "*"+$param+"*") {
         }
 
         if ($GenRegions) {
-            python ${GenFolder}graph_per_regions.py "-ld=$LogFolder"
+            python ${GenFolder}graph_per_regions.py  $Progress "-ld=$LogFolder"
             ErrorCheck
         }
 
         if ($GenAggregate) {
-            python ${GenFolder}graph_aggregates.py "-ld=$LogFolder"
+            python ${GenFolder}graph_aggregates.py $Progress "-ld=$LogFolder"
         }
     }
 # </Helpers> #
 
 function Main()
 {
-    $stopwatch = [System.Diagnostics.Stopwatch]::StartNew()
+    # Used for execution time at the end of Main 
+    $local:stopwatch = [System.Diagnostics.Stopwatch]::StartNew()
 
     if ($Name -ne "") { $VisualizationDir=$VisualizationDir+$Name }
     else {
@@ -267,25 +378,25 @@ function Main()
     if ( !(Test-Path $VisualizationDir) ) { New-Item $VisualizationDir -ItemType Directory | Out-Null }
 
     # Generate Scenario file
-    GenerateScenario
+    GenerateScenario $Area
 
     # Run simulation
     Set-Location bin
-    Write-Output "`nExecuting model for $days days:"
-    cmd /c ${BuildFolder}\\pandemic-geographical_model.exe ../config/scenario_${AreaFile}.json $Days Y
+    Write-Output "`nExecuting model for $Days days:"
+    cmd /c ${BuildFolder}\\pandemic-geographical_model.exe ../config/scenario_${Area}.json $Days $Progress
     ErrorCheck
     Set-Location $HomeDir
     Write-Output "" # New line
 
     # Generate SEVIRDS graphs
-    GenerateGraphs
+    GenerateGraphs "" $True $GraphPerRegions
 
     # Copy the message log + scenario to message log parser's input
     # Note this deletes the contents of input/output folders of the message log parser before executing
     Write-Verbose "Copying simulation results to message log parser:"
     # if ( !(Test-Path .\Scripts\Msg_Log_Parser\input) )  { New-Item .\Scripts\Msg_Log_Parser\input  -ItemType Directory | Out-Null }
     # if ( !(Test-Path .\Scripts\Msg_Log_Parser\output) ) { New-Item .\Scripts\Msg_Log_Parser\output -ItemType Directory | Out-Null }
-    # Copy-Item config/scenario_${AreaFile}.json .\Scripts\Msg_Log_Parser\input
+    # Copy-Item config/scenario_${Area}.json .\Scripts\Msg_Log_Parser\input
     # Copy-Item .\logs\pandemic_messages.txt .\Scripts\Msg_Log_Parser\input
     Write-Verbose "${GREEN}Done."
 
@@ -297,7 +408,7 @@ function Main()
     # Set-Location $HomeDir
     Write-Verbose "${GREEN}Done."
 
-    Write-Verbose "Copying converted files to:${BLUE}${VisualizationDir}"
+    Write-Verbose "Copying converted files to: ${BLUE}${VisualizationDir}"
     # Move-Item .\Scripts\Msg_Log_Parser\output\messages.log $VisualizationDir
     # Move-Item .\Scripts\Msg_Log_Parser\output\structure.json $VisualizationDir
     # Remove-Item .\Scripts\Msg_Log_Parser\input
@@ -308,25 +419,17 @@ function Main()
     Move-Item logs $VisualizationDir
     Write-Verbose "${GREEN}Done.`n"
 
-    $Hours   = $stopwatch.Elapsed.Hours
-    $Minutes = $stopwatch.Elapsed.Minutes
-    $Seconds = $stopwatch.Elapsed.Seconds
-    $stopwatch.Stop()
-
-    Write-Host -NoNewline "${GREEN}Simulation Completed ("
-    if ( $Hours -gt 0) { Write-Host -NoNewline "${GREEN}${Hours}h" }
-    if ( $Minutes -gt 0 ) { Write-Host -NoNewline "${GREEN}${Minutes}m" }
-    Write-Output "${GREEN}${Seconds}s)${RESET}"
-    Write-Output "View results using the files in ${BOLD}${BLUE}run${i}${RESET} and this web viewer: ${BOLD}${BLUE}http://206.12.94.204:8080/arslab-web/1.3/app-gis-v2/index.html${RESET}"
+    ComputeBuildTime $True $stopwatch
 }
 
 if ($ParamsNotNull) {
-    $Progress = (($NoProgress) ? "N" : "Y")
-    $BuildFolder = (($DebugSim) ? "Debug" : "Release")
-    $W = (($Wall) ? "Y" : "N")
-    $Verbose  = (($VerbosePreference -eq "SilentlyContinue" ? "N" : "Y"))
-    $HomeDir = Get-Location
+    # Setup global variables
+    $Script:Progress   = (($NoProgress) ? "-np" : "")
+    $local:BuildFolder = (($DebugSim) ? "Debug" : "Release")
+    $local:Verbose     = (($VerbosePreference -eq "SilentlyContinue" ? "N" : "Y"))
+    $Script:HomeDir    = Get-Location
 
+    # Setup Area variables
     if ($Area -ne "") {
         if ($Area -eq "ontario" -or $Area -eq "on") {
             $Area = "ontario"
@@ -342,22 +445,30 @@ if ($ParamsNotNull) {
         $VisualizationDir = "GIS_Viewer/${Area}/simulation_runs/"
     }
 
+    # If clean then do this before the dependency check
+    # so it's quicker and we don't have to worry about having
+    # things installed like Python
     if ($CleanAll -or $Clean -ne "") {
         if ($Area -eq "") { Write-Output "${RED}Area must be set${RESET}"; exit -1 }
-        Clean
+        Clean $VisualizationDir $Clean
         break
     }
 
+    # Check all dependencies are met
     DependencyCheck
 
+    # Only generate the scenario
     if ($GenScenario) {
+        # A region must be set
         if ($Area -eq "") { Write-Output "${RED}Area must be set${RESET}"; exit -1 }
-        GenerateScenario
+        GenerateScenario $Area
+    # Only generate the graphs per region on a specified run
     } elseif ($GenRegionsGraphs) {
+        # A region must be set
         if ($Area -eq "") { Write-Output "${RED}Area must be set${RESET}"; exit -1 }
-        GenerateGraphs "" $False $True
+        GenerateGraphs  "${VisualizationDir}${GenRegionsGraphs}/logs" $False $True
     } else {
-        BuildSimulator
+        BuildSimulator $Rebuild $BuildFolder $Verbose
 
         if ($Area -ne "") { Main }
     }
