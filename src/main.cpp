@@ -107,7 +107,7 @@ int main(int argc, char** argv)
             }
         };
 
-        bool noProgress = argc > 3 && *(argv[3]) == 'N';
+        bool noProgress = argc > 3 && strcmp((argv[3]), "-np") == 0;
 
         // Start the thread
         thread th_obj(lm, &noProgress);

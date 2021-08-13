@@ -44,13 +44,13 @@
 
         # Per region
         if [[ $1 == "Y" ]]; then
-            python3 ${GEN_FOLDER}graph_per_regions.py $GRAPHS_FLAGS-ld=$LOG_FOLDER
+            python3 ${GEN_FOLDER}graph_per_regions.py $PROGRESS-ld=$LOG_FOLDER
             ErrorCheck $? # Check for build errors
         fi
 
         # Aggregate
         if [[ $2 == "Y" ]]; then
-            python3 ${GEN_FOLDER}graph_aggregates.py $GRAPHS_FLAGS-ld=$LOG_FOLDER
+            python3 ${GEN_FOLDER}graph_aggregates.py $PROGRESS-ld=$LOG_FOLDER
             ErrorCheck $? # Check for build errors
         fi
     }
@@ -206,7 +206,6 @@ else
     CLEAN=N # Default to not clean the sim runs
     WALL="-DWALL=N"
     PROFILE=N
-    GRAPHS_FLAGS=""
     NAME=""
     DAYS="500"
     GRAPH_REGIONS="N"
@@ -258,8 +257,7 @@ else
                 shift
             ;;
             --no-progress|-np)
-                GRAPHS_FLAGS=${GRAPHS_FLAGS}"-np "
-                PROGRESS=N
+                PROGRESS="-np"
                 shift
             ;;
             --Ontario|--ontario|-On|-on)
