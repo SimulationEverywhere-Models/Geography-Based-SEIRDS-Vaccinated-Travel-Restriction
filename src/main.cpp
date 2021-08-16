@@ -120,7 +120,6 @@ int main(int argc, char** argv)
             r.turn_progress_on();
 
         float sim_time = (argc > 2) ? atof(argv[2]) : 500;
-        r.run_until_passivate();
         r.run_until(sim_time);
 
         // Stop the thread when the sim is done running

@@ -1,9 +1,9 @@
-cmake_minimum_required (VERSION 3.21.0 FATAL_ERROR)
+cmake_minimum_required (VERSION 3.18.4 FATAL_ERROR)
 project(pandemic-geographical_model)
 
 ### <GCC> ##
     set (CMAKE_CXX_STANDARD 17)
-    set (CMAKE_CXX_COMPILER "gcc")
+    set (CMAKE_CXX_COMPILER "g++")
     if ("${VERBOSE}" STREQUAL "N")
         add_compile_options(-w)
     endif()
@@ -52,7 +52,7 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/bin)
         set(BOOST_LIBRARY_DIRS "${BOOST_ROOT}/lib") 
     endif()
 
-    find_package(Boost 1.76.0 COMPONENTS system thread REQUIRED)
+    find_package(Boost COMPONENTS system thread REQUIRED)
 
     if(Boost_FOUND)
         include_directories(${Boost_INCLUDE_DIRS})
