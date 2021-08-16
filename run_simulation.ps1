@@ -414,7 +414,7 @@ function Main()
     # Remove-Item .\Scripts\Msg_Log_Parser\input
     # Remove-Item .\Scripts\Msg_Log_Parser\output
     # Remove-Item .\Scripts\Msg_Log_Parser/*.zip
-    Copy-Item .\GIS_Viewer\${Area}\${AreaFile}.geojson $VisualizationDir
+    Copy-Item .\GIS_Viewer\${Area}\${Area}.geojson $VisualizationDir
     Copy-Item .\GIS_Viewer\${Area}\visualization.json $VisualizationDir
     Move-Item logs $VisualizationDir
     Write-Verbose "${GREEN}Done.`n"
@@ -433,10 +433,8 @@ if ($ParamsNotNull) {
     if ($Area -ne "") {
         if ($Area -eq "ontario" -or $Area -eq "on") {
             $Area = "ontario"
-            $AreaFile = "ontario_phu"
         } elseif ($Area -eq "ottawa" -or $Area -eq "ot") {
             $Area = "ottawa"
-            $AreaFile = "ottawa_da"
         } else {
             Write-Output "${RED}Unknown Area ${BOLD}${Area}${RESET}"
             exit -1
