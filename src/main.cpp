@@ -88,41 +88,46 @@ int main(int argc, char** argv)
         t = make_shared<geographical_coupled<TIME>>(test);
 
         // Lambda function that displays the loading animation
-        auto lm = [](bool* isDone)
-        {
-            if (! *isDone)
-            {
-                cout << "\033[33m-" << flush;
-                // Loop till bool changes
-                while(! *isDone)
-                {
-                    // Loop through all the different animation cycles
-                    for (char loading : {'\\', '|', '/', '-'})
-                    {
-                        this_thread::sleep_for(0.1s);
-                        // '\r' replaces the last printed line in the terminal
-                        cout << "\rcomputing " << loading << flush;
-                    }
-                }
-            }
-        };
+        // auto lm = [](bool *isDone, cadmium::dynamic::engine::runner<TIME, logger_top> *runner)
+        // {
+        //     if (!*isDone)
+        //     {
+        //         cout << "\033[33m" << flush;
+        //         // Loop till bool changes
+        //         while (!*isDone)
+        //         {
+        //             // Loop through all the different animation cycles
+        //             for (char loading : {'\\', '|', '/', '-'})
+        //             {
+        //                 this_thread::sleep_for(0.1s);
+        //                 // '\r' replaces the last printed line in the terminal
+        //                 cout << "\rcomputing " << loading << flush;
+        //             }
+        //         }
+        //     }
+        // };
 
         bool noProgress = argc > 3 && strcmp((argv[3]), "-np") == 0;
 
         // Start the thread
-        thread th_obj(lm, &noProgress);
-        if (noProgress)
-            th_obj.join();
+        // thread th_obj(lm, &noProgress);
+        // if (noProgress)
+        //     th_obj.join();
 
         cadmium::dynamic::engine::runner<TIME, logger_top> r(t, {0});
+
+        if (!noProgress)
+            r.turn_progress_on();
+
         float sim_time = (argc > 2) ? atof(argv[2]) : 500;
+        r.run_until_passivate();
         r.run_until(sim_time);
 
         // Stop the thread when the sim is done running
         if (!noProgress)
         {
             noProgress = true;
-            th_obj.join();
+            //th_obj.join();
             cout << "\r";
         }
         cout << "\033[1;32mDone.       \033[0m" << endl;
