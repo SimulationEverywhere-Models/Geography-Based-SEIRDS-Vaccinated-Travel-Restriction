@@ -125,14 +125,14 @@ Main()
     mv logs $VISUALIZATION_DIR
 
     BUILD_TIME=$SECONDS
-    echo -en "${GREEN}Simulation Complete and it took "
+    echo -en "${GREEN}Simulation Complete ["
     if [[ $BUILD_TIME -ge 3600 ]]; then
         echo -en "$((BUILD_TIME / 3600))h"
         BUILD_TIME=$((BUILD_TIME % 3600))
     fi
     if [[ $BUILD_TIME -ge 60 ]]; then echo -en "$((BUILD_TIME / 60))m"; fi
     if [[ $((BUILD_TIME % 60)) > 0 ]]; then echo -en "$((BUILD_TIME % 60))s"; fi
-    echo -e " to complete${RESET}"
+    echo -e "]${RESET}"
 
     echo -e "View results using the files in ${BOLD}${BLUE}run${RUN_INDEX}${RESET} and this web viewer: ${BOLD}${BLUE}http://206.12.94.204:8080/arslab-web/1.3/app-gis-v2/index.html${RESET}"
 }
