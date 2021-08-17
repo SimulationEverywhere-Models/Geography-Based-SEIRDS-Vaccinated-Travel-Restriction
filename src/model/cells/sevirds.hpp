@@ -72,7 +72,12 @@ struct sevirds
 
     // Required for the JSON library, as types used with it must be default-constructable.
     // The overloaded constructor results in a default constructor having to be manually written.
-    sevirds() = default;
+    sevirds()
+    {
+        vaccines              = false;
+        prec_divider          = 0;
+        one_over_prec_divider = 0;
+    };
 
     sevirds(proportionVector sus, proportionVector vac1, proportionVector vac2,
             proportionVector exp, proportionVector exp1, proportionVector exp2,
@@ -99,9 +104,9 @@ struct sevirds
                 immunityD1_rate{move(immuD1)},
                 immunityD2_rate{move(immuD2)},
                 min_interval_doses{min_interval},
-                vaccines{vac},
-                prec_divider{divider},
-                one_over_prec_divider{1.0 / divider}
+                vaccines(vac),
+                prec_divider(divider),
+                one_over_prec_divider(1.0 / divider)
     { num_age_groups = age_group_proportions.size(); }
 
     // GETTERS
@@ -486,8 +491,7 @@ void from_json(const nlohmann::json &json, sevirds &current_sevirds)
                 __FILE__, __LINE__,
                 "There must be at least " + to_string(age_groups) + " age groups for each of the lists under the 'states' parameter in default.json as well as in infectedCell.json");
 
-    // Three options: unvaccinated, dose 1 or dose 2. Can only be in one of those groups
-    if (current_sevirds.vaccines)
+    if (current_sevirds.min_interval_doses != 0)
     {
         for (unsigned int i = 0; i < age_groups; ++i)
         {
@@ -495,12 +499,12 @@ void from_json(const nlohmann::json &json, sevirds &current_sevirds)
                         __FILE__, __LINE__,
                         "People can only be in one of three groups: Unvaccinated, Vaccinated-Dose1, or Vaccinated-Dose2.\nThe proportion of people with dose 1 plus those with dose 2 cannot be greater then 1");
         }
-    }
 
-    // Recovered Dose 1 can't be smaller then Susceptible Vaccinated Dose 1
-    AssertLong(current_sevirds.recoveredD1.front().size() >= current_sevirds.vaccinatedD1.front().size(),
-                __FILE__, __LINE__,
-                "The recovery phase for those vaccinated with their first dose needs to be smaller then vaccinatedD1!");
+        // Recovered Dose 1 can't be smaller then Susceptible Vaccinated Dose 1
+        AssertLong(current_sevirds.recoveredD1.front().size() >= current_sevirds.vaccinatedD1.front().size(),
+                    __FILE__, __LINE__,
+                    "The recovery phase for those vaccinated with their first dose needs to be smaller then vaccinatedD1!");
+    }
 }
 
 #endif //PANDEMIC_HOYA_2002_SEIRD_HPP
