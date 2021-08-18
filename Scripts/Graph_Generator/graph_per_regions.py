@@ -31,7 +31,7 @@ if len(log_file_folder) == 0:
     exit(-1)
 
 # Loading animation
-done = False
+done    = False
 success = True
 def animate():
     # Loop through the animation cycles
@@ -48,7 +48,6 @@ def animate():
     if success:
         sys.stdout.write('\r\033[1;32mDone.                   \033[0m\n')
 #animate()
-
 
 try:
     def state_to_percent_df(sim_time, region_state, line_num):
@@ -267,7 +266,6 @@ try:
     #generate_graph()
 
     # Multiprocess each cell to produce their respective threads
-    #with
     if __name__ == '__main__':
         # Don't forget to thread it!
         if not no_progress:
@@ -276,7 +274,7 @@ try:
 
         # Setup paths, filenames, and folders
         log_filename = log_file_folder + "/pandemic_state.txt"
-        path = log_file_folder + "/stats/per-region"
+        path         = log_file_folder + "/stats/per-region"
         shutil.rmtree(path, ignore_errors=True)
 
         # Regex str to find underscore and one or more characters after the underscore (model id)
@@ -285,24 +283,24 @@ try:
         regex_state = "<.+>"
 
         # State log structure
-        sIndex = 1
-        eIndex = 2
-        vd1Index = 3
-        vd2Index = 4
-        iIndex = 5
-        rIndex = 6
+        sIndex    = 1
+        eIndex    = 2
+        vd1Index  = 3
+        vd2Index  = 4
+        iIndex    = 5
+        rIndex    = 6
         neweIndex = 7
         newiIndex = 8
         newrIndex = 9
-        dIndex = 10
+        dIndex    = 10
 
-        states = ["sus", "expos", "infec", "rec"]
-        curr_time = None
-        curr_states = {}
-        initial_pop = {}
-        total_pop = 0
+        states        = ["sus", "expos", "infec", "rec"]
+        curr_time     = None
+        curr_states   = {}
+        initial_pop   = {}
+        total_pop     = 0
         data_percents = {}
-        data_totals = {}
+        data_totals   = {}
 
         # Read the initial populations of all regions and their names in time step 0
         with open(log_filename, "r") as log_file:
@@ -321,12 +319,12 @@ try:
 
                 # Create an re match objects from the current line
                 state_match = re.search(regex_state, line)
-                id_match = re.search(regex_model_id, line)
+                id_match    = re.search(regex_model_id, line)
                 if not (state_match and id_match):
                     continue
 
                 # Parse the state and id and insert into initial_pop
-                cid = id_match.group().lstrip('_')
+                cid   = id_match.group().lstrip('_')
                 state = state_match.group().strip("<>")
                 state = state.split(",")
                 initial_pop[cid] = float(state[0])
@@ -336,14 +334,12 @@ try:
                     data_percents[cid] = list()
                     data_totals[cid] = list()
 
-                state = state_match.group().strip("<>")
-                state = list(map(float, state.split(",")))
+                state            = state_match.group().strip("<>")
+                state            = list(map(float, state.split(",")))
                 curr_states[cid] = state
 
-                state_percentages = state_to_percent_df(
-                    curr_time, curr_states[cid], line_num)
-                state_totals = state_to_cumulative_df(
-                    curr_time, curr_states[cid], line_num)
+                state_percentages = state_to_percent_df(curr_time, curr_states[cid], line_num)
+                state_totals      = state_to_cumulative_df(curr_time, curr_states[cid], line_num)
                 data_percents[cid].append(state_percentages)
                 data_totals[cid].append(state_totals)
 
@@ -365,6 +361,7 @@ try:
         else:
             done = True
             t.join()
+    #if
 except AssertionError as assertion:
     success = False
     done = True
