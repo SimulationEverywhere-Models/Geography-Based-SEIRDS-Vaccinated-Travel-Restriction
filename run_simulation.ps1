@@ -77,14 +77,17 @@ param(
     # Re-Compiles the simulator
     [switch]$Rebuild = $False,
 
+    # Fully Re-Compiles the simulator (i.e., rebuilds the CMake and Make files and cache)
+    [switch]$FullRebuild = $False,
+
     # Builds a debug version of the siomulator
     [switch]$DebugSim = $False
 ) #params()
 
 # Check if any of the above params were set
-$private:params        = "Area", "Clean", "CleanAll", "Days", "GenScenario", "GraphPerRegions", "GenRegionsGraphs", "Name", "NoProgress", "Rebuild", "DebugSim"
+$private:Params        = "Area", "Clean", "CleanAll", "Days", "GenScenario", "GraphPerRegions", "GenRegionsGraphs", "Name", "NoProgress", "Rebuild", "FullRebuild", "DebugSim"
 $private:ParamsNotNull = $False
-foreach($param in $params) { if ($PSBoundParameters.keys -like "*"+$param+"*") { $ParamsNotNull = $True; break; } }
+foreach($Param in $Params) { if ($PSBoundParameters.keys -like "*"+$Param+"*") { $ParamsNotNull = $True; break; } }
 
 # <Colors> #
     $RESET  = "[0m"
@@ -148,9 +151,9 @@ foreach($param in $params) { if ($PSBoundParameters.keys -like "*"+$param+"*") {
         }
         else
         {
-            Write-Output "Removing ${YELLOW}${Run}${RESET} simulation run from ${YELLOW}${AREA}${RESET}"
+            Write-Output "Removing ${YELLOW}${Run}${RESET} simulation run from ${YELLOW}${Area}${RESET}"
             if (Test-Path ${VisualizationDir}${Run}) {
-                Remove-Item $VisualizationDir$Run -Recurse -Verbose 4>&1 |
+                Remove-Item ${VisualizationDir}${Run} -Recurse -Verbose 4>&1 |
                 ForEach-Object { `Write-Host ($_.Message -replace '(.*)Target "(.*)"(.*)', ' $2') -ForegroundColor Red }
             }
             Write-Output ${GREEN}"Done."${RESET}
@@ -161,30 +164,30 @@ foreach($param in $params) { if ($PSBoundParameters.keys -like "*"+$param+"*") {
     .SYNOPSIS
     Computes and diplas whether the build was a success
     and how much time is took using the the stopwatch
-    .PARAMETER success
+    .PARAMETER Success
     True if the simulation was a success
-    .PARAMETER private:stopWatch
+    .PARAMETER private:StopWatch
     Stopwartch object containing how much time has passed
     .EXAMPLE
     ComputeBuildTime $True $null
         Displays success message but no execution time
     #>
-    function ComputeBuildTime([bool] $success, [System.Diagnostics.Stopwatch] $private:stopWatch=$null)
+    function ComputeBuildTime([bool] $Success, [System.Diagnostics.Stopwatch] $private:StopWatch=$null)
     {
         if ($stopWatch)
         {
-            $Hours = $stopWatch.Elapsed.Hours
-            $Minutes = $stopWatch.Elapsed.Minutes
-            $Seconds = $stopWatch.Elapsed.Seconds
-            $stopWatch.Stop()
+            $Hours   = $StopWatch.Elapsed.Hours
+            $Minutes = $StopWatch.Elapsed.Minutes
+            $Seconds = $StopWatch.Elapsed.Seconds
+            $StopWatch.Stop()
         }
 
-        $Color = (($success) ? $GREEN : $RED)
+        $Color = (($Success) ? $GREEN : $RED)
 
-        if ($success) { Write-Host -NoNewline "`n${GREEN}Simulation Completed" }
+        if ($Success) { Write-Host -NoNewline "`n${GREEN}Simulation Completed" }
         else { Write-Host -NoNewline "`n${RED}Simulation Failed" }
 
-        if ($stopWatch)
+        if ($StopWatch)
         {
             Write-Host -NoNewline $Color" ("
             if ( $Hours -gt 0) { Write-Host -NoNewline "${Color}${Hours}h" }
@@ -206,7 +209,7 @@ foreach($param in $params) { if ($PSBoundParameters.keys -like "*"+$param+"*") {
     {
         # 0 => All is good
         if ($LASTEXITCODE -ne 0) {
-            ComputeBuildTime $False $stopwatch # Display failed message and time
+            ComputeBuildTime $False $Stopwatch # Display failed message and time
             Set-Location $HomeDir # Go back to the default location
             break
         }
@@ -223,9 +226,9 @@ foreach($param in $params) { if ($PSBoundParameters.keys -like "*"+$param+"*") {
         # Test Cadmium
         if ( !(Test-Path "../cadmium") )
         {
-            $parent = Split-Path -Path $HomeDir -Parent
+            $Parent = Split-Path -Path $HomeDir -Parent
             Write-Verbose "Cadmium ${RED}[NOT FOUND]" -Verbose
-            Write-Verbose ${YELLOW}"Make sure it's in "${YELLOW}${parent}
+            Write-Verbose ${YELLOW}"Make sure it's in "${YELLOW}${Parent}
             break
         } else { Write-Verbose "Cadmium ${GREEN}[FOUND]" }
 
@@ -243,36 +246,36 @@ foreach($param in $params) { if ($PSBoundParameters.keys -like "*"+$param+"*") {
         $private:Libs = "numpy", "geopandas", "matplotlib"
         try {
             # Loop through each dependency
-            foreach($private:depends in $Dependencies.keys) {
+            foreach($private:Depends in $Dependencies.keys) {
                 # Try and get the version
-                $private:version = cmd /c "$depends --version"
+                $private:Version = cmd /c "$Depends --version"
 
                 # If the version is incorrect or non-existant, throw an error
-                if ( !($version -clike "*"+${Dependencies}.${depends}[0]+"*") ) { throw 1 }
+                if ( !($Version -clike "*"+${Dependencies}.${Depends}[0]+"*") ) { throw 1 }
 
                 # It was found
-                Write-Verbose "$depends ${GREEN}[FOUND]"
+                Write-Verbose "$Depends ${GREEN}[FOUND]"
             }
 
             # Loop through each python dependency
-            $private:condaList = conda list
-            foreach($private:depends in $Libs) {
-                if ( !($condaList -like "*${depends}*") ) { throw 2 }
-                Write-Verbose "$depends ${GREEN}[FOUND]"
+            $private:CondaList = conda list
+            foreach($private:Depends in $Libs) {
+                if ( !($CondaList -like "*${Depends}*") ) { throw 2 }
+                Write-Verbose "$Depends ${GREEN}[FOUND]"
             }
         } catch {
-            Write-Verbose "$depends ${RED}[NOT FOUND]" -Verbose
+            Write-Verbose "$Depends ${RED}[NOT FOUND]" -Verbose
 
             # Dependency Prints
             if ($Error[0].Exception.Message -eq 1) {
-                $private:minVersion = $Dependencies.$depends[0]
-                Write-Verbose $YELLOW"Check that '$depends --version' contains this version $minVersion"
-                $private:website = $Dependencies.$depends[1]
-                Write-Verbose $YELLOW"$depends for Windows can be installed from here: ${BLUE}$website"
+                $private:MinVersion = $Dependencies.$Depends[0]
+                Write-Verbose $YELLOW"Check that '$Depends --version' contains this version $MinVersion"
+                $private:Website = $Dependencies.$Depends[1]
+                Write-Verbose $YELLOW"$Depends for Windows can be installed from here: ${BLUE}$Website"
             # Python Dependency Prints
             } elseif($Error[0].Exception.Message -eq 2) {
-                Write-Verbose $YELLOW'Check `conda list  | Select-String "'"$depends"'"`'
-                Write-Verbose $YELLOW'It can be installed using `conda install '$depends'`'
+                Write-Verbose $YELLOW'Check `conda list  | Select-String "'"$Depends"'"`'
+                Write-Verbose $YELLOW'It can be installed using `conda install '$Depends'`'
             } else{
                 Write-Error $Error[0].Exception.Message
             }
@@ -297,12 +300,12 @@ foreach($param in $params) { if ($PSBoundParameters.keys -like "*"+$param+"*") {
     BuiSimulator $True "Debug" "Y" "Y"
         Completely rebuilds the simulator and creates a debug executable
     #>
-    function BuildSimulator([bool] $Private:Rebuild=$False, [string] $Private:BuildType="Release", [string] $Private:Verbose="N")
+    function BuildSimulator([bool] $Private:Rebuild=$False, [bool] $Private:FullRebuild=$False, [string] $Private:BuildType="Release", [string] $Private:Verbose="N")
     {
         # Remove the current executable
-        if ($Rebuild) {
+        if ($Rebuild -or $FullRebuild) {
             # Clean everything for a complete rebuild
-            if ($Verbose -eq "Y" -and (Test-Path ".\bin\")) {
+            if ($FullRebuild -and (Test-Path ".\bin\")) {
                 Remove-Item .\bin\ -Recurse
             # Otherwise just clean the executable for a quick rebuild
             } elseif ( (Test-Path ".\bin\pandemic-geographical_model.exe") ) {
@@ -313,10 +316,9 @@ foreach($param in $params) { if ($PSBoundParameters.keys -like "*"+$param+"*") {
         # Build the executable if it doesn't exist
         if ( !(Test-Path ".\bin\pandemic-geographical_model.exe") ) {
             Write-Verbose "Building Model"
-            # cmake .\CMakeCache.txt -B .\bin "-DVERBOSE=$Verbose -G MinGW Makefiles"
             cmake -DCMAKE_EXPORT_COMPILE_COMMANDS:BOOL=TRUE -DCMAKE_BUILD_TYPE:STRING=$BuildType -DVERBOSE=$Verbose -Bc:/Users/erme2/Documents/GitHub/Geography-Based-SEIRDS-Vaccinated/bin -G "MinGW Makefiles"
             ErrorCheck
-            cmake --build .\bin #--config $BuildType
+            cmake --build .\bin
             ErrorCheck
             Write-Verbose "${GREEN}Done."
         }
@@ -347,7 +349,7 @@ foreach($param in $params) { if ($PSBoundParameters.keys -like "*"+$param+"*") {
         }
 
         if ($GenRegions) {
-            python ${GenFolder}graph_per_regions.py  $Progress "-ld=$LogFolder"
+            python ${GenFolder}graph_per_regions.py $Progress "-ld=$LogFolder"
             ErrorCheck
         }
 
@@ -360,7 +362,7 @@ foreach($param in $params) { if ($PSBoundParameters.keys -like "*"+$param+"*") {
 function Main()
 {
     # Used for execution time at the end of Main 
-    $local:stopwatch = [System.Diagnostics.Stopwatch]::StartNew()
+    $Local:Stopwatch = [System.Diagnostics.Stopwatch]::StartNew()
 
     if ($Name -ne "") { $VisualizationDir=$VisualizationDir+$Name }
     else {
@@ -391,15 +393,13 @@ function Main()
     # Generate SEVIRDS graphs
     GenerateGraphs "" $True $GraphPerRegions
 
-    # Copy the message log + scenario to message log parser's input
-    # Note this deletes the contents of input/output folders of the message log parser before executing
     try {
-        $private:version = java --version
+        $Private:Version = java --version
     } catch {
-        $version = ""
+        $Version = ""
     }
 
-    if ( ($version -clike "*java 16*") ) {
+    if ( ($Version -clike "*java 16*") ) {
         if ( !(Test-Path .\Scripts\Msg_Log_Parser\input) )  { New-Item .\Scripts\Msg_Log_Parser\input  -ItemType Directory | Out-Null }
         if ( !(Test-Path .\Scripts\Msg_Log_Parser\output) ) { New-Item .\Scripts\Msg_Log_Parser\output -ItemType Directory | Out-Null }
         Copy-Item config/scenario_${Area}.json .\Scripts\Msg_Log_Parser\input
@@ -424,16 +424,16 @@ function Main()
     Copy-Item .\GIS_Viewer\${Area}\visualization.json $VisualizationDir
     Move-Item logs $VisualizationDir
 
-    ComputeBuildTime $True $stopwatch
+    ComputeBuildTime $True $Stopwatch
     Write-Output "View results using the files in ${BOLD}${BLUE}${VisualizationDir}${RESET} and this web viewer: ${BOLD}${BLUE}http://206.12.94.204:8080/arslab-web/1.3/app-gis-v2/index.html${RESET}"
 }
 
 if ($ParamsNotNull) {
     # Setup global variables
-    $Script:Progress   = (($NoProgress) ? "-np" : "")
-    $local:BuildType   = (($DebugSim) ? "Debug" : "Release")
-    $local:Verbose     = (($VerbosePreference -eq "SilentlyContinue" ? "N" : "Y"))
-    $Script:HomeDir    = Get-Location
+    $Script:Progress = (($NoProgress) ? "-np" : "")
+    $local:BuildType = (($DebugSim) ? "Debug" : "Release")
+    $local:Verbose   = (($VerbosePreference -eq "SilentlyContinue" ? "N" : "Y"))
+    $Script:HomeDir  = Get-Location
 
     # Setup Area variables
     if ($Area -ne "") {
@@ -472,7 +472,7 @@ if ($ParamsNotNull) {
         if ($Area -eq "") { Write-Output "${RED}Area must be set${RESET}"; exit -1 }
         GenerateGraphs  "${VisualizationDir}${GenRegionsGraphs}/logs" $False $True
     } else {
-        BuildSimulator $Rebuild $BuildType $Verbose
+        BuildSimulator $Rebuild $FullRebuild $BuildType $Verbose
 
         if ($Area -ne "") { Main }
     }
