@@ -393,7 +393,12 @@ function Main()
 
     # Copy the message log + scenario to message log parser's input
     # Note this deletes the contents of input/output folders of the message log parser before executing
-    $private:version = java --version
+    try {
+        $private:version = java --version
+    } catch {
+        $version = ""
+    }
+
     if ( ($version -clike "*java 16*") ) {
         if ( !(Test-Path .\Scripts\Msg_Log_Parser\input) )  { New-Item .\Scripts\Msg_Log_Parser\input  -ItemType Directory | Out-Null }
         if ( !(Test-Path .\Scripts\Msg_Log_Parser\output) ) { New-Item .\Scripts\Msg_Log_Parser\output -ItemType Directory | Out-Null }

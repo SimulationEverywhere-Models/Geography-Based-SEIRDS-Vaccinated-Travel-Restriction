@@ -56,7 +56,7 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/bin)
 
     if (Boost_NO_SYSTEM_PATHS)
         set(Boost_INCLUDE_DIRS "${BOOST_ROOT}/include")
-        set(BOOST_LIBRARY_DIRS "${BOOST_ROOT}/lib") 
+        set(BOOST_LIBRARY_DIRS "${BOOST_ROOT}/lib")
     endif()
 
     find_package(Boost COMPONENTS system thread REQUIRED)
