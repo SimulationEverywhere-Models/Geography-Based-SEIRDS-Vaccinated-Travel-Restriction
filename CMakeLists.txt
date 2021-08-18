@@ -1,11 +1,16 @@
 cmake_minimum_required (VERSION 3.18.4 FATAL_ERROR)
-project(pandemic-geographical_model)
 
 ### <GCC> ##
     set (CMAKE_CXX_STANDARD 17)
+    set (CMAKE_C_COMPILER "gcc")
     set (CMAKE_CXX_COMPILER "g++")
     if ("${VERBOSE}" STREQUAL "N")
         add_compile_options(-w)
+    endif()
+
+    if ("${CMAKE_BUILD_TYPE}" STREQUAL "Debug")
+        message("##### HERE #####")
+        add_compile_options(-g)
     endif()
 
     if("${WALL}" STREQUAL "Y")
@@ -16,6 +21,8 @@ project(pandemic-geographical_model)
         set(CMAKE_CXX_FLAGS "-pg")
     endif()
 ### <GCC> ##
+
+project(pandemic-geographical_model)
 
 # Out Directory
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/bin)

@@ -191,10 +191,6 @@ foreach($param in $params) { if ($PSBoundParameters.keys -like "*"+$param+"*") {
             if ( $Minutes -gt 0 ) { Write-Host -NoNewline "${Color}${Minutes}m" }
             Write-Output "${Color}${Seconds}s)${RESET}"
         }
-
-        if ($success) {
-            Write-Output "View results using the files in ${BOLD}${BLUE}run${i}${RESET} and this web viewer: ${BOLD}${BLUE}http://206.12.94.204:8080/arslab-web/1.3/app-gis-v2/index.html${RESET}"
-        }
     } #ComputeBuildTime()
 
     <#
@@ -234,12 +230,13 @@ foreach($param in $params) { if ($PSBoundParameters.keys -like "*"+$param+"*") {
         } else { Write-Verbose "Cadmium ${GREEN}[FOUND]" }
 
         # Setup dependency specific data
-        $private:Dependencies = @{
+        $private:Dependencies = [Ordered]@{
             # dependency=version, website
-            cmake="3.21.0","https://cmake.org/";
-            gcc="x86_64-posix-seh-rev0", "https://www.msys2.org/";
-            python="Python 3", "https://www.python.org/downloads/";
+            pwsh="PowerShell 7", "https://github.com/PowerShell/PowerShell/releases";
+            cmake="cmake version 3","https://cmake.org/download/";
+            python= "Python 3", "https://www.python.org/downloads/";
             conda="conda 4", "https://www.anaconda.com/products/individual#windows"
+            gcc="x86_64-posix-seh-rev0", "https://www.msys2.org/";
         }
 
         # Python Depedencies
@@ -251,7 +248,7 @@ foreach($param in $params) { if ($PSBoundParameters.keys -like "*"+$param+"*") {
                 $private:version = cmd /c "$depends --version"
 
                 # If the version is incorrect or non-existant, throw an error
-                if ( !($version -like "*"+${Dependencies}.${depends}[0]+"*") ) { throw 1 }
+                if ( !($version -clike "*"+${Dependencies}.${depends}[0]+"*") ) { throw 1 }
 
                 # It was found
                 Write-Verbose "$depends ${GREEN}[FOUND]"
@@ -273,9 +270,11 @@ foreach($param in $params) { if ($PSBoundParameters.keys -like "*"+$param+"*") {
                 $private:website = $Dependencies.$depends[1]
                 Write-Verbose $YELLOW"$depends for Windows can be installed from here: ${BLUE}$website"
             # Python Dependency Prints
-            } else {
+            } elseif($Error[0].Exception.Message -eq 2) {
                 Write-Verbose $YELLOW'Check `conda list  | Select-String "'"$depends"'"`'
                 Write-Verbose $YELLOW'It can be installed using `conda install '$depends'`'
+            } else{
+                Write-Error $Error[0].Exception.Message
             }
 
             break
@@ -306,17 +305,18 @@ foreach($param in $params) { if ($PSBoundParameters.keys -like "*"+$param+"*") {
             if ($Verbose -eq "Y" -and (Test-Path ".\bin\")) {
                 Remove-Item .\bin\ -Recurse
             # Otherwise just clean the executable for a quick rebuild
-            } elseif ( (Test-Path ".\bin\$BuildType\pandemic-geographical_model.exe") ) {
-                Remove-Item .\bin\$BuildType\pandemic-geographical_model.exe
+            } elseif ( (Test-Path ".\bin\pandemic-geographical_model.exe") ) {
+                Remove-Item .\bin\pandemic-geographical_model.exe
             }
         }
 
         # Build the executable if it doesn't exist
-        if ( !(Test-Path ".\bin\$BuildType\pandemic-geographical_model.exe") ) {
+        if ( !(Test-Path ".\bin\pandemic-geographical_model.exe") ) {
             Write-Verbose "Building Model"
-            cmake .\CMakeCache.txt -B .\bin "-DVERBOSE=$Verbose"
+            # cmake .\CMakeCache.txt -B .\bin "-DVERBOSE=$Verbose -G MinGW Makefiles"
+            cmake -DCMAKE_EXPORT_COMPILE_COMMANDS:BOOL=TRUE -DCMAKE_BUILD_TYPE:STRING=$BuildType -DVERBOSE=$Verbose -Bc:/Users/erme2/Documents/GitHub/Geography-Based-SEIRDS-Vaccinated/bin -G "MinGW Makefiles"
             ErrorCheck
-            cmake --build .\bin --config $BuildType
+            cmake --build .\bin #--config $BuildType
             ErrorCheck
             Write-Verbose "${GREEN}Done."
         }
@@ -383,7 +383,7 @@ function Main()
     # Run simulation
     Set-Location bin
     Write-Output "`nExecuting model for $Days days:"
-    cmd /c ${BuildFolder}\\pandemic-geographical_model.exe ../config/scenario_${Area}.json $Days $Progress
+    .\pandemic-geographical_model.exe ../config/scenario_${Area}.json $Days $Progress
     ErrorCheck
     Set-Location $HomeDir
     Write-Output "" # New line
@@ -393,39 +393,40 @@ function Main()
 
     # Copy the message log + scenario to message log parser's input
     # Note this deletes the contents of input/output folders of the message log parser before executing
-    Write-Verbose "Copying simulation results to message log parser:"
-    # if ( !(Test-Path .\Scripts\Msg_Log_Parser\input) )  { New-Item .\Scripts\Msg_Log_Parser\input  -ItemType Directory | Out-Null }
-    # if ( !(Test-Path .\Scripts\Msg_Log_Parser\output) ) { New-Item .\Scripts\Msg_Log_Parser\output -ItemType Directory | Out-Null }
-    # Copy-Item config/scenario_${Area}.json .\Scripts\Msg_Log_Parser\input
-    # Copy-Item .\logs\pandemic_messages.txt .\Scripts\Msg_Log_Parser\input
-    Write-Verbose "${GREEN}Done."
+    $private:version = java --version
+    if ( ($version -clike "*java 16*") ) {
+        if ( !(Test-Path .\Scripts\Msg_Log_Parser\input) )  { New-Item .\Scripts\Msg_Log_Parser\input  -ItemType Directory | Out-Null }
+        if ( !(Test-Path .\Scripts\Msg_Log_Parser\output) ) { New-Item .\Scripts\Msg_Log_Parser\output -ItemType Directory | Out-Null }
+        Copy-Item config/scenario_${Area}.json .\Scripts\Msg_Log_Parser\input
+        Copy-Item .\logs\pandemic_messages.txt .\Scripts\Msg_Log_Parser\input
 
-    # Run message log parser
-    Write-Verbose "Running message log parser"
-    # Set-Location .\Scripts\Msg_Log_Parser
-    # java -jar sim.converter.glenn.jar "input" "output"
-    # Expand-Archive -LiteralPath output\pandemic_messages.zip -DestinationPath output
-    # Set-Location $HomeDir
-    Write-Verbose "${GREEN}Done."
+        # Run message log parser
+        Write-Output "`nRunning message log parser"
+        Set-Location .\Scripts\Msg_Log_Parser
+        java -jar sim.converter.glenn.jar "input" "output"
+        Expand-Archive -LiteralPath output\pandemic_messages.zip -DestinationPath output
+        Set-Location $HomeDir
 
-    Write-Verbose "Copying converted files to: ${BLUE}${VisualizationDir}"
-    # Move-Item .\Scripts\Msg_Log_Parser\output\messages.log $VisualizationDir
-    # Move-Item .\Scripts\Msg_Log_Parser\output\structure.json $VisualizationDir
-    # Remove-Item .\Scripts\Msg_Log_Parser\input
-    # Remove-Item .\Scripts\Msg_Log_Parser\output
-    # Remove-Item .\Scripts\Msg_Log_Parser/*.zip
+        Move-Item .\Scripts\Msg_Log_Parser\output\messages.log $VisualizationDir
+        Move-Item .\Scripts\Msg_Log_Parser\output\structure.json $VisualizationDir
+        Remove-Item .\Scripts\Msg_Log_Parser\input -Recurse
+        Remove-Item .\Scripts\Msg_Log_Parser\output -Recurse
+        Remove-Item .\Scripts\Msg_Log_Parser/*.zip
+        Write-Output "${GREEN}Done."
+    }
+
     Copy-Item .\GIS_Viewer\${Area}\${Area}.geojson $VisualizationDir
     Copy-Item .\GIS_Viewer\${Area}\visualization.json $VisualizationDir
     Move-Item logs $VisualizationDir
-    Write-Verbose "${GREEN}Done.`n"
 
     ComputeBuildTime $True $stopwatch
+    Write-Output "View results using the files in ${BOLD}${BLUE}${VisualizationDir}${RESET} and this web viewer: ${BOLD}${BLUE}http://206.12.94.204:8080/arslab-web/1.3/app-gis-v2/index.html${RESET}"
 }
 
 if ($ParamsNotNull) {
     # Setup global variables
     $Script:Progress   = (($NoProgress) ? "-np" : "")
-    $local:BuildFolder = (($DebugSim) ? "Debug" : "Release")
+    $local:BuildType   = (($DebugSim) ? "Debug" : "Release")
     $local:Verbose     = (($VerbosePreference -eq "SilentlyContinue" ? "N" : "Y"))
     $Script:HomeDir    = Get-Location
 
@@ -466,7 +467,7 @@ if ($ParamsNotNull) {
         if ($Area -eq "") { Write-Output "${RED}Area must be set${RESET}"; exit -1 }
         GenerateGraphs  "${VisualizationDir}${GenRegionsGraphs}/logs" $False $True
     } else {
-        BuildSimulator $Rebuild $BuildFolder $Verbose
+        BuildSimulator $Rebuild $BuildType $Verbose
 
         if ($Area -ne "") { Main }
     }
