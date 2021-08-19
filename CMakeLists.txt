@@ -9,7 +9,6 @@ cmake_minimum_required (VERSION 3.18.4 FATAL_ERROR)
     endif()
 
     if ("${CMAKE_BUILD_TYPE}" STREQUAL "Debug")
-        message("##### HERE #####")
         add_compile_options(-g)
     endif()
 

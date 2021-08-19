@@ -17,13 +17,13 @@
         mkdir -p Scripts/Input_Generator/output
 
         # Generate a scenario json file for model input, save it in the config folder
-        echo "Generating Scenario:"
+        echo -e "Generating Scenario (${BLUE}${AREA}${RESET})"
         cd Scripts/Input_Generator
         python3 generateScenario.py $AREA $PROGRESS
         ErrorCheck $? # Check for build errors
         mv output/scenario_${AREA}.json ../../config
         rm -rf output
-        cd ../..
+        cd $HOME_DIR
     }
 
     # $1: Gen Per Region?
@@ -31,7 +31,7 @@
     # $3: Path to logs folder
     GenerateGraphs()
     {
-        echo "Generating graphs and stats:"
+        echo "Generating Graphs"
 
         LOG_FOLDER=$3
         GEN_FOLDER=Scripts/Graph_Generator/
@@ -54,16 +54,25 @@
             ErrorCheck $? # Check for build errors
         fi
     }
+
+    BuildTime()
+    {
+        BUILD_TIME=$SECONDS
+        echo; echo -en "${GREEN}${1} Complete ["
+        if [[ $BUILD_TIME -ge 3600 ]]; then
+            echo -en "$((BUILD_TIME / 3600))h"
+            BUILD_TIME=$((BUILD_TIME % 3600))
+        fi
+        if [[ $BUILD_TIME -ge 60 ]]; then echo -en "$((BUILD_TIME / 60))m"; fi
+        if [[ $((BUILD_TIME % 60)) > 0 ]]; then echo -en "$((BUILD_TIME % 60))s"; fi
+        echo -e "]${RESET}"
+    }
 # </Helpers> #
 
 # Runs the model and saves the results in the GIS_Viewer directory
 Main()
 {
-    # Defining commands used
-    SIMULATE="$VALGRIND ./pandemic-geographical_model ../config/scenario_${AREA}.json $DAYS $PROGRESS"
-    PARSE_MSG_LOGS="java -jar sim.converter.glenn.jar "input" "output""
-
-    # Defining directory to save results
+    # Defining directory to save results.
     # Always creates a new directory instead of replacing a previous one
     if [[ $NAME != "" ]]; then
         VISUALIZATION_DIR="${VISUALIZATION_DIR}${NAME}"
@@ -88,10 +97,10 @@ Main()
 
     # Run the model
     cd bin
-    echo; echo "Executing model for $DAYS days:"
-    $SIMULATE
+    echo; echo "Executing Model for $DAYS Days"
+    $VALGRIND ./pandemic-geographical_model ../config/scenario_${AREA}.json $DAYS $PROGRESS
     ErrorCheck $? # Check for build errors
-    cd ..
+    cd $HOME_DIR
     echo
 
     # Generate SEVIRDS graphs
@@ -99,22 +108,20 @@ Main()
 
     # Copy the message log + scenario to message log parser's input
     # Note this deletes the contents of input/output folders of the message log parser before executing
-    echo; echo "Copying simulation results to message log parser:"
     mkdir -p Scripts/Msg_Log_Parser/input
     mkdir -p Scripts/Msg_Log_Parser/output
     cp config/scenario_${AREA}.json Scripts/Msg_Log_Parser/input
     cp logs/pandemic_messages.txt Scripts/Msg_Log_Parser/input
 
     # Run the message log parser
-    echo "Running message log parser:"
+    echo; echo "Prepping GIS Viewer Files"
     cd Scripts/Msg_Log_Parser
-    $PARSE_MSG_LOGS > log 2>&1
+    java -jar sim.converter.glenn.jar "input" "output" > log 2>&1
     ErrorCheck $? log # Check for build errors
     unzip "output\pandemic_messages.zip" -d output
-    cd ../..
+    cd $HOME_DIR
 
     # Copy the converted message logs to GIS Web Viewer Folder
-    echo; echo; echo -e "Copying converted files to: ${BLUE}${VISUALIZATION_DIR}${RESET}"
     mv Scripts/Msg_Log_Parser/output/messages.log $VISUALIZATION_DIR
     mv Scripts/Msg_Log_Parser/output/structure.json $VISUALIZATION_DIR
     rm -rf Scripts/Msg_Log_Parser/input
@@ -124,17 +131,8 @@ Main()
     cp GIS_Viewer/${AREA}/visualization.json $VISUALIZATION_DIR
     mv logs $VISUALIZATION_DIR
 
-    BUILD_TIME=$SECONDS
-    echo -en "${GREEN}Simulation Complete ["
-    if [[ $BUILD_TIME -ge 3600 ]]; then
-        echo -en "$((BUILD_TIME / 3600))h"
-        BUILD_TIME=$((BUILD_TIME % 3600))
-    fi
-    if [[ $BUILD_TIME -ge 60 ]]; then echo -en "$((BUILD_TIME / 60))m"; fi
-    if [[ $((BUILD_TIME % 60)) > 0 ]]; then echo -en "$((BUILD_TIME % 60))s"; fi
-    echo -e "]${RESET}"
-
-    echo -e "View results using the files in ${BOLD}${BLUE}run${RUN_INDEX}${RESET} and this web viewer: ${BOLD}${BLUE}http://206.12.94.204:8080/arslab-web/1.3/app-gis-v2/index.html${RESET}"
+    BuildTime "Simulation"
+    echo -e "View results using the files in ${BOLD}${BLUE}${VISUALIZATION_DIR}${RESET} and this web viewer: ${BOLD}${BLUE}http://206.12.94.204:8080/arslab-web/1.3/app-gis-v2/index.html${RESET}"
 }
 
 # <Helpers>  #
@@ -204,17 +202,22 @@ Main()
 # Displays the help if no flags were set
 if [[ $1 == "" ]]; then Help;
 else
-    CLEAN=N # Default to not clean the sim runs
-    WALL="-DWALL=N"
-    PROFILE=N
+    CLEAN="N" # Default to not clean the sim runs
+    WALL="N"
+    PROFILE="N"
     NAME=""
     DAYS="500"
     GRAPH_REGIONS="N"
     GENERATE="N"
+    BUILD_TYPE="Release"
 
     # Loop through the flags
     while test $# -gt 0; do
         case "$1" in
+            --Debug|-db)
+                BUILD_TYPE="Debug"
+                shift
+            ;;
             --clean*|-c*)
                 if [[ $1 == *"="* ]]; then
                     RUN=`echo $1 | sed -e 's/^[^=]*=//g'`; # Get the run to remove
@@ -290,7 +293,7 @@ else
                 shift
             ;;
             --Wall|-w)
-                WALL="-DWALL=Y"
+                WALL="Y"
                 shift
             ;;
             *)
@@ -309,8 +312,8 @@ else
 
     # Compile the model if it does not exist
     if [[ ! -f "bin/pandemic-geographical_model" ]]; then
-        echo "Building Model"
-        cmake CMakeLists.txt $WALL "-DPROFILER=${PROFILE}" > log 2>&1
+        echo -e "Building Model ${YELLOW}[Type: ${BLUE}${BUILD_TYPE}${YELLOW} | Profiling: ${BLUE}${PROFILE}${YELLOW} | Wall: ${BLUE}${WALL}${YELLOW}]${RESET}"
+        cmake CMakeLists.txt -DWALL=${WALL} -DPROFILER=${PROFILE} -DCMAKE_BUILD_TYPE=${BUILD_TYPE} > log 2>&1
         ErrorCheck $? log
         make > log 2>&1
         ErrorCheck $? log # Check for build errors
@@ -325,6 +328,7 @@ else
 
     # Used both in Clean() and Main() so we set it here
     VISUALIZATION_DIR="GIS_Viewer/${AREA}/simulation_runs/"
+    HOME_DIR=$PWD
 
     if [[ $CLEAN == "Y" ]]; then Clean;
     elif [[ $GENERATE == "S" ]]; then GenerateScenario;
@@ -338,14 +342,18 @@ else
         fi
 
         if [[ $PROFILE == "Y" ]]; then
-            # TODO: Investigate Valgrind Profiling
             cd bin
             valgrind --tool=callgrind --dump-instr=yes --simulate-cache=yes --collect-jumps=yes --collect-atstart=no ./pandemic-geographical_model ../config/scenario_${AREA}.json $DAYS $PROGRESS
             ErrorCheck $?
+            cd $HOME_DIR
+            BuildTime "Profiling"
             echo -e "Check ${GREEN}bin\callgrind.out${RESET} for profiler results"
         elif [[ $VALGRIND != "" ]]; then
             cd bin
             $VALGRIND ./pandemic-geographical_model ../config/scenario_${AREA}.json $DAYS $PROGRESS
+            ErrorCheck $?
+            cd $HOME_DIR
+            BuildTime "Memory Check"
         else
             Main;
         fi
