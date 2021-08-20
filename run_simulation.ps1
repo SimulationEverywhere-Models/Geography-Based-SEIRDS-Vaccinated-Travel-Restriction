@@ -306,7 +306,7 @@ foreach($Param in $Params) { if ($PSBoundParameters.keys -like "*"+$Param+"*") {
         if ($Rebuild -or $FullRebuild) {
             # Clean everything for a complete rebuild
             if ($FullRebuild -and (Test-Path ".\bin\")) {
-                Remove-Item .\bin\ -Recurse
+                Remove-Item .\bin -Recurse
             # Otherwise just clean the executable for a quick rebuild
             } elseif ( (Test-Path ".\bin\pandemic-geographical_model.exe") ) {
                 Remove-Item .\bin\pandemic-geographical_model.exe
@@ -316,7 +316,7 @@ foreach($Param in $Params) { if ($PSBoundParameters.keys -like "*"+$Param+"*") {
         # Build the executable if it doesn't exist
         if ( !(Test-Path ".\bin\pandemic-geographical_model.exe") ) {
             Write-Verbose "Building Model"
-            cmake -DCMAKE_EXPORT_COMPILE_COMMANDS:BOOL=TRUE -DCMAKE_BUILD_TYPE:STRING=$BuildType -DVERBOSE=$Verbose -Bc:/Users/erme2/Documents/GitHub/Geography-Based-SEIRDS-Vaccinated/bin -G "MinGW Makefiles"
+            cmake -DCMAKE_EXPORT_COMPILE_COMMANDS:BOOL=TRUE -DCMAKE_BUILD_TYPE:STRING=$BuildType -DVERBOSE=$Verbose -B"${HomeDir}\bin" -G "MinGW Makefiles"
             ErrorCheck
             cmake --build .\bin
             ErrorCheck
@@ -433,7 +433,7 @@ if ($ParamsNotNull) {
     $Script:Progress = (($NoProgress) ? "-np" : "")
     $local:BuildType = (($DebugSim) ? "Debug" : "Release")
     $local:Verbose   = (($VerbosePreference -eq "SilentlyContinue" ? "N" : "Y"))
-    $Script:HomeDir  = Get-Location
+    $Script:HomeDir  = [System.Environment]::CurrentDirectory
 
     # Setup Area variables
     if ($Area -ne "") {
