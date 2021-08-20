@@ -1,5 +1,6 @@
 {
     "default":{
+        "area": "ontario",
         "delay": "inertial",
         "cell_type": "zhong",
         "state": {
@@ -192,7 +193,7 @@
                 [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0.09, 0.12, 0.15, 0.18, 0.23, 0.26, 0.36]
             ],
             "Re-Susceptibility": false,
-            "Vaccinations": true
+            "Vaccinations": false
         },
         "neighborhood": {
             "default_cell_id": {

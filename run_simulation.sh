@@ -17,11 +17,11 @@
         mkdir -p Scripts/Input_Generator/output
 
         # Generate a scenario json file for model input, save it in the config folder
-        echo -e "Generating Scenario (${BLUE}${AREA}${RESET})"
+        echo -e "Generating Scenario (${BLUE}${INPUT_DIR}${RESET})"
         cd Scripts/Input_Generator
-        python3 generateScenario.py $AREA $PROGRESS
+        python3 generateScenario.py $INPUT_DIR $PROGRESS
         ErrorCheck $? # Check for build errors
-        mv output/scenario_${AREA}.json ../../config
+        mv output/scenario_${INPUT_DIR}.json ../../config
         rm -rf output
         cd $HOME_DIR
     }
@@ -98,7 +98,7 @@ Main()
     # Run the model
     cd bin
     echo; echo "Executing Model for $DAYS Days"
-    $VALGRIND ./pandemic-geographical_model ../config/scenario_${AREA}.json $DAYS $PROGRESS
+    $VALGRIND ./pandemic-geographical_model ../config/scenario_${INPUT_DIR}.json $DAYS $PROGRESS
     ErrorCheck $? # Check for build errors
     cd $HOME_DIR
     echo
@@ -110,7 +110,7 @@ Main()
     # Note this deletes the contents of input/output folders of the message log parser before executing
     mkdir -p Scripts/Msg_Log_Parser/input
     mkdir -p Scripts/Msg_Log_Parser/output
-    cp config/scenario_${AREA}.json Scripts/Msg_Log_Parser/input
+    cp config/scenario_${INPUT_DIR}.json Scripts/Msg_Log_Parser/input
     cp logs/pandemic_messages.txt Scripts/Msg_Log_Parser/input
 
     # Run the message log parser
@@ -127,8 +127,8 @@ Main()
     rm -rf Scripts/Msg_Log_Parser/input
     rm -rf Scripts/Msg_Log_Parser/output
     rm -f Scripts/Msg_Log_Parser/*.zip
-    cp GIS_Viewer/${AREA}/${AREA}.geojson $VISUALIZATION_DIR
-    cp GIS_Viewer/${AREA}/visualization.json $VISUALIZATION_DIR
+    cp cadmium_gis/${AREA}/${AREA}.geojson $VISUALIZATION_DIR
+    cp cadmium_gis/${AREA}/visualization.json $VISUALIZATION_DIR
     mv logs $VISUALIZATION_DIR
 
     BuildTime "Simulation"
@@ -141,11 +141,11 @@ Main()
     {
         # Delete all the sims for the selected area if no number specified
         if [[ $RUN == -1 ]]; then
-            echo -e "Removing ${YELLOW}all${RESET} runs for ${YELLOW}${AREA}${RED}"
+            echo -e "Removing ${YELLOW}all${RESET} runs for ${YELLOW}${INPUT_DIR}${RED}"
             rm -rfv $VISUALIZATION_DIR
         # Otherwise delete the run that matches the number passed in
         else
-            echo -e "Removing ${YELLOW}${RUN}${RESET} for ${YELLOW}${AREA}${RED}"
+            echo -e "Removing ${YELLOW}${RUN}${RESET} for ${YELLOW}${INPUT_DIR}${RED}"
             rm -rfdv ${VISUALIZATION_DIR}${RUN}
         fi
 
@@ -175,6 +175,8 @@ Main()
     {
         if [[ $1 == 1 ]]; then
             echo -e "${YELLOW}Flags:${RESET}"
+            echo -e " ${YELLOW}--area=*|-a=*${RESET} \t\t\t Sets the area to run a simulation on"
+            echo -e " ${YELLOW}--debug|-db${RESET} \t\t\t Compiles the model for debuggging (breakpoints will only bind in debug)"
             echo -e " ${YELLOW}--clean|-c|--clean=*|-c=*${RESET} \t Cleans all simulation runs for the selected area if no # is set, \n \t\t\t\t otherwise cleans the specified run using the folder name inputed such as 'clean=run1'"
             echo -e " ${YELLOW}--days=#|-d=#${RESET} \t\t\t Sets the number of days to run a simulation (default=500)"
             echo -e " ${YELLOW}--flags, -f${RESET}\t\t\t Displays all flags"
@@ -183,8 +185,6 @@ Main()
             echo -e " ${YELLOW}--graph-region, -gr${RESET}\t\t Generates graphs per region (default=off)"
             echo -e " ${YELLOW}--help, -h${RESET}\t\t\t Displays the help"
             echo -e " ${YELLOW}--no-progress, -np${RESET}\t\t Turns off the progress bars and loading animations"
-            echo -e " ${YELLOW}--Ontario, --ontario, -On, -on${RESET}  Ontario AREA Flag. Runs a simulation for Ontario when used on it's own"
-            echo -e " ${YELLOW}--Ottawa, --ottawa, -Ot, -ot${RESET}\t Ottawa AREA Flag. Runs a simulation for Ottawa when used on it's own"
             echo -e " ${YELLOW}--profile, -p${RESET}\t\t\t Builds using the ${ITALIC}pg${RESET} profiler tool, runs the model, then exports the results in a text file"
             echo -e " ${YELLOW}--rebuild, -r${RESET}\t\t\t Rebuilds the model"
             echo -e " ${YELLOW}--valgrind|-v${RESET}\t\t\t Runs using valgrind, a memory error and leak check tool"
@@ -211,11 +211,19 @@ else
     GENERATE="N"
     BUILD_TYPE="Release"
     HOME_DIR=$PWD
+    INPUT_DIR=""
 
     # Loop through the flags
     while test $# -gt 0; do
         case "$1" in
-            --Debug|-db)
+            --area=*|-a=*)
+                if [[ $1 == *"="* ]]; then
+                    INPUT_DIR=`echo $1 | sed -e 's/^[^=]*=//g'`;
+                    AREA=`echo $INPUT_DIR | sed -r 's/_.+//g'`;
+                fi
+                shift
+            ;;
+            --debug|-db)
                 BUILD_TYPE="Debug"
                 shift
             ;;
@@ -265,17 +273,6 @@ else
                 PROGRESS="-np"
                 shift
             ;;
-            --Ontario|--ontario|-On|-on)
-                AREA="ontario"
-                AREA_FILE="${AREA}_phu"
-                shift;
-            ;;
-            --Ottawa|--ottawa|-Ot|-ot)
-                # Set the global variables used in other parts of the script like Main()
-                AREA="ottawa"
-                AREA_FILE="${AREA}_da"
-                shift
-            ;;
             --profile|-p)
                 PROFILE=Y
                 shift
@@ -317,14 +314,14 @@ else
 
         echo -e "${GREEN}Build Completed${RESET}"
 
-        if [[ $AREA == "" ]]; then exit 1; fi
+        if [[ $INPUT_DIR == "" ]]; then exit 1; fi
     fi
 
     # If not are is set or is set incorrectly, then exit
-    if [[ $AREA == "" ]]; then echo -e "${RED}Please set a valid area flag... ${RESET}Use ${YELLOW}--flags${RESET} to see them"; exit -1; fi
+    if [[ $INPUT_DIR == "" ]]; then echo -e "${RED}Please set a valid area flag... ${RESET}Use ${YELLOW}--flags${RESET} to see them"; exit -1; fi
 
     # Used both in Clean() and Main() so we set it here
-    VISUALIZATION_DIR="GIS_Viewer/${AREA}/simulation_runs/"
+    VISUALIZATION_DIR="GIS_Viewer/${INPUT_DIR}/"
 
     if [[ $CLEAN == "Y" ]]; then Clean;
     elif [[ $GENERATE == "S" ]]; then GenerateScenario;
@@ -339,14 +336,14 @@ else
 
         if [[ $PROFILE == "Y" ]]; then
             cd bin
-            valgrind --tool=callgrind --dump-instr=yes --simulate-cache=yes --collect-jumps=yes --collect-atstart=no ./pandemic-geographical_model ../config/scenario_${AREA}.json $DAYS $PROGRESS
+            valgrind --tool=callgrind --dump-instr=yes --simulate-cache=yes --collect-jumps=yes --collect-atstart=no ./pandemic-geographical_model ../config/scenario_${INPUT_DIR}.json $DAYS $PROGRESS
             ErrorCheck $?
             cd $HOME_DIR
             BuildTime "Profiling"
             echo -e "Check ${GREEN}bin\callgrind.out${RESET} for profiler results"
         elif [[ $VALGRIND != "" ]]; then
             cd bin
-            $VALGRIND ./pandemic-geographical_model ../config/scenario_${AREA}.json $DAYS $PROGRESS
+            $VALGRIND ./pandemic-geographical_model ../config/scenario_${INPUT_DIR}.json $DAYS $PROGRESS
             ErrorCheck $?
             cd $HOME_DIR
             BuildTime "Memory Check"
