@@ -210,6 +210,7 @@ else
     GRAPH_REGIONS="N"
     GENERATE="N"
     BUILD_TYPE="Release"
+    HOME_DIR=$PWD
 
     # Loop through the flags
     while test $# -gt 0; do
@@ -281,11 +282,7 @@ else
             ;;
             --rebuild|-r)
                 # Delete old model and it will be built further down
-                rm -f bin/pandemic-geographical_model
-                rm -rf CMakeFiles/
-                rm -f cmake_install.cmake
-                rm -f CMakeCache.txt
-                rm -f Makefile
+                rm -rf bin/*
                 shift;
             ;;
             --valgrind|-val)
@@ -313,9 +310,9 @@ else
     # Compile the model if it does not exist
     if [[ ! -f "bin/pandemic-geographical_model" ]]; then
         echo -e "Building Model ${YELLOW}[Type: ${BLUE}${BUILD_TYPE}${YELLOW} | Profiling: ${BLUE}${PROFILE}${YELLOW} | Wall: ${BLUE}${WALL}${YELLOW}]${RESET}"
-        cmake CMakeLists.txt -DWALL=${WALL} -DPROFILER=${PROFILE} -DCMAKE_BUILD_TYPE=${BUILD_TYPE} > log 2>&1
+        cmake CMakeLists.txt -DWALL=${WALL} -DPROFILER=${PROFILE} -DCMAKE_BUILD_TYPE=${BUILD_TYPE} -B"${HOME_DIR}/bin" > log 2>&1
         ErrorCheck $? log
-        make > log 2>&1
+        cmake --build bin > log 2>&1
         ErrorCheck $? log # Check for build errors
 
         echo -e "${GREEN}Build Completed${RESET}"
@@ -328,7 +325,6 @@ else
 
     # Used both in Clean() and Main() so we set it here
     VISUALIZATION_DIR="GIS_Viewer/${AREA}/simulation_runs/"
-    HOME_DIR=$PWD
 
     if [[ $CLEAN == "Y" ]]; then Clean;
     elif [[ $GENERATE == "S" ]]; then GenerateScenario;
