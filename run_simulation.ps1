@@ -221,71 +221,79 @@ foreach($Param in $Params) { if ($PSBoundParameters.keys -like "*"+$Param+"*") {
     .SYNOPSIS
     Verifies ALL dependencies are met
     #>
-    function DependencyCheck()
+    function DependencyCheck([bool] $Simulator=$False, [bool] $Python=$False)
     {
-        Write-Verbose "Checking Dependencies..."
+        if ($Simulator || $Python) {
+            Write-Verbose "Checking Dependencies..."
 
-        # Test Cadmium
-        if ( !(Test-Path "../cadmium") )
-        {
-            $Parent = Split-Path -Path $HomeDir -Parent
-            Write-Verbose "Cadmium ${RED}[NOT FOUND]" -Verbose
-            Write-Verbose ${YELLOW}"Make sure it's in "${YELLOW}${Parent}
-            break
-        } else { Write-Verbose "Cadmium ${GREEN}[FOUND]" }
+            # Test Cadmium
+            if ($Simulator) {
+                if ( !(Test-Path "../cadmium") )
+                {
+                    $Parent = Split-Path -Path $HomeDir -Parent
+                    Write-Verbose "Cadmium ${RED}[NOT FOUND]" -Verbose
+                    Write-Verbose ${YELLOW}"Make sure it's in "${YELLOW}${Parent}
+                    break
+                } else { Write-Verbose "Cadmium ${GREEN}[FOUND]" }
+            }
 
-        # Setup dependency specific data
-        $private:Dependencies = [Ordered]@{
-            # dependency=version, website
-            pwsh="PowerShell 7", "https://github.com/PowerShell/PowerShell/releases";
-            cmake="cmake version 3","https://cmake.org/download/";
-            python= "Python 3", "https://www.python.org/downloads/";
-            conda="conda 4", "https://www.anaconda.com/products/individual#windows"
-            gcc="x86_64-posix-seh-rev0", "https://www.msys2.org/";
+            # Setup dependency specific data
+            $private:Dependencies = [Ordered]@{
+                # dependency=version, website
+                pwsh="PowerShell 7", "https://github.com/PowerShell/PowerShell/releases";
+                cmake="cmake version 3","https://cmake.org/download/";
+                python= "Python 3", "https://www.python.org/downloads/";
+                conda="conda 4", "https://www.anaconda.com/products/individual#windows"
+                gcc="x86_64-posix-seh-rev0", "https://www.msys2.org/";
+            }
+
+            # Python Depedencies
+            $private:Libs = "numpy", "geopandas", "matplotlib"
+            try {
+                if ($Simulator) {
+                    # Loop through each dependency
+                    foreach($private:Depends in $Dependencies.keys) {
+                        # Try and get the version
+                        $private:Version = cmd /c "$Depends --version"
+
+                        # If the version is incorrect or non-existant, throw an error
+                        if ( !($Version -clike "*"+${Dependencies}.${Depends}[0]+"*") ) { throw 1 }
+
+                        # It was found
+                        Write-Verbose "$Depends ${GREEN}[FOUND]"
+                    }
+                }
+
+                if ($Python) {
+                    # Loop through each python dependency
+                    $private:CondaList = conda list
+                    foreach($private:Depends in $Libs) {
+                        if ( !($CondaList -like "*${Depends}*") ) { throw 2 }
+                        Write-Verbose "$Depends ${GREEN}[FOUND]"
+                    }
+                }
+            } catch {
+                Write-Verbose "$Depends ${RED}[NOT FOUND]" -Verbose
+
+                # Dependency Prints
+                if ($Error[0].Exception.Message -eq 1) {
+                    $private:MinVersion = $Dependencies.$Depends[0]
+                    Write-Verbose $YELLOW"Check that '$Depends --version' contains this version $MinVersion"
+                    $private:Website = $Dependencies.$Depends[1]
+                    Write-Verbose $YELLOW"$Depends for Windows can be installed from here: ${BLUE}$Website"
+                # Python Dependency Prints
+                } elseif($Error[0].Exception.Message -eq 2) {
+                    Write-Verbose $YELLOW'Check `conda list  | Select-String "'"$Depends"'"`'
+                    Write-Verbose $YELLOW'It can be installed using `conda install '$Depends'`'
+                } else{
+                    Write-Error $Error[0].Exception.Message
+                }
+
+                break
+            }
+
+            Write-Verbose $GREEN"Completed Dependency Check.`n"$RESET
         }
-
-        # Python Depedencies
-        $private:Libs = "numpy", "geopandas", "matplotlib"
-        try {
-            # Loop through each dependency
-            foreach($private:Depends in $Dependencies.keys) {
-                # Try and get the version
-                $private:Version = cmd /c "$Depends --version"
-
-                # If the version is incorrect or non-existant, throw an error
-                if ( !($Version -clike "*"+${Dependencies}.${Depends}[0]+"*") ) { throw 1 }
-
-                # It was found
-                Write-Verbose "$Depends ${GREEN}[FOUND]"
-            }
-
-            # Loop through each python dependency
-            $private:CondaList = conda list
-            foreach($private:Depends in $Libs) {
-                if ( !($CondaList -like "*${Depends}*") ) { throw 2 }
-                Write-Verbose "$Depends ${GREEN}[FOUND]"
-            }
-        } catch {
-            Write-Verbose "$Depends ${RED}[NOT FOUND]" -Verbose
-
-            # Dependency Prints
-            if ($Error[0].Exception.Message -eq 1) {
-                $private:MinVersion = $Dependencies.$Depends[0]
-                Write-Verbose $YELLOW"Check that '$Depends --version' contains this version $MinVersion"
-                $private:Website = $Dependencies.$Depends[1]
-                Write-Verbose $YELLOW"$Depends for Windows can be installed from here: ${BLUE}$Website"
-            # Python Dependency Prints
-            } elseif($Error[0].Exception.Message -eq 2) {
-                Write-Verbose $YELLOW'Check `conda list  | Select-String "'"$Depends"'"`'
-                Write-Verbose $YELLOW'It can be installed using `conda install '$Depends'`'
-            } else{
-                Write-Error $Error[0].Exception.Message
-            }
-
-            break
-        }
-
-        Write-Verbose $GREEN"Completed Dependency Check.`n"$RESET
     } #DependencyCheck()
 
     <#
@@ -363,11 +371,9 @@ foreach($Param in $Params) { if ($PSBoundParameters.keys -like "*"+$Param+"*") {
     function Export()
     {
         Write-Verbose "${YELLOW}Exporting...${RESET}"
-        if ( (Test-Path ".\Out\Windows") ) {
-            Remove-Item ".\Out\Windows\Scripts\" -Recurse
-            Remove-Item ".\Out\Windows\cadmium_gis\" -Recurse
-            Remove-Item ".\Out\Windows\bin\" -Recurse
-        }
+        if ( (Test-Path ".\Out\Windows\Scripts") ) { Remove-Item ".\Out\Windows\Scripts\" -Recurse }
+        if ( (Test-Path ".\Out\Windows\cadmium_gis") ) { Remove-Item ".\Out\Windows\cadmium_gis\" -Recurse }
+        if ( (Test-Path ".\Out\Windows\bin") ) { Remove-Item ".\Out\Windows\bin\" -Recurse }
 
         New-Item ".\Out\Windows\bin" -ItemType Directory | Out-Null
         Copy-Item ".\bin\pandemic-geographical_model.exe" ".\Out\Windows\bin\"
@@ -472,25 +478,28 @@ if ($ParamsNotNull) {
         break
     }
 
-    # Check all dependencies are met
-    DependencyCheck
-
     # Only generate the scenario
     if ($GenScenario) {
         # A region must be set
         if ($Config -eq "") { Write-Output "${RED}Config must be set${RESET}"; exit -1 }
+        DependencyCheck $False $True
         GenerateScenario $Config
     # Only generate the graphs per region on a specified run
     } elseif ($GenRegionsGraphs) {
         # A region must be set
         if ($Config -eq "") { Write-Output "${RED}Config must be set${RESET}"; exit -1 }
+        DependencyCheck $False $True
         GenerateGraphs  "${VisualizationDir}${GenRegionsGraphs}/logs" $False $True
     } elseif ($Export) {
         Export
     } else {
+        DependencyCheck $True
         BuildSimulator $Rebuild $FullRebuild $BuildType $Verbose
 
-        if ($Config -ne "") { Main }
+        if ($Config -ne "") {
+            DependencyCheck $False $True
+            Main
+        }
     }
 }
 # Display the help if no params were set
