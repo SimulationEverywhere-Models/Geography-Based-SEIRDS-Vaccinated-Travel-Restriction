@@ -106,7 +106,7 @@ int main(int argc, char** argv)
         // With cygwin, an exception that terminates the program may not be printed to the screen, making it unclear
         // if an error occurred. Thus an explicit print is done, along with a rethrowing of the exception to keep
         // the original termination logic the same.
-        cerr << "\033m[31mA fatal error occurred: " << e.what() << "\033[0m" << endl;
+        cerr << "\033[31mA fatal error occurred: " << e.what() << "\033[0m" << endl;
         throw;
     }
 
