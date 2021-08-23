@@ -81,7 +81,9 @@ param(
     [switch]$FullRebuild = $False,
 
     # Builds a debug version of the siomulator
-    [switch]$DebugSim = $False
+    [switch]$DebugSim = $False,
+
+    [switch]$Export = $False
 ) #params()
 
 # Check if any of the above params were set
@@ -356,6 +358,18 @@ foreach($Param in $Params) { if ($PSBoundParameters.keys -like "*"+$Param+"*") {
         if ($GenAggregate) {
             python ${GenFolder}graph_aggregates.py $Progress "-ld=$LogFolder"
         }
+    }
+
+    function Export()
+    {
+        if ( (Test-Path ".\Out\Windows") ) { Remove-Item ".\Out\Windows" -Recurse }
+
+        New-Item "Out\Windows" -ItemType Directory | Out-Null
+        New-Item ".\Out\Windows\bin" -ItemType Directory | Out-Null
+        Copy-Item ".\bin\pandemic-geographical_model.exe" ".\Out\Windows\bin\"
+        Copy-Item ".\cadmium_gis\" ".\Out\Windows\" -Recurse
+        Copy-Item ".\Scripts\" ".\Out\Windows\" -Recurse
+        Remove-Item ".\Out\Windows\Scripts\.gitignore"
     }
 # </Helpers> #
 
