@@ -87,7 +87,7 @@ param(
 ) #params()
 
 # Check if any of the above params were set
-$private:Params        = "Config", "Clean", "CleanAll", "Days", "GenScenario", "GraphPerRegions", "GenRegionsGraphs", "Name", "NoProgress", "Rebuild", "FullRebuild", "DebugSim"
+$private:Params        = "Config", "Clean", "CleanAll", "Days", "GenScenario", "GraphPerRegions", "GenRegionsGraphs", "Name", "NoProgress", "Rebuild", "FullRebuild", "DebugSim", "Export"
 $private:ParamsNotNull = $False
 foreach($Param in $Params) { if ($PSBoundParameters.keys -like "*"+$Param+"*") { $ParamsNotNull = $True; break; } }
 
@@ -362,14 +362,19 @@ foreach($Param in $Params) { if ($PSBoundParameters.keys -like "*"+$Param+"*") {
 
     function Export()
     {
-        if ( (Test-Path ".\Out\Windows") ) { Remove-Item ".\Out\Windows" -Recurse }
+        Write-Verbose "${YELLOW}Exporting...${RESET}"
+        if ( (Test-Path ".\Out\Windows") ) {
+            Remove-Item ".\Out\Windows\Scripts\" -Recurse
+            Remove-Item ".\Out\Windows\cadmium_gis\" -Recurse
+            Remove-Item ".\Out\Windows\bin\" -Recurse
+        }
 
-        New-Item "Out\Windows" -ItemType Directory | Out-Null
         New-Item ".\Out\Windows\bin" -ItemType Directory | Out-Null
         Copy-Item ".\bin\pandemic-geographical_model.exe" ".\Out\Windows\bin\"
         Copy-Item ".\cadmium_gis\" ".\Out\Windows\" -Recurse
         Copy-Item ".\Scripts\" ".\Out\Windows\" -Recurse
         Remove-Item ".\Out\Windows\Scripts\.gitignore"
+        Write-Verbose "${GREEN}Done${RESET}"
     }
 # </Helpers> #
 
@@ -480,6 +485,8 @@ if ($ParamsNotNull) {
         # A region must be set
         if ($Config -eq "") { Write-Output "${RED}Config must be set${RESET}"; exit -1 }
         GenerateGraphs  "${VisualizationDir}${GenRegionsGraphs}/logs" $False $True
+    } elseif ($Export) {
+        Export
     } else {
         BuildSimulator $Rebuild $FullRebuild $BuildType $Verbose
 
