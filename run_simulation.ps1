@@ -47,13 +47,13 @@
 
 [CmdletBinding()]
 param(
-    # Sets the Area to run a simulation on (Currently supports Ontario and Ottawa
-    [string]$Area = "",
+    # Sets the Config to run a simulation on (Currently supports Ontario and Ottawa
+    [string]$Config = "",
 
-    # Cleans the simulation run with the inputed folder name such as '-Clean run1' (Needs to set the Area)
+    # Cleans the simulation run with the inputed folder name such as '-Clean run1' (Needs to set the Config)
     [string]$Clean = "",
 
-    # Cleans all simulation runs (Needs to set the Area)
+    # Cleans all simulation runs (Needs to set the Config)
     [switch]$CleanAll = $False,
 
     # Sets the number of days to run a simulation (default=500)
@@ -85,7 +85,7 @@ param(
 ) #params()
 
 # Check if any of the above params were set
-$private:Params        = "Area", "Clean", "CleanAll", "Days", "GenScenario", "GraphPerRegions", "GenRegionsGraphs", "Name", "NoProgress", "Rebuild", "FullRebuild", "DebugSim"
+$private:Params        = "Config", "Clean", "CleanAll", "Days", "GenScenario", "GraphPerRegions", "GenRegionsGraphs", "Name", "NoProgress", "Rebuild", "FullRebuild", "DebugSim"
 $private:ParamsNotNull = $False
 foreach($Param in $Params) { if ($PSBoundParameters.keys -like "*"+$Param+"*") { $ParamsNotNull = $True; break; } }
 
@@ -102,25 +102,25 @@ foreach($Param in $Params) { if ($PSBoundParameters.keys -like "*"+$Param+"*") {
     <#
     .SYNOPSIS
     Generates the scenario file for a region and places it in the config directory
-    .PARAMETER Private:Area
-    Area to generate scenario. Case sensitive
+    .PARAMETER Private:Config
+    Config to generate scenario. Case sensitive
     .EXAMPLE
     GenerateScenario ontario
     .NOTES
     General notes
     #>
-    function GenerateScenario([string] $Private:Area)
+    function GenerateScenario([string] $Private:Config)
     {
         # Create output directory if non-existant
         if (!(Test-Path "Scripts/Input_Generator/output")) {
             New-Item "Scripts/Input_Generator/output" -ItemType Directory | Out-Null
         }
 
-        Write-Output "Generating $BLUE$Area$RESET Scenario:"
+        Write-Output "Generating $BLUE$Config$RESET Scenario:"
         Set-Location Scripts\Input_Generator
-        python.exe generateScenario.py $Area $PROGRESS
+        python.exe generateScenario.py $Config $PROGRESS
         ErrorCheck
-        Move-Item output\scenario_${Area}.json ..\..\config -Force
+        Move-Item output\scenario_${Config}.json ..\..\config -Force
         Remove-Item output -Recurse
         Set-Location $HomeDir
     } #GenerateScenario()
@@ -142,7 +142,7 @@ foreach($Param in $Params) { if ($PSBoundParameters.keys -like "*"+$Param+"*") {
     {
         if ($CleanAll)
         {
-            Write-Output "Removing ${YELLOW}all${RESET} runs for ${YELLOW}${Area}${RESET}"
+            Write-Output "Removing ${YELLOW}all${RESET} runs for ${YELLOW}${Config}${RESET}"
             if (Test-Path $VisualizationDir) {
                 Remove-Item $VisualizationDir -Recurse -Verbose 4>&1 |
                 ForEach-Object{ `Write-Host ($_.Message -replace'(.*)Target "(.*)"(.*)',' $2') -ForegroundColor Red}
@@ -151,7 +151,7 @@ foreach($Param in $Params) { if ($PSBoundParameters.keys -like "*"+$Param+"*") {
         }
         else
         {
-            Write-Output "Removing ${YELLOW}${Run}${RESET} simulation run from ${YELLOW}${Area}${RESET}"
+            Write-Output "Removing ${YELLOW}${Run}${RESET} simulation run from ${YELLOW}${Config}${RESET}"
             if (Test-Path ${VisualizationDir}${Run}) {
                 Remove-Item ${VisualizationDir}${Run} -Recurse -Verbose 4>&1 |
                 ForEach-Object { `Write-Host ($_.Message -replace '(.*)Target "(.*)"(.*)', ' $2') -ForegroundColor Red }
@@ -380,12 +380,12 @@ function Main()
     if ( !(Test-Path $VisualizationDir) ) { New-Item $VisualizationDir -ItemType Directory | Out-Null }
 
     # Generate Scenario file
-    GenerateScenario $Area
+    GenerateScenario $Config
 
     # Run simulation
     Set-Location bin
     Write-Output "`nExecuting model for $Days days:"
-    .\pandemic-geographical_model.exe ../config/scenario_${Area}.json $Days $Progress
+    .\pandemic-geographical_model.exe ../config/scenario_${Config}.json $Days $Progress
     ErrorCheck
     Set-Location $HomeDir
     Write-Output "" # New line
@@ -402,7 +402,7 @@ function Main()
     if ( ($Version -clike "*java 16*") ) {
         if ( !(Test-Path .\Scripts\Msg_Log_Parser\input) )  { New-Item .\Scripts\Msg_Log_Parser\input  -ItemType Directory | Out-Null }
         if ( !(Test-Path .\Scripts\Msg_Log_Parser\output) ) { New-Item .\Scripts\Msg_Log_Parser\output -ItemType Directory | Out-Null }
-        Copy-Item config/scenario_${Area}.json .\Scripts\Msg_Log_Parser\input
+        Copy-Item config/scenario_${Config}.json .\Scripts\Msg_Log_Parser\input
         Copy-Item .\logs\pandemic_messages.txt .\Scripts\Msg_Log_Parser\input
 
         # Run message log parser
@@ -420,8 +420,8 @@ function Main()
         Write-Output "${GREEN}Done."
     }
 
-    Copy-Item .\GIS_Viewer\${Area}\${Area}.geojson $VisualizationDir
-    Copy-Item .\GIS_Viewer\${Area}\visualization.json $VisualizationDir
+    Copy-Item .\cadmium_gis\${Area}\${Area}.geojson $VisualizationDir
+    Copy-Item .\cadmium_gis\${Area}\visualization.json $VisualizationDir
     Move-Item logs $VisualizationDir
 
     ComputeBuildTime $True $Stopwatch
@@ -435,25 +435,20 @@ if ($ParamsNotNull) {
     $local:Verbose   = (($VerbosePreference -eq "SilentlyContinue" ? "N" : "Y"))
     $Script:HomeDir  = [System.Environment]::CurrentDirectory
 
-    # Setup Area variables
-    if ($Area -ne "") {
-        if ($Area -eq "ontario" -or $Area -eq "on") {
-            $Area = "ontario"
-        } elseif ($Area -eq "ottawa" -or $Area -eq "ot") {
-            $Area = "ottawa"
-        } else {
-            Write-Output "${RED}Unknown Area ${BOLD}${Area}${RESET}"
-            exit -1
-        }
-
-        $VisualizationDir = "GIS_Viewer/${Area}/simulation_runs/"
+    # Setup Config variables
+    if (Test-Path ".\Scripts\Input_Generator\${Config}") {
+        $VisualizationDir = "GIS_Viewer/${Config}/"
+        $Area = $Config.Split("_")[0]
+    } else {
+        Write-Output "${RED}Could not find ${BOLD}'${Config}'${RESET}${RED}. Check the spelling and verify that the directory is under ${YELLOW}'Scripts/Input_Generator/'${RESET}"
+        exit -1
     }
 
     # If clean then do this before the dependency check
     # so it's quicker and we don't have to worry about having
     # things installed like Python
     if ($CleanAll -or $Clean -ne "") {
-        if ($Area -eq "") { Write-Output "${RED}Area must be set${RESET}"; exit -1 }
+        if ($Config -eq "") { Write-Output "${RED}Config must be set${RESET}"; exit -1 }
         Clean $VisualizationDir $Clean
         break
     }
@@ -464,17 +459,17 @@ if ($ParamsNotNull) {
     # Only generate the scenario
     if ($GenScenario) {
         # A region must be set
-        if ($Area -eq "") { Write-Output "${RED}Area must be set${RESET}"; exit -1 }
-        GenerateScenario $Area
+        if ($Config -eq "") { Write-Output "${RED}Config must be set${RESET}"; exit -1 }
+        GenerateScenario $Config
     # Only generate the graphs per region on a specified run
     } elseif ($GenRegionsGraphs) {
         # A region must be set
-        if ($Area -eq "") { Write-Output "${RED}Area must be set${RESET}"; exit -1 }
+        if ($Config -eq "") { Write-Output "${RED}Config must be set${RESET}"; exit -1 }
         GenerateGraphs  "${VisualizationDir}${GenRegionsGraphs}/logs" $False $True
     } else {
         BuildSimulator $Rebuild $FullRebuild $BuildType $Verbose
 
-        if ($Area -ne "") { Main }
+        if ($Config -ne "") { Main }
     }
 }
 # Display the help if no params were set

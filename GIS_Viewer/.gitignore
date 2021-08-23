@@ -1,2 +1,5 @@
-ottawa/
-ontario/
+*
+!settings/
+!settings/visualColorConfig
+!settings/visualColorConfig/*
+!README.md
