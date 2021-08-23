@@ -192,8 +192,8 @@
                 [0.008, 0.011, 0.015, 0.025, 0.038, 0.05, 0.079, 0.09, 0.12, 0.15, 0.21, 0.24, 0.32, 0.38, 0.39, 0.40, 0.45],
                 [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0.09, 0.12, 0.15, 0.18, 0.23, 0.26, 0.36]
             ],
-            "Re-Susceptibility": false,
-            "Vaccinations": false
+            "Re-Susceptibility": true,
+            "Vaccinations": true
         },
         "neighborhood": {
             "default_cell_id": {

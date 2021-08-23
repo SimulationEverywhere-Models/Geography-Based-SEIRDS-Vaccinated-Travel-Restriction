@@ -271,7 +271,8 @@ class geographical_cell : public cell<T, string, sevirds, vicinity>
             }
 
             // - V1(td1) * sum(1...k and 1...Ti))
-            return vac2 - age_data_vac1.GetNewExposed(age_data_vac1.GetSusceptiblePhase());
+            double debug = vac2 - new_exposed(res, *(datas.at(VAC1)), age_data_vac1.GetSusceptiblePhase()); //age_data_vac1.GetNewExposed(age_data_vac1.GetSusceptiblePhase());
+            return debug;
         }
 
         /**
