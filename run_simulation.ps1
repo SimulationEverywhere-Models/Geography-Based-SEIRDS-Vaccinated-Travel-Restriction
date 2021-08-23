@@ -100,7 +100,25 @@ foreach($Param in $Params) { if ($PSBoundParameters.keys -like "*"+$Param+"*") {
     $BOLD   = "[1m"
 # </Colors> #
 
-# <Helpers> #
+# <Helpers> #    
+    <#
+        .SYNOPSIS
+        Checks if any errors have been returned and stops scripts if so.
+        Should be placed directly after a program call.
+        .EXAMPLE
+        python generate_scenario.py
+        ErrorCheck
+            If the generate_scenario returns an error the script will exit.
+    #>
+    function ErrorCheck() {
+        # 0 => All is good
+        if ($LASTEXITCODE -ne 0) {
+            ComputeBuildTime $False $Stopwatch # Display failed message and time
+            Set-Location $HomeDir # Go back to the default location
+            break
+        }
+    }
+
     <#
     .SYNOPSIS
     Generates the scenario file for a region and places it in the config directory
@@ -197,25 +215,6 @@ foreach($Param in $Params) { if ($PSBoundParameters.keys -like "*"+$Param+"*") {
             Write-Output "${Color}${Seconds}s)${RESET}"
         }
     } #ComputeBuildTime()
-
-    <#
-    .SYNOPSIS
-    Checks if any errors have been returned and stops scripts if so.
-    Should be placed directly after a program call.
-    .EXAMPLE
-    python generate_scenario.py
-    ErrorCheck
-        If the generate_scenario returns an error the script will exit.
-    #>
-    function ErrorCheck()
-    {
-        # 0 => All is good
-        if ($LASTEXITCODE -ne 0) {
-            ComputeBuildTime $False $Stopwatch # Display failed message and time
-            Set-Location $HomeDir # Go back to the default location
-            break
-        }
-    }
 
     <#
     .SYNOPSIS
@@ -374,12 +373,14 @@ foreach($Param in $Params) { if ($PSBoundParameters.keys -like "*"+$Param+"*") {
         if ( (Test-Path ".\Out\Windows\Scripts") ) { Remove-Item ".\Out\Windows\Scripts\" -Recurse }
         if ( (Test-Path ".\Out\Windows\cadmium_gis") ) { Remove-Item ".\Out\Windows\cadmium_gis\" -Recurse }
         if ( (Test-Path ".\Out\Windows\bin") ) { Remove-Item ".\Out\Windows\bin\" -Recurse }
+        if ( (Test-Path ".\Out\Windows\Results") ) { Remove-Item ".\Out\Windows\Results\" -Recurse }
 
         New-Item ".\Out\Windows\bin" -ItemType Directory | Out-Null
         Copy-Item ".\bin\pandemic-geographical_model.exe" ".\Out\Windows\bin\"
         Copy-Item ".\cadmium_gis\" ".\Out\Windows\" -Recurse
         Copy-Item ".\Scripts\" ".\Out\Windows\" -Recurse
         Remove-Item ".\Out\Windows\Scripts\.gitignore"
+        Compress-Archive .\Out\Windows -DestinationPath .\Out\SEVIRDS-Windowsx64.zip
         Write-Verbose "${GREEN}Done${RESET}"
     }
 # </Helpers> #
@@ -418,12 +419,8 @@ function Main()
     # Generate SEVIRDS graphs
     GenerateGraphs "" $True $GraphPerRegions
 
-    try {
-        $Private:Version = java --version
-    } catch {
-        $Version = ""
-    }
-
+    try { $Private:Version = java --version }
+    catch { $Version = "" }
     if ( ($Version -clike "*java 16*") ) {
         if ( !(Test-Path .\Scripts\Msg_Log_Parser\input) )  { New-Item .\Scripts\Msg_Log_Parser\input  -ItemType Directory | Out-Null }
         if ( !(Test-Path .\Scripts\Msg_Log_Parser\output) ) { New-Item .\Scripts\Msg_Log_Parser\output -ItemType Directory | Out-Null }
@@ -455,10 +452,11 @@ function Main()
 
 if ($ParamsNotNull) {
     # Setup global variables
-    $Script:Progress = (($NoProgress) ? "-np" : "")
-    $local:BuildType = (($DebugSim) ? "Debug" : "Release")
-    $local:Verbose   = (($VerbosePreference -eq "SilentlyContinue" ? "N" : "Y"))
-    $Script:HomeDir  = [System.Environment]::CurrentDirectory
+    $Script:Progress  = (($NoProgress) ? "-np" : "")
+    $local:BuildType  = (($DebugSim) ? "Debug" : "Release")
+    $local:Verbose    = (($VerbosePreference -eq "SilentlyContinue" ? "N" : "Y"))
+    $Script:InvokeDir = Get-Location | Select-Object -ExpandProperty Path
+    $Script:HomeDir   = Split-Path -Parent $Script:MyInvocation.MyCommand.Path
 
     # Setup Config variables
     if (Test-Path ".\Scripts\Input_Generator\${Config}") {
@@ -474,7 +472,7 @@ if ($ParamsNotNull) {
     # things installed like Python
     if ($CleanAll -or $Clean -ne "") {
         if ($Config -eq "") { Write-Output "${RED}Config must be set${RESET}"; exit -1 }
-        Clean $VisualizationDir $Clean
+        Clean $VisualizationDir $Clean $CleanAll
         break
     }
 
