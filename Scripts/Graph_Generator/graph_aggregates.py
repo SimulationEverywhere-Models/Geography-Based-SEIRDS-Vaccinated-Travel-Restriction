@@ -98,7 +98,7 @@ curr_states = {}
 total_pop   = {}
 cids        = {}
 
-def curr_states_to_df_row(sim_time, curr_states, total_pop, line_num):
+def curr_states_to_df_row(sim_time, curr_states, total_pop):
     total_S = total_E = total_VD1 = total_VD2 = total_I = total_R = total_D = 0
     new_E = new_I = new_R = total_S
 
@@ -154,7 +154,7 @@ try:
                     # If a time marker is found that is not the current time
                     if line.isnumeric() and line != curr_time:
                         if curr_states and i == 1:
-                            data.append(curr_states_to_df_row(curr_time, curr_states, sum(list(total_pop.values())), line_num))
+                            data.append(curr_states_to_df_row(curr_time, curr_states, sum(list(total_pop.values()))))
 
                         # Update new simulation time
                         curr_time = line
@@ -179,7 +179,7 @@ try:
 
                     line_num += 1
 
-            data.append(curr_states_to_df_row(curr_time, curr_states, sum(total_pop.values()), line_num))
+            data.append(curr_states_to_df_row(curr_time, curr_states, sum(total_pop.values())))
 
         font = {"family" : "DejaVu Sans",
                 "weight" : "normal",
