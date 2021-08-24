@@ -1,3 +1,4 @@
+#!/bin/bash 
 # Written by Eric and based on scripts made by Glenn
 # This script compiles the model and assumes the environment running this script includes python and python geopandas
 
@@ -66,6 +67,29 @@
         if [[ $BUILD_TIME -ge 60 ]]; then echo -en "$((BUILD_TIME / 60))m"; fi
         if [[ $((BUILD_TIME % 60)) > 0 ]]; then echo -en "$((BUILD_TIME % 60))s"; fi
         echo -e "]${RESET}"
+    }
+
+    Export()
+    {
+        LINUX_OUT=Out/Linux
+
+        echo -e "${YELLOW}Exporting...${RESET}"
+        rm -rf $LINUX_OUT/Scripts/
+        rm -rf $LINUX_OUT/cadmium_gis/
+        rm -rf $LINUX_OUT/bin/
+        rm -rf $LINUX_OUT/Results/
+        rm -f Out/*.zip
+
+        mkdir -p $LINUX_OUT/bin
+        cp bin/pandemic-geographical_model $LINUX_OUT/bin
+        cp -r cadmium_gis $LINUX_OUT
+        cp -r Scripts $LINUX_OUT
+        rm -rf $LINUX_OUT/Scripts/.gitignore
+
+        cd Out
+        zip -r SEVIRDS-LinuxDebianx64.zip Linux/*
+        cd ..
+        echo -e "${GREEN}Done.${RESET}"
     }
 # </Helpers> #
 
@@ -223,9 +247,9 @@ else
                 fi
                 shift
             ;;
-            --debug|-db)
-                BUILD_TYPE="Debug"
-                shift
+            --Export|-e)
+                Export
+                exit 0
             ;;
             --clean*|-c*)
                 if [[ $1 == *"="* ]]; then
@@ -238,6 +262,10 @@ else
                 if [[ $1 == *"="* ]]; then
                     DAYS=`echo $1 | sed -e 's/^[^=]*=//g'`;
                 fi
+                shift
+            ;;
+            --debug|-db)
+                BUILD_TYPE="Debug"
                 shift
             ;;
             --flags|-f)
