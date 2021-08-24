@@ -28,6 +28,9 @@
 *.out
 *.app
 
+# Archives
+Out/*.zip
+
 # QtCreator project files
 cadmium.config
 cadmium.creator
