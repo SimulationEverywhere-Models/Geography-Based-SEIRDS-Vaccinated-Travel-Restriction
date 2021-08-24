@@ -12,14 +12,14 @@ import matplotlib.pyplot as plt
 import matplotlib
 import shutil
 
-no_progress = False
+progress = True
 log_file_folder = ""
 
 # Handles command line flags
 for flag in sys.argv:
     lowered = flag.lower()
     if lowered == "--no-progress" or lowered == "-np":
-        no_progress = True
+        progress = False
     elif "-log-dir" in lowered or "-ld" in lowered:
         log_file_folder = flag.split("=",1)[1]
 
@@ -46,7 +46,7 @@ def animate():
         sys.stdout.write("\r\033[1;32mDone.                   \033[0m\n")
 
 # Don't forget to thread it!
-if not no_progress:
+if progress:
     t = threading.Thread(target=animate)
     t.start()
 
@@ -258,7 +258,7 @@ try:
 
             plt.savefig(base_name + "SEIRD+V.png")
 
-        if no_progress:
+        if not progress:
             print("\033[1;32mDone.\033[0m")
         else:
             done = True
@@ -267,7 +267,7 @@ try:
 except AssertionError as assertion:
     success = False
     done = True
-    if not no_progress:
+    if progress:
         t.join()
 
     print("\n\033[31mASSERT:\033[0m 0.995 <= psum < 1.005", assertion)
@@ -275,7 +275,7 @@ except AssertionError as assertion:
 except KeyboardInterrupt as interrupt:
     success = False
     done = True
-    if not no_progress:
+    if progress:
         t.join()
 
     print("\n\033[33mStopped by user\033[0m")
@@ -283,7 +283,7 @@ except KeyboardInterrupt as interrupt:
 except Exception as error:
     success = False
     done = True
-    if not no_progress:
+    if progress:
         t.join()
 
     print("\n\033[31m" + str(error) + "\033[0m")
