@@ -91,6 +91,141 @@
         cd ..
         echo -e "${GREEN}Done.${RESET}"
     }
+
+    # Helps clean up past simulation runs
+    Clean()
+    {
+        # Delete all the sims for the selected area if no number specified
+        if [[ $RUN == -1 ]]; then
+            echo -e "Removing ${YELLOW}all${RESET} runs for ${YELLOW}${INPUT_DIR}${RED}"
+            rm -rfv $VISUALIZATION_DIR
+        # Otherwise delete the run that matches the number passed in
+        else
+            echo -e "Removing ${YELLOW}${RUN}${RESET} for ${YELLOW}${INPUT_DIR}${RED}"
+            rm -rfdv ${VISUALIZATION_DIR}${RUN}
+        fi
+
+        echo -e "${BOLD}${GREEN}Done.${RESET}" # Reset the colors
+    }
+
+    # Checks and handles build errors
+    ErrorCheck()
+    {
+        # Catch any build errors
+        if [[ "$1" -ne 0 ]]; then
+            if [[ "$2" == "log" ]]; then cat $2; fi # Print any error messages
+            echo -e "${RED}Build Failed${RESET}"
+            exit -1 # And exit if any exist
+        fi
+
+        if [[ -f "log" ]]; then
+            echo -en "$YELLOW"
+            cat $2;
+            echo -en "$RESET"
+            rm -f log;
+        fi
+    }
+
+    # Displays the help
+    Help()
+    {
+        if [[ $1 == 1 ]]; then
+            echo -e "${YELLOW}Flags:${RESET}"
+            echo -e " ${YELLOW}--area=*|-a=*${RESET} \t\t\t Sets the area to run a simulation on"
+            echo -e " ${YELLOW}--debug|-db${RESET} \t\t\t Compiles the model for debuggging (breakpoints will only bind in debug)"
+            echo -e " ${YELLOW}--clean|-c|--clean=*|-c=*${RESET} \t Cleans all simulation runs for the selected area if no # is set, \n \t\t\t\t otherwise cleans the specified run using the folder name inputed such as 'clean=run1'"
+            echo -e " ${YELLOW}--days=#|-d=#${RESET} \t\t\t Sets the number of days to run a simulation (default=500)"
+            echo -e " ${YELLOW}--flags, -f${RESET}\t\t\t Displays all flags"
+            echo -e " ${YELLOW}--gen-scenario, -gn${RESET}\t\t Generates a scenario json file (an area flag needs to be set)"
+            echo -e " ${YELLOW}--gen-region-graphs=*, -grg=*${RESET}\t Generates graphs per region for previously completed simulation. Folder name set after '=' and area flag needed"
+            echo -e " ${YELLOW}--graph-region, -gr${RESET}\t\t Generates graphs per region (default=off)"
+            echo -e " ${YELLOW}--help, -h${RESET}\t\t\t Displays the help"
+            echo -e " ${YELLOW}--no-progress, -np${RESET}\t\t Turns off the progress bars and loading animations"
+            echo -e " ${YELLOW}--profile, -p${RESET}\t\t\t Builds using the ${ITALIC}pg${RESET} profiler tool, runs the model, then exports the results in a text file"
+            echo -e " ${YELLOW}--rebuild, -r${RESET}\t\t\t Rebuilds the model"
+            echo -e " ${YELLOW}--valgrind|-v${RESET}\t\t\t Runs using valgrind, a memory error and leak check tool"
+            echo -e " ${YELLOW}--Wall|-w${RESET}\t\t\t Displays build warnings"
+        else
+            echo -e "${BOLD}Usage:${RESET}"
+            echo -e " ./run_simulation.sh ${ITALIC}<area flag>${RESET}"
+            echo -e " where ${ITALIC}<area flag>${RESET} is either --Ottawa ${BOLD}OR${RESET} --Ontario"
+            echo -e " example: ./run_simulation.sh --Ottawa"
+            echo -e "Use \033[1;33m--flags${RESET} to see a list of all the flags and their meanings"
+        fi
+    }
+
+    # Dependency Check
+    DependencyCheck()
+    {
+        if [[ $1 == "Y" || $2 == "Y" ]]; then
+            echo "Checking Dependencies..."
+
+            # Dependencies exclusive to the simulator
+            if [[ $1 == "Y" ]]; then
+                # Check for Cadmium
+                if [[ ${cadmium} == "" && ! -d "../cadmium" ]]; then
+                    echo -e "${RED}Could not find Cadmium. Make sure it's in the parent folder${RESET}"
+                    exit -1
+                else echo -e "Cadmium ${GREEN}[FOUND]${RESET}";
+                fi
+
+                # Setup dependency specific data
+                declare -A dependencies
+                dependencies['cmake']="cmake version"
+                dependencies['gcc']="gcc ("
+                dependencies['make']="GNU Make"
+
+                for key in "${!dependencies[@]}"; do
+                    check=`$key --version`
+                    if [[ ${check} == *"${dependencies[$key]}"* ]]; then
+                        echo -e "$key ${GREEN}[FOUND]${RESET}"
+                    else
+                        echo -e "$key ${RED}[NOT FOUND]${RESET}"
+                        exit -1
+                    fi
+                done
+
+                # Boost
+                check=`dpkg -s libboost-dev | grep Version`
+                if [[ ${check} == *"1.7"* ]]; then
+                    echo -e "Boost ${GREEN}[FOUND]${RESET}"
+                else
+                    echo -e "Boost ${RED}[NOT FOUND]${RESET}"
+                    exit -1
+                fi
+            fi
+
+            # Dependencies exclusive to the python scripts
+            if [[ $2 == "Y" ]]; then
+                if [[ `python --version` == *"Python 3"* ]]; then
+                    echo -e "Python ${GREEN}[FOUND]${RESET}"
+                else
+                    echo -e "Python ${RED}[NOT FOUND]${RESET}"
+                    exit -1
+                fi
+
+                if [[ `conda --version` == *"conda 4"* ]]; then
+                    echo -e "Conda ${GREEN}[FOUND]${RESET}"
+                else
+                    echo -e "Conda ${RED}[NOT FOUND]${RESET}"
+                    exit -1
+                fi
+
+                # Python dependencies
+                Libs=("numpy" "matplotlib" "geopandas")
+                condaList=`conda list`
+                for lib in "${Libs[@]}"; do
+                    if [[ "${condaList}" == *"${lib}"* ]]; then
+                        echo -e "$lib ${GREEN}[FOUND]${RESET}"
+                    else
+                        echo -e "$lib ${RED}[NOT FOUND]${RESET}"
+                    fi
+                done
+            fi
+
+            echo -e "${GREEN}Done.\n${RESET}"
+        fi
+    }
 # </Helpers> #
 
 # Runs the model and saves the results in the GIS_Viewer directory
@@ -158,70 +293,6 @@ Main()
     BuildTime "Simulation"
     echo -e "View results using the files in ${BOLD}${BLUE}${VISUALIZATION_DIR}${RESET} and this web viewer: ${BOLD}${BLUE}http://206.12.94.204:8080/arslab-web/1.3/app-gis-v2/index.html${RESET}"
 }
-
-# <Helpers>  #
-    # Helps clean up past simulation runs
-    Clean()
-    {
-        # Delete all the sims for the selected area if no number specified
-        if [[ $RUN == -1 ]]; then
-            echo -e "Removing ${YELLOW}all${RESET} runs for ${YELLOW}${INPUT_DIR}${RED}"
-            rm -rfv $VISUALIZATION_DIR
-        # Otherwise delete the run that matches the number passed in
-        else
-            echo -e "Removing ${YELLOW}${RUN}${RESET} for ${YELLOW}${INPUT_DIR}${RED}"
-            rm -rfdv ${VISUALIZATION_DIR}${RUN}
-        fi
-
-        echo -e "${BOLD}${GREEN}Done.${RESET}" # Reset the colors
-    }
-
-    # Checks and handles build errors
-    ErrorCheck()
-    {
-        # Catch any build errors
-        if [[ "$1" -ne 0 ]]; then
-            if [[ "$2" == "log" ]]; then cat $2; fi # Print any error messages
-            echo -e "${RED}Build Failed${RESET}"
-            exit -1 # And exit if any exist
-        fi
-
-        if [[ -f "log" ]]; then
-            echo -en "$YELLOW"
-            cat $2;
-            echo -en "$RESET"
-            rm -f log;
-        fi
-    }
-
-    # Displays the help
-    Help()
-    {
-        if [[ $1 == 1 ]]; then
-            echo -e "${YELLOW}Flags:${RESET}"
-            echo -e " ${YELLOW}--area=*|-a=*${RESET} \t\t\t Sets the area to run a simulation on"
-            echo -e " ${YELLOW}--debug|-db${RESET} \t\t\t Compiles the model for debuggging (breakpoints will only bind in debug)"
-            echo -e " ${YELLOW}--clean|-c|--clean=*|-c=*${RESET} \t Cleans all simulation runs for the selected area if no # is set, \n \t\t\t\t otherwise cleans the specified run using the folder name inputed such as 'clean=run1'"
-            echo -e " ${YELLOW}--days=#|-d=#${RESET} \t\t\t Sets the number of days to run a simulation (default=500)"
-            echo -e " ${YELLOW}--flags, -f${RESET}\t\t\t Displays all flags"
-            echo -e " ${YELLOW}--gen-scenario, -gn${RESET}\t\t Generates a scenario json file (an area flag needs to be set)"
-            echo -e " ${YELLOW}--gen-region-graphs=*, -grg=*${RESET}\t Generates graphs per region for previously completed simulation. Folder name set after '=' and area flag needed"
-            echo -e " ${YELLOW}--graph-region, -gr${RESET}\t\t Generates graphs per region (default=off)"
-            echo -e " ${YELLOW}--help, -h${RESET}\t\t\t Displays the help"
-            echo -e " ${YELLOW}--no-progress, -np${RESET}\t\t Turns off the progress bars and loading animations"
-            echo -e " ${YELLOW}--profile, -p${RESET}\t\t\t Builds using the ${ITALIC}pg${RESET} profiler tool, runs the model, then exports the results in a text file"
-            echo -e " ${YELLOW}--rebuild, -r${RESET}\t\t\t Rebuilds the model"
-            echo -e " ${YELLOW}--valgrind|-v${RESET}\t\t\t Runs using valgrind, a memory error and leak check tool"
-            echo -e " ${YELLOW}--Wall|-w${RESET}\t\t\t Displays build warnings"
-        else
-            echo -e "${BOLD}Usage:${RESET}"
-            echo -e " ./run_simulation.sh ${ITALIC}<area flag>${RESET}"
-            echo -e " where ${ITALIC}<area flag>${RESET} is either --Ottawa ${BOLD}OR${RESET} --Ontario"
-            echo -e " example: ./run_simulation.sh --Ottawa"
-            echo -e "Use \033[1;33m--flags${RESET} to see a list of all the flags and their meanings"
-        fi
-    }
-# </Helpers> #
 
 # Displays the help if no flags were set
 if [[ $1 == "" ]]; then Help;
@@ -326,16 +397,12 @@ else
         esac
     done
 
-    # Check for Cadmium
-    if [[ ${cadmium} == "" && ! -d "../cadmium" ]]; then
-        echo -e "${RED}Could not find Cadmium. Make sure it's in the parent folder${RESET}"
-        exit -1
-    fi
-
     # Compile the model if it does not exist
     if [[ ! -f "bin/pandemic-geographical_model" ]]; then
-        echo -e "Building Model ${YELLOW}[Type: ${BLUE}${BUILD_TYPE}${YELLOW} | Profiling: ${BLUE}${PROFILE}${YELLOW} | Wall: ${BLUE}${WALL}${YELLOW}]${RESET}"
-        cmake CMakeLists.txt -DWALL=${WALL} -DPROFILER=${PROFILE} -DCMAKE_BUILD_TYPE=${BUILD_TYPE} -B"${HOME_DIR}/bin" > log 2>&1
+        DependencyCheck "Y" "N"
+
+        echo -e "Building Model ${YELLOW}[Type: ${BLUE}${BUILD_TYPE}${YELLOW} | Wall: ${BLUE}${WALL}${YELLOW}]${RESET}"
+        cmake CMakeLists.txt -DWALL=${WALL} -DCMAKE_BUILD_TYPE=${BUILD_TYPE} -B"${HOME_DIR}/bin" > log 2>&1
         ErrorCheck $? log
         cmake --build bin > log 2>&1
         ErrorCheck $? log # Check for build errors
@@ -352,8 +419,11 @@ else
     VISUALIZATION_DIR="GIS_Viewer/${INPUT_DIR}/"
 
     if [[ $CLEAN == "Y" ]]; then Clean;
-    elif [[ $GENERATE == "S" ]]; then GenerateScenario;
+    elif [[ $GENERATE == "S" ]]; then
+        DependencyCheck "N" "Y"
+        GenerateScenario;
     elif [[ $GENERATE == "R" ]]; then
+        DependencyCheck "N" "Y"
         VISUALIZATION_DIR="${VISUALIZATION_DIR}${NAME}"
         GenerateGraphs "Y" "N" "$VISUALIZATION_DIR/logs";
     else
@@ -363,6 +433,13 @@ else
         fi
 
         if [[ $PROFILE == "Y" ]]; then
+            if [[ `kcachegrind --version` == *"kcachegrind 20"* ]]; then
+                echo -e "Valgrind Profiling ${GREEN}[FOUND]${RESET}"
+            else
+                echo -e "Valgrind Profiling ${RED}[NOT FOUND]${RESET}"
+                exit -1
+            fi
+
             cd bin
             valgrind --tool=callgrind --dump-instr=yes --simulate-cache=yes --collect-jumps=yes --collect-atstart=no ./pandemic-geographical_model ../config/scenario_${INPUT_DIR}.json $DAYS $PROGRESS
             ErrorCheck $?
@@ -370,13 +447,21 @@ else
             BuildTime "Profiling"
             echo -e "Check ${GREEN}bin\callgrind.out${RESET} for profiler results"
         elif [[ $VALGRIND != "" ]]; then
+            if [[ `valgrind--version` == *"valgrind-"* ]]; then
+                echo -e "Valgrind ${GREEN}[FOUND]${RESET}"
+            else
+                echo -e "Valgrind ${RED}[NOT FOUND]${RESET}"
+                exit -1
+            fi
+
             cd bin
             $VALGRIND ./pandemic-geographical_model ../config/scenario_${INPUT_DIR}.json $DAYS $PROGRESS
             ErrorCheck $?
             cd $HOME_DIR
             BuildTime "Memory Check"
         else
-            Main;
+            DependencyCheck "N" "Y"
+            Main
         fi
     fi
 fi
