@@ -85,12 +85,22 @@ $Script:HomeDir   = Split-Path -Parent $Script:MyInvocation.MyCommand.Path
         Verifies ALL dependencies are met
     #>
     function DependencyCheck() {
+        $private:file = "./DependencyCheck.txt"
+
+        if ( !(Test-Path $file) ) {
+            [bool] $PyCheck = $False
+        }
+        else {
+            $stowed = Get-Content $file
+            $PyCheck = [System.Convert]::ToBoolean($stowed.split(":")[1])
+            if ($PyCheck) { return }
+        }
+
         Write-Verbose "Checking Dependencies..."
 
         # Setup dependency specific data
         $private:Dependencies = [Ordered]@{
             # dependency=version, website
-            pwsh   = "PowerShell 7", "https://github.com/PowerShell/PowerShell/releases";
             python = "Python 3", "https://www.python.org/downloads/";
             conda  = "conda 4", "https://www.anaconda.com/products/individual#windows"
         }
@@ -116,6 +126,9 @@ $Script:HomeDir   = Split-Path -Parent $Script:MyInvocation.MyCommand.Path
                 if ( !($CondaList -like "*${Depends}*") ) { throw 2 }
                 Write-Verbose "$Depends ${GREEN}[FOUND]"
             }
+
+            $PyCheck = $True
+            Write-Verbose $GREEN"Completed Dependency Check.`n"$RESET
         }
         catch {
             Write-Verbose "$Depends ${RED}[NOT FOUND]" -Verbose
@@ -136,10 +149,15 @@ $Script:HomeDir   = Split-Path -Parent $Script:MyInvocation.MyCommand.Path
                 Write-Error $Error[0].Exception.Message
             }
 
-            break
+            $PyCheck = $False
         }
 
-        Write-Verbose $GREEN"Completed Dependency Check.`n"$RESET
+        if ( !(Test-Path $file) ) { "PyCheck:${PyCheck}" | Out-File -FilePath $file }
+        else {
+            $find = "PyCheck:" + (!$PyCheck)
+            $replace = "PyCheck:$PyCheck"
+            (Get-Content $file).Replace($find, $replace) | Set-Content $file
+        }
     } #DependencyCheck()
 
     <#

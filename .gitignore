@@ -69,3 +69,6 @@ build/
 
 # Logs
 log
+
+# Other
+DependencyCheck.txt

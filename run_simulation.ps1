@@ -222,34 +222,42 @@ foreach($Param in $Params) { if ($PSBoundParameters.keys -like "*"+$Param+"*") {
     #>
     function DependencyCheck([bool] $Simulator=$False, [bool] $Python=$False)
     {
-        if ($Simulator || $Python) {
-            Write-Verbose "Checking Dependencies..."
+        if ($Simulator -or $Python) {
+            $file = "./DependencyCheck.txt"
 
-            # Test Cadmium
-            if ($Simulator) {
-                if ( !(Test-Path "../cadmium") )
-                {
-                    $Parent = Split-Path -Path $HomeDir -Parent
-                    Write-Verbose "Cadmium ${RED}[NOT FOUND]" -Verbose
-                    Write-Verbose ${YELLOW}"Make sure it's in "${YELLOW}${Parent}
-                    break
-                } else { Write-Verbose "Cadmium ${GREEN}[FOUND]" }
+            if ( !(Test-Path $file) ) {
+                [bool] $SimCheck = $False
+                [bool] $PyCheck  = $False
+            } else {
+                $stowed = Get-Content $file
+                $SimCheck = [System.Convert]::ToBoolean($stowed[0].split(":")[1])
+                $PyCheck  = [System.Convert]::ToBoolean($stowed[1].split(":")[1])
+                if ($PyCheck -and $SimCheck) { return }
             }
+
+            Write-Verbose "Checking Dependencies..."
 
             # Setup dependency specific data
             $private:Dependencies = [Ordered]@{
                 # dependency=version, website
-                pwsh="PowerShell 7", "https://github.com/PowerShell/PowerShell/releases";
                 cmake="cmake version 3","https://cmake.org/download/";
-                python= "Python 3", "https://www.python.org/downloads/";
-                conda="conda 4", "https://www.anaconda.com/products/individual#windows"
                 gcc="x86_64-posix-seh-rev0", "https://www.msys2.org/";
             }
 
             # Python Depedencies
             $private:Libs = "numpy", "geopandas", "matplotlib"
+
             try {
-                if ($Simulator) {
+                if ($Simulator -and !$SimCheck) {
+                    # Test Cadmium
+                    if ( !(Test-Path "../cadmium") )
+                    {
+                        $Parent = Split-Path -Path $HomeDir -Parent
+                        Write-Verbose "Cadmium ${RED}[NOT FOUND]" -Verbose
+                        Write-Verbose ${YELLOW}"Make sure it's in "${YELLOW}${Parent}
+                        throw 1
+                    } else { Write-Verbose "Cadmium ${GREEN}[FOUND]" }
+
                     # Loop through each dependency
                     foreach($private:Depends in $Dependencies.keys) {
                         # Try and get the version
@@ -261,16 +269,45 @@ foreach($Param in $Params) { if ($PSBoundParameters.keys -like "*"+$Param+"*") {
                         # It was found
                         Write-Verbose "$Depends ${GREEN}[FOUND]"
                     }
+
+                    $private:boost = $env:path | Select-String boost
+                    if (!$boost) {
+                        $Depends="Boost"
+                        throw 2
+                    } else { Write-Verbose "Boost ${GREEN}[FOUND]${RESET}" }
+
+                    $SimCheck = $True
                 }
 
-                if ($Python) {
+                if ($Python -and !$PyCheck) {
+                    $private:Dependencies = [Ordered]@{
+                        # dependency=version, website
+                        python= "Python 3", "https://www.python.org/downloads/";
+                        conda="conda 4", "https://www.anaconda.com/products/individual#windows"
+                    }
+
+                    foreach ($private:Depends in $Dependencies.keys) {
+                        # Try and get the version
+                        $private:Version = cmd /c "$Depends --version"
+
+                        # If the version is incorrect or non-existant, throw an error
+                        if ( !($Version -clike "*" + ${Dependencies}.${Depends}[0] + "*") ) { throw 1 }
+
+                        # It was found
+                        Write-Verbose "$Depends ${GREEN}[FOUND]"
+                    }
+
                     # Loop through each python dependency
                     $private:CondaList = conda list
                     foreach($private:Depends in $Libs) {
-                        if ( !($CondaList -like "*${Depends}*") ) { throw 2 }
+                        if ( !($CondaList -like "*${Depends}*") ) { throw 3 }
                         Write-Verbose "$Depends ${GREEN}[FOUND]"
                     }
+
+                    $PyCheck = $True
                 }
+
+                Write-Verbose $GREEN"Completed Dependency Check.`n"$RESET
             } catch {
                 Write-Verbose "$Depends ${RED}[NOT FOUND]" -Verbose
 
@@ -280,18 +317,38 @@ foreach($Param in $Params) { if ($PSBoundParameters.keys -like "*"+$Param+"*") {
                     Write-Verbose $YELLOW"Check that '$Depends --version' contains this version $MinVersion"
                     $private:Website = $Dependencies.$Depends[1]
                     Write-Verbose $YELLOW"$Depends for Windows can be installed from here: ${BLUE}$Website"
-                # Python Dependency Prints
+
+                    if ($Depends -eq "python" -or $Depends -eq "conda") { $PyCheck = $False }
+                    else { $SimCheck = $False }
                 } elseif($Error[0].Exception.Message -eq 2) {
+                    Write-Verbose $YELLOW"Check the Wiki for installation help: ${BLUE}https://github.com/SimulationEverywhere-Models/Geography-Based-SEIRDS-Vaccinated/wiki/Windows-10-%5C-11-(x64)#11-boost"
+                # Python Dependency Prints
+                } elseif($Error[0].Exception.Message -eq 3) {
                     Write-Verbose $YELLOW'Check `conda list  | Select-String "'"$Depends"'"`'
                     Write-Verbose $YELLOW'It can be installed using `conda install '$Depends'`'
+                    $PyCheck = $False
                 } else{
                     Write-Error $Error[0].Exception.Message
+                    $SimCheck = $False
+                    $PyCheck  = $False
                 }
-
-                break
             }
 
-            Write-Verbose $GREEN"Completed Dependency Check.`n"$RESET
+            if ( !(Test-Path $file) ) {
+                "SimCheck:${SimCheck}" | Out-File -FilePath $file
+                "PyCheck:${PyCheck}" | Out-File -Append -FilePath $file
+            } else {
+                $find    = "PyCheck:" + (!$PyCheck)
+                $replace = "PyCheck:$PyCheck"
+                (Get-Content $file).Replace($find, $replace) | Set-Content $file
+
+                $find    = "SimCheck:" + (!$SimCheck)
+                $replace = "SimCheck:$SimCheck"
+                (Get-Content $file).Replace($find, $replace) | Set-Content $file
+            }
+
+            if ($Simulator -and !$SimCheck) { exit -1 }
+            if ($Python    -and !$PyCheck)  { exit -1 }
         }
     } #DependencyCheck()
 
@@ -311,6 +368,8 @@ foreach($Param in $Params) { if ($PSBoundParameters.keys -like "*"+$Param+"*") {
     #>
     function BuildSimulator([bool] $Private:Rebuild=$False, [bool] $Private:FullRebuild=$False, [string] $Private:BuildType="Release", [string] $Private:Verbose="N")
     {
+        DependencyCheck $True
+
         # Remove the current executable
         if ($Rebuild -or $FullRebuild) {
             # Clean everything for a complete rebuild
@@ -329,7 +388,7 @@ foreach($Param in $Params) { if ($PSBoundParameters.keys -like "*"+$Param+"*") {
             ErrorCheck
             cmake --build .\bin
             ErrorCheck
-            Write-Verbose "${GREEN}Done."
+            Write-Verbose "${GREEN}Done.`n"
         }
     }
 
@@ -380,7 +439,7 @@ foreach($Param in $Params) { if ($PSBoundParameters.keys -like "*"+$Param+"*") {
         Copy-Item ".\cadmium_gis\" ".\Out\Windows\" -Recurse
         Copy-Item ".\Scripts\" ".\Out\Windows\" -Recurse
         Remove-Item ".\Out\Windows\Scripts\.gitignore"
-        Compress-Archive .\Out\Windows -DestinationPath .\Out\SEVIRDS-Windowsx64.zip
+        Compress-Archive .\Out\Windows -DestinationPath .\Out\SEVIRDS-Windowsx64.zip -Update
         Write-Verbose "${GREEN}Done${RESET}"
     }
 # </Helpers> #
@@ -491,7 +550,6 @@ if ($ParamsNotNull) {
     } elseif ($Export) {
         Export
     } else {
-        DependencyCheck $True
         BuildSimulator $Rebuild $FullRebuild $BuildType $Verbose
 
         if ($Config -ne "") {
