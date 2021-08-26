@@ -22,15 +22,15 @@
 .INPUTS
     None. Once you set the flags you want, everything is handled for you
 .EXAMPLE
-    ./run_simulation.ps1 -Config ontario
+    .\run_simulation.ps1 -Config ontario
         Runs a simulation on the Ontario config
 .EXAMPLE
-    ./run_simulation.ps1 -GenScenario -Config ontario
+    .\run_simulation.ps1 -GenScenario -Config ontario
         Generates the scenario file used by the simulator using the Ontario config. Running a sim
         like in examples 1 and 2 does this automatically and this is for when you just want the
         scenario file re-done (useful when debugging)
 .EXAMPLE
-    ./run_simulation.ps1 -GraphRegion -Config ontario
+    .\run_simulation.ps1 -GraphRegion -Config ontario
         Runs a simulation on the Ontario config and generates graphs per region since
         by default this is turned off (it takes a longer time to do then Aggregated graphs)
         and isn't always that useful)
@@ -53,13 +53,16 @@ param(
     # each region (Nepean, Kanata...) as well
     [switch]$GraphPerRegions = $False,
 
+    # Generates graphs per region for an already completed run
+    [string]$GenRegionGraphs = "",
+
     # Specificy a name to the directory under which the results will be saved (default is a numbered folder name)
     [string]$DirName = "",
 
-    # Cleans all results for a specified config
-    [switch]$CleanAll = $False,
-
-    # Cleans the results folder with the given name (Use in concordance with -Config)
+    # Cleans the simulation run with the inputed folder name such as '-Clean run1' (Needs to set the Config).
+    # Setting the run name to _ cleans all the runs under the set config
+    # Ex: -Clean _ ontario
+    #   Will clean all runs under GIS_Viewer\ontario\
     [string]$Clean = ""
 )
 
@@ -73,7 +76,7 @@ param(
 # </Colors> #
 
 
-$private:Params = "Config", "Days", "NoProgress", "GraphPerRegions", "GenerateGraphsPerRegions", "DirName", "CleanAll", "Clean"
+$private:Params = "Config", "Days", "NoProgress", "GraphPerRegions", "GenRegionGraphs", "DirName", "Clean"
 $private:ParamsNotNull = $False
 foreach ($Param in $Params) { if ($PSBoundParameters.keys -like "*" + $Param + "*") { $ParamsNotNull = $True; break; } }
 $Script:InvokeDir = Get-Location | Select-Object -ExpandProperty Path
@@ -82,18 +85,24 @@ $Script:HomeDir   = Split-Path -Parent $Script:MyInvocation.MyCommand.Path
 # <Helpers> #
     <#
         .SYNOPSIS
+        Handles quitting the scripts and setting the correct location in the terminla
+        .PARAMETER code
+        Error code to exit with
+    #>
+    function Quit([int] $private:code=0) {
+        Set-Location $InvokeDir
+        exit $code
+    }
+
+    <#
+        .SYNOPSIS
         Verifies ALL dependencies are met
     #>
     function DependencyCheck() {
-        $private:file = "./DependencyCheck.txt"
-
-        if ( !(Test-Path $file) ) {
-            [bool] $PyCheck = $False
-        }
-        else {
-            $stowed = Get-Content $file
-            $PyCheck = [System.Convert]::ToBoolean($stowed.split(":")[1])
-            if ($PyCheck) { return }
+        # Don't need to check again in the current shell
+        if ($PythonCheck) {
+            Write-Verbose "${GREEN}Dependencies already met`n${RESET}"
+            return
         }
 
         Write-Verbose "Checking Dependencies..."
@@ -127,7 +136,7 @@ $Script:HomeDir   = Split-Path -Parent $Script:MyInvocation.MyCommand.Path
                 Write-Verbose "$Depends ${GREEN}[FOUND]"
             }
 
-            $PyCheck = $True
+            $Global:PythonCheck = $True
             Write-Verbose $GREEN"Completed Dependency Check.`n"$RESET
         }
         catch {
@@ -139,32 +148,26 @@ $Script:HomeDir   = Split-Path -Parent $Script:MyInvocation.MyCommand.Path
                 Write-Verbose $YELLOW"Check that '$Depends --version' contains this version $MinVersion"
                 $private:Website = $Dependencies.$Depends[1]
                 Write-Verbose $YELLOW"$Depends for Windows can be installed from here: ${BLUE}$Website"
-                # Python Dependency Prints
             }
+            # Python Library Dependency Prints
             elseif ($Error[0].Exception.Message -eq 2) {
+                Write-Verbose $YELLOW"Verify you have activated the correct conda environment"
                 Write-Verbose $YELLOW'Check `conda list  | Select-String "'"$Depends"'"`'
                 Write-Verbose $YELLOW'It can be installed using `conda install '$Depends'`'
             }
-            else {
-                Write-Error $Error[0].Exception.Message
-            }
+            else { Write-Error $Error[0].Exception.Message }
 
-            $PyCheck = $False
+            $Global:PythonCheck = $False
         }
 
-        if ( !(Test-Path $file) ) { "PyCheck:${PyCheck}" | Out-File -FilePath $file }
-        else {
-            $find = "PyCheck:" + (!$PyCheck)
-            $replace = "PyCheck:$PyCheck"
-            (Get-Content $file).Replace($find, $replace) | Set-Content $file
-        }
+        if (!$PythonCheck) { Quit(-1) }
     } #DependencyCheck()
 
     <#
         .SYNOPSIS
         Computes and diplas whether the build was a success
         and how much time is took using the the stopwatch
-        .PARAMETER Success
+        .PARAMETER private:Success
         True if the simulation was a success
         .PARAMETER private:StopWatch
         Stopwartch object containing how much time has passed
@@ -172,7 +175,7 @@ $Script:HomeDir   = Split-Path -Parent $Script:MyInvocation.MyCommand.Path
         ComputeBuildTime $True $null
             Displays success message but no execution time
     #>
-    function ComputeBuildTime([bool] $Success, [System.Diagnostics.Stopwatch] $private:StopWatch = $null) {
+    function ComputeBuildTime([bool] $private:Success=$False, [System.Diagnostics.Stopwatch] $private:StopWatch=$null) {
         if ($stopWatch) {
             $Hours = $StopWatch.Elapsed.Hours
             $Minutes = $StopWatch.Elapsed.Minutes
@@ -191,110 +194,100 @@ $Script:HomeDir   = Split-Path -Parent $Script:MyInvocation.MyCommand.Path
             if ( $Minutes -gt 0 ) { Write-Host -NoNewline "${Color}${Minutes}m" }
             Write-Output "${Color}${Seconds}s)${RESET}"
         }
-    } #ComputeBuildTime()
+    }
 
     <#
-    .SYNOPSIS
-    Checks if any errors have been returned and stops scripts if so.
-    Should be placed directly after a program call.
-    .EXAMPLE
-    python generate_scenario.py
-    ErrorCheck
-        If the generate_scenario returns an error the script will exit.
+            .SYNOPSIS
+            Checks if any errors have been returned and stops scripts if so.
+            Should be placed directly after a program call.
+            .EXAMPLE
+            python generate_scenario.py
+            ErrorCheck
+                If the generate_scenario returns an error the script will exit.
     #>
     function ErrorCheck() {
         # 0 -> All is good
         if ($LASTEXITCODE -ne 0) {
             ComputeBuildTime $False $Stopwatch # Display failed message and time
-            Set-Location $InvokeDir # Go back to the default location
+            Quit($LASTEXITCODE)
         }
     }
 
     <#
         .SYNOPSIS
         Generates the scenario file for a region and places it in the config directory
-        .PARAMETER Private:Config
+        .PARAMETER private:Config
         Config to generate scenario. Case sensitive
-        .EXAMPLE
-        GenerateScenario ontario
-        .NOTES
-        General notes
     #>
-    function GenerateScenario([string] $Private:Config) {
+    function GenerateScenario([string] $private:Config) {
         # Create output directory if non-existant
         if (!(Test-Path ".\Scripts\Input_Generator\output")) { New-Item ".\Scripts\Input_Generator\output\" -ItemType Directory | Out-Null }
 
         Write-Output "Generating ${BLUE}$Config${RESET} Scenario:"
         Set-Location .\Scripts\Input_Generator\
         python.exe generateScenario.py $Config $PROGRESS
-        Set-Location $HomeDir
         ErrorCheck
+        Set-Location $HomeDir
     } #GenerateScenario()
 
     <#
         .SYNOPSIS
         Generates all the graphs for a single run, provided the correct variables are set
-        .PARAMETER LogFolder
+        .PARAMETER private:LogFolder
         Path to the log folder (can be relative to where the script's directory)
-        .PARAMETER GenAggregate
+        .PARAMETER private:GenAggregate
         True is the aggregated graphs should be generated
-        .PARAMETER GenRegions
+        .PARAMETER private:GenRegions
         True if the regional graphs should be generated
         .EXAMPLE
         GenerateGraphs "logs" $True $False
             Will generate the aggregated graphs using the data in the Geographical-Based-SEIRDS-Vaccinated/logs folder
     #>
-    function GenerateGraphs([string] $LogFolder = "", [bool] $GenAggregate = $True, [bool] $GenRegions = $False) {
+    function GenerateGraphs([string] $private:LogFolder="", [bool] $private:GenAggregate=$True, [bool] $private:GenRegions=$False) {
         Write-Output "Generating Graphs:"
-        $GenFolder = ".\Scripts\Graph_Generator\"
+        $GenFolder = ".\Scripts\Graph_Generator"
 
         if ($LogFolder -eq "") {
-            if (Test-Path logs/stats) { Remove-Item logs/stats -Recurse }
-            New-Item logs/stats -ItemType Directory | Out-Null
-            $LogFolder = "logs"
+            if (Test-Path "logs\stats") { Remove-Item logs\stats -Recurse }
+            New-Item logs\stats -ItemType Directory | Out-Null
+            $LogFolder = ".\logs"
         }
 
         if ($GenRegions) {
-            python ${GenFolder}graph_per_regions.py $Progress "-ld=$LogFolder"
+            python ${GenFolder}\graph_per_regions.py $Progress "-ld=$LogFolder"
             ErrorCheck
         }
 
         if ($GenAggregate) {
-            python ${GenFolder}graph_aggregates.py $Progress "-ld=$LogFolder"
+            python ${GenFolder}\graph_aggregates.py $Progress "-ld=$LogFolder"
+            ErrorCheck
         }
     }
 
     <#
-    .SYNOPSIS
-    Cleans either all runs or a specified run
-    .PARAMETER private:VisualizationDir
-    Path to the simulations runs
-    .PARAMETER private:Run
-    Name of specific run to clean
-    .PARAMETER private:CleanAll
-    True cleans all simulation runs
-    .EXAMPLE
-    Clean "GIS_Viewer/ontario/simulation_runs/" "run1"
-        Cleans run1 found in "GIS_Viewer/ontario/simulation_runs/"
+        .SYNOPSIS
+        Cleans either all runs or a specified run
+        .PARAMETER private:VisualizationDir
+        Path to the simulations runs
+        .PARAMETER private:Run
+        Name of specific run to clean
+        .EXAMPLE
+        Clean "GIS_Viewer/ontario/simulation_runs/" "run1"
+            Cleans run1 found in "GIS_Viewer/ontario/simulation_runs/"
     #>
-    function Clean([string] $Private:VisualizationDir, [string] $Private:Run, [bool] $Private:CleanAll = $False) {
-            if ($CleanAll) {
-                Write-Output "Removing ${YELLOW}all${RESET} runs for ${YELLOW}${Config}${RESET}"
-                if (Test-Path $VisualizationDir) {
-                    Remove-Item $VisualizationDir -Recurse -Verbose 4>&1 |
-                    ForEach-Object { `Write-Host ($_.Message -replace '(.*)Target "(.*)"(.*)', ' $2') -ForegroundColor Red }
-                }
-                Write-Output ${GREEN}"Done."${RESET}
-            }
-            else {
-                Write-Output "Removing ${YELLOW}${Run}${RESET} simulation run from ${YELLOW}${Config}${RESET}"
-                if (Test-Path ${VisualizationDir}${Run}) {
-                    Remove-Item ${VisualizationDir}${Run} -Recurse -Verbose 4>&1 |
-                    ForEach-Object { `Write-Host ($_.Message -replace '(.*)Target "(.*)"(.*)', ' $2') -ForegroundColor Red }
-                }
-                Write-Output ${GREEN}"Done."${RESET}
-            }
-    } #Clean()
+    function Clean([string] $private:VisualizationDir, [string] $private:Run) {
+        [string] $private:Dir=$VisualizationDir
+        [string] $private:RunName="all$RESET runs"
+
+        if ($Run -ne "_") { $Dir="$Dir$Run";  $RunName="$Run$RESET" }
+
+        Write-Output "Removing ${YELLOW}${RunName} from the ${YELLOW}${Config}${RESET} config"
+        if (Test-Path $Dir) {
+            Remove-Item $Dir -Recurse -Verbose 4>&1 |
+            ForEach-Object{ `Write-Host ($_.Message -replace'(.*)Target "(.*)"(.*)',' $2') -ForegroundColor Red}
+        }
+        Write-Output ${GREEN}"Done."${RESET}
+    }
 # </Helpers> #
 
 if ($ParamsNotNull) {
@@ -310,19 +303,28 @@ if ($ParamsNotNull) {
     }
     else {
         Write-Output "${RED}Could not find ${BOLD}'${Config}'${RESET}${RED}. Check the spelling and verify that the directory is under ${YELLOW}'Scripts\Input_Generator\'${RESET}"
-        exit -1
+        Quit(-1)
     }
 
-    # Handles either of the clean flags
-    if ($CleanAll -or $Clean -ne "") {
-        if ($Config -eq "") { Write-Output "${RED}Config must be set${RESET}"; exit -1 }
-        Clean $VisualizationDir $Clean $CleanAll
-        Set-Location $InvokeDir
-        break
+    # If clean then do this before the dependency check
+    # so it's quicker and we don't have to worry about having
+    # things installed like Python
+    if ($Clean -ne "") {
+        if ($Config -eq "") { Write-Output "${RED}Config must be set${RESET}"; Quit(-1) }
+        Clean $VisualizationDir $Clean
+        Quit
     }
 
     # Check for required dependencies
     DependencyCheck
+
+    if ($GenRegionGraphs) {
+        # A region must be set
+        if ($Config -eq "") { Write-Output "${RED}Config must be set${RESET}"; Quit(-1) }
+        if ( !(Test-Path "${VisualizationDir}${GenRegionGraphs}") ) { Write-Output "${RED}${BOLD}${GenRegionGraphs}${RESET}${RED} does not exist!${RESET}"; Quit(-1) }
+        GenerateGraphs  "${VisualizationDir}${GenRegionGraphs}\logs" $False $True
+        Quit
+    }
 
     # Used for execution time at the end of Main 
     $Local:Stopwatch = [System.Diagnostics.Stopwatch]::StartNew()
@@ -357,7 +359,7 @@ if ($ParamsNotNull) {
     try { $Private:Version = java --version }
     catch { $Version = "" }
     if ( ($Version -clike "*java 16*") ) {
-        if ( !(Test-Path .\Scripts\Msg_Log_Parser\input) ) { New-Item .\Scripts\Msg_Log_Parser\input  -ItemType Directory | Out-Null }
+        if ( !(Test-Path .\Scripts\Msg_Log_Parser\input)  ) { New-Item .\Scripts\Msg_Log_Parser\input  -ItemType Directory | Out-Null }
         if ( !(Test-Path .\Scripts\Msg_Log_Parser\output) ) { New-Item .\Scripts\Msg_Log_Parser\output -ItemType Directory | Out-Null }
         Copy-Item .\Scripts\Input_Generator\output\scenario_${Config}.json .\Scripts\Msg_Log_Parser\input
         Copy-Item .\logs\pandemic_messages.txt .\Scripts\Msg_Log_Parser\input
@@ -369,12 +371,12 @@ if ($ParamsNotNull) {
         Expand-Archive -LiteralPath output\pandemic_messages.zip -DestinationPath output
         Set-Location $HomeDir
 
-        Move-Item .\Scripts\Msg_Log_Parser\output\messages.log $VisualizationDir
-        Move-Item .\Scripts\Msg_Log_Parser\output\structure.json $VisualizationDir
-        Remove-Item .\Scripts\Msg_Log_Parser\input -Recurse
+        Move-Item   .\Scripts\Msg_Log_Parser\output\messages.log   $VisualizationDir
+        Move-Item   .\Scripts\Msg_Log_Parser\output\structure.json $VisualizationDir
+        Remove-Item .\Scripts\Msg_Log_Parser\input  -Recurse
         Remove-Item .\Scripts\Msg_Log_Parser\output -Recurse
-        Remove-Item .\Scripts\Msg_Log_Parser/*.zip
-        Write-Output "${GREEN}Done."
+        Remove-Item .\Scripts\Msg_Log_Parser\*.zip
+        Write-Output "${GREEN}Done.${RESET}"
     }
 
     Copy-Item .\cadmium_gis\${Area}\${Area}.geojson $VisualizationDir
@@ -382,9 +384,14 @@ if ($ParamsNotNull) {
     Move-Item logs $VisualizationDir
 
     ComputeBuildTime $True $Stopwatch
-    Write-Output "View results using the files in ${BOLD}${BLUE}${VisualizationDir}${RESET} and this web viewer: ${BOLD}${BLUE}http://206.12.94.204:8080/arslab-web/1.3/app-gis-v2/index.html${RESET}"
-    Set-Location $InvokeDir
+    Write-Host -NoNewline "View results using the files in ${BOLD}${BLUE}${VisualizationDir}${RESET}"
+    if ( ($Version -clike "*java 16*") ) {
+        Write-Host " and through the web viewer: ${BOLD}${BLUE}http://206.12.94.204:8080/arslab-web/1.3/app-gis-v2/index.html${RESET}"
+    }
+    else { Write-Host "" }
+    Quit
 } else {
+    # Show the help if no params were inputed
     if ($VerbosePreference) { Get-Help ${HomeDir}\RunSimulation.ps1 -full }
     else { Get-Help ${HomeDir}\RunSimulation.ps1 }
 }

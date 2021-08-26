@@ -56,8 +56,8 @@ using logger_top        = logger::multilogger<state,                    log_mess
 
 int main(int argc, char** argv)
 {
-    try
-    {
+    // try
+    // {
         if (argc < 2)
         {
             cerr << "\033[31mProgram used with wrong parameters. The program must be invoked as follows: "
@@ -100,15 +100,15 @@ int main(int argc, char** argv)
         float sim_time = (argc > 2) ? atof(argv[2]) : 500;
         r.run_until(sim_time);
         cout << "\r\033[1;32mDone.       \033[0m" << endl;
-    } //try{}
-    catch(exception &e)
-    {
-        // With cygwin, an exception that terminates the program may not be printed to the screen, making it unclear
-        // if an error occurred. Thus an explicit print is done, along with a rethrowing of the exception to keep
-        // the original termination logic the same.
-        cerr << "\033[31mA fatal error occurred: " << e.what() << "\033[0m" << endl;
-        throw;
-    }
+    // } //try{}
+    // catch(exception &e)
+    // {
+    //     // With cygwin, an exception that terminates the program may not be printed to the screen, making it unclear
+    //     // if an error occurred. Thus an explicit print is done, along with a rethrowing of the exception to keep
+    //     // the original termination logic the same.
+    //     cerr << "\033[31mA fatal error occurred: " << e.what() << "\033[0m" << endl;
+    //     throw;
+    // }
 
     return 0;
 } //main()
