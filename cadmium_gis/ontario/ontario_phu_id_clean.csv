@@ -1,4 +1,4 @@
-phu_id,area_epsg4326,region_name,population
+PHU_ID,area_epsg4326,region_name,population
 2270,4064927421.64453,York Region Public Health,1225797
 5183,10764266368.3125,Huron Perth Health Unit,139757
 2265,2630598126.33203,"Region of Waterloo, Public Health",584361

@@ -13,6 +13,7 @@ default.json
 default
 * **delay**: How many days each simulation step represents
 * **cell_type**: The type of cell used for simulating regions. Best to leave this as _zhong_ unless you know what you're doing
+* **population**: _N/A_
 * **age_group_proportions**: Splits the population into 5 age groups from youngest to eldest (left to right)
 * **susceptible**: Proportion of each age group that are susceptible to Covid 19
 * **vaccinatedD1**: Proportion of each age group (follows the same order as _age_group_proportions_) that have their first dose. Length represents time in days till dose 2
@@ -45,9 +46,8 @@ config
 * **fatality_rates**: Same as previous but with the chance of fatalities
 * **vaccinaterd_rates_dose1** : Rate at which each age group is being vaccinated daily
 * **vaccinaterd_rates_dose2** : Rate at which each age group is being vaccinated, varying on a daily basis as some people are eligible to get their second dose sooner. The length of each list represents the length of days set in **vaccinatedD1** minus the **min_interval_between_doses** (the first index in the list is the minimal interval and the last index is the interval of those with dose 1)
-* **SIIRS_model**: Can recovered individuals become re-susceptible? ```true``` or ```false```
+* **Re-Susceptibility**: Can recovered individuals become re-susceptible? ```true``` or ```false```
 * **Vaccinations**: Toggle for whether the effect of vaccines should be simulated. Set this to ```false``` to simulate a scenario where vaccines don't exist
-* **has_exposed_state**: Is there an _exposed_ state, where the population may or may not become infected (rather then just moving immediately to infected upon exposure)?
 
 neighborhood
 * **default_cell_id**: _N/A_

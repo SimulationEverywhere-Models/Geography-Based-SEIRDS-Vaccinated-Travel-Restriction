@@ -7,8 +7,10 @@
 #include <iostream>
 #include <nlohmann/json.hpp>
 #include "hysteresis_factor.hpp"
+#include "../Helpers/Assert.hpp"
 
 using namespace std;
+using namespace Assert;
 
 /**
  * Keeps track of the model data and is initially
@@ -23,47 +25,59 @@ struct sevirds
     double population;
     vector<double> age_group_proportions;
 
-    //* Susceptible
+    // Susceptible
     proportionVector susceptible;
     proportionVector vaccinatedD1;
     proportionVector vaccinatedD2;
 
-    //* Exposed
+    // Exposed
     proportionVector exposed;
     proportionVector exposedD1;
     proportionVector exposedD2;
 
-    //* Infected
+    // Infected
     proportionVector infected;
     proportionVector infectedD1;
     proportionVector infectedD2;
 
-    //* Recovered
+    // Recovered
     proportionVector recovered;
     proportionVector recoveredD1;
     proportionVector recoveredD2;
 
-    //* Fatalities
+    // Fatalities
     vector<double> fatalities;
 
+    // Modifiers
     double disobedient;
     double hospital_capacity;
     double fatality_modifier;
 
+    // Vaccines
     proportionVector immunityD1_rate;
     proportionVector immunityD2_rate;
     unsigned int min_interval_doses;
+    unsigned int min_interval_recovery_to_vaccine;
 
     unordered_map<string, hysteresis_factor> hysteresis_factors;
     unsigned int num_age_groups;
 
-    bool vaccines; // Are vaccines being modelled?
-    double prec_divider;
+    bool vaccines;       // Are vaccines being modelled?
+    double prec_divider; // Precision divider
+
+    // 1 divided by precision divider
+    // Divisions cost more then multiplication
+    // so do it once at the start then multiply by the decimal value
     double one_over_prec_divider;
 
     // Required for the JSON library, as types used with it must be default-constructable.
     // The overloaded constructor results in a default constructor having to be manually written.
-    sevirds() = default;
+    sevirds()
+    {
+        vaccines              = false;
+        prec_divider          = 0;
+        one_over_prec_divider = 0;
+    };
 
     sevirds(proportionVector sus, proportionVector vac1, proportionVector vac2,
             proportionVector exp, proportionVector exp1, proportionVector exp2,
@@ -90,11 +104,12 @@ struct sevirds
                 immunityD1_rate{move(immuD1)},
                 immunityD2_rate{move(immuD2)},
                 min_interval_doses{min_interval},
-                prec_divider{divider},
-                one_over_prec_divider{1.0 / divider},
-                vaccines{vac}
+                vaccines(vac),
+                prec_divider(divider),
+                one_over_prec_divider(1.0 / divider)
     { num_age_groups = age_group_proportions.size(); }
 
+    // GETTERS
     unsigned int get_num_age_segments() const       { return num_age_groups;                }
     unsigned int get_num_exposed_phases() const     { return exposed.front().size();        }
     unsigned int get_num_infected_phases() const    { return infected.front().size();       }
@@ -104,31 +119,61 @@ struct sevirds
     unsigned int get_immunity1_num_weeks() const    { return immunityD1_rate.size();        }
     unsigned int get_immunity2_num_weeks() const    { return immunityD2_rate.size();        }
 
+    /**
+     * @brief Sums all the values in a vector
+     * 
+     * @param state_vector Vector to be summed
+     * @return double
+    */
     static double sum_state_vector(const vector<double>& state_vector) { return accumulate(state_vector.begin(), state_vector.end(), 0.0); }
 
     /**
-     * @param getNVac: Used when only wanting to get the non-vaccinated susceptible population.
+     * @brief Get the total susceptible population count. This includes those who are
+     * vaccinated unless specified with the bool.
+     * 
+     * @param getNVac Used when only wanting to get the non-vaccinated susceptible population.
+     * @return double
     */
-    double get_total_susceptible(bool getNVac=false) const
+    double get_total_susceptible(bool getNVac=false, int age_group=-1) const
     {
         double total_susceptible = 0;
 
-        for (unsigned int i = 0; i < num_age_groups; ++i)
+        if (age_group == -1)
         {
-            // Total non-vaccinated
-            total_susceptible += susceptible.at(i).front() * age_group_proportions.at(i);
-
-            // Total vaccianted (Dose1 + Dose2)
-            if (vaccines && !getNVac)
+            // Loop for the age groups
+            for (unsigned int i = 0; i < num_age_groups; ++i)
             {
-                total_susceptible += sum_state_vector(vaccinatedD1.at(i)) * age_group_proportions.at(i);
-                total_susceptible += sum_state_vector(vaccinatedD2.at(i)) * age_group_proportions.at(i);
+                // Total non-vaccinated
+                total_susceptible += susceptible.at(i).front() * age_group_proportions.at(i);
+
+                // Total vaccianted (Dose1 + Dose2)
+                if (vaccines && !getNVac)
+                {
+                    total_susceptible += sum_state_vector(vaccinatedD1.at(i)) * age_group_proportions.at(i);
+                    total_susceptible += sum_state_vector(vaccinatedD2.at(i)) * age_group_proportions.at(i);
+                }
+            }
+        }
+        else
+        {
+            total_susceptible = susceptible.at(age_group).front();
+
+            if (vaccines)
+            {
+                total_susceptible += sum_state_vector(vaccinatedD1.at(age_group));
+                total_susceptible += sum_state_vector(vaccinatedD2.at(age_group));
             }
         }
 
         return total_susceptible;
     }
 
+    /**
+     * @brief Gets the total susceptible group with their first dose
+     * 
+     * @param age_group Will only return the total for that age group
+     * @return double 
+     */
     double get_total_vaccinatedD1(int age_group=-1) const
     {
         double total_vaccinatedD1 = 0;
@@ -147,6 +192,12 @@ struct sevirds
         return total_vaccinatedD1;
     }
 
+    /**
+     * @brief Gets the total susceptible group with their second dose
+     * 
+     * @param age_group Returns the total for those in that age group
+     * @return double 
+     */
     double get_total_vaccinatedD2(int age_group=-1) const
     {
         double total_vaccinatedD2 = 0;
@@ -165,6 +216,12 @@ struct sevirds
         return total_vaccinatedD2;
     }
 
+    /**
+     * @brief Gets the total of those exposed including those vaccinated
+     * 
+     * @param age_group Returns only the total for the specified age group 
+     * @return double 
+     */
     double get_total_exposed(int age_group=-1) const
     {
         double total_exposed = 0;
@@ -198,6 +255,12 @@ struct sevirds
         return total_exposed;
     }
 
+    /**
+     * @brief Returns the total infected population inlcuding those who are vaccinated
+     * 
+     * @param age_group Specifies the age group to compute the total
+     * @return double 
+     */
     double get_total_infections(int age_group=-1) const
     {
         double total_infections = 0;
@@ -231,6 +294,13 @@ struct sevirds
         return total_infections;
     }
 
+    /**
+     * @brief Returns the total number of those in the recovery phase
+     * including those who are vaccinated
+     * 
+     * @param age_group Returns the total for the specified age group
+     * @return double 
+     */
     double get_total_recovered(int age_group=-1) const
     {
         double total_recoveries = 0;
@@ -264,6 +334,11 @@ struct sevirds
         return total_recoveries;
     }
 
+    /**
+     * @brief Returns the total fataltities
+     * 
+     * @return double 
+     */
     double get_total_fatalities() const
     {
         double total_fatalities = 0.0f;
@@ -284,17 +359,21 @@ struct sevirds
     }
 
     /**
-     * @brief Handles setting the decimal point without using division
+     * @brief Handles setting the desired decimal point without using division
      * 
-     * @param proportion: Value to be corrected
-     * @return double: corrected value
+     * @param proportion Value to be corrected
+     * @return double
      */
     double precision_divider(double proportion) const { return round(proportion * prec_divider) * one_over_prec_divider; }
 }; //struct servids{}
 
-bool operator<(const sevirds& lhs, const sevirds& rhs) { return true; }
-
-// outputs <population, S, E, VD1, VD2, I, R, new E, new I, new R, D>
+/**
+ * @brief Outputs <population, S, E, VD1, VD2, I, R, new E, new I, new R, D>
+ * 
+ * @param os Out stream object to pipe into
+ * @param sevirds Current simulation data
+ * @return ostream& 
+ */
 ostream &operator<<(ostream& os, const sevirds& sevirds)
 {
     double new_exposed    = 0;
@@ -303,14 +382,19 @@ ostream &operator<<(ostream& os, const sevirds& sevirds)
 
     double age_group_proportion;
 
+    // Calculate the new exposures, infectsions and recoveries
+    // on the first day of each respective phase
     for (unsigned int i = 0; i < sevirds.num_age_groups; ++i)
     {
+        // Get the age group
         age_group_proportion = sevirds.age_group_proportions.at(i);
 
-        new_exposed    += sevirds.exposed.at(i).front()   * age_group_proportion; // Non-Vaccinated Exposed
-        new_infections += sevirds.infected.at(i).front()  * age_group_proportion; // Non-Vaccinated Infected
-        new_recoveries += sevirds.recovered.at(i).front() * age_group_proportion; // Non-Vaccinated Recovered
+        // Non-Vaccinated
+        new_exposed    += sevirds.exposed.at(i).front()   * age_group_proportion; // Exposed
+        new_infections += sevirds.infected.at(i).front()  * age_group_proportion; // Infected
+        new_recoveries += sevirds.recovered.at(i).front() * age_group_proportion; // Recovered
 
+        // Vaccinated
         if (sevirds.vaccines)
         {
             // Dose 1
@@ -325,17 +409,19 @@ ostream &operator<<(ostream& os, const sevirds& sevirds)
         }
     }
 
-    // Precision everything
+    // Precision corrrection
     new_exposed    = sevirds.precision_divider(new_exposed);
     new_infections = sevirds.precision_divider(new_infections);
     new_recoveries = sevirds.precision_divider(new_recoveries);
 
+    // Calculate the totals from each day in every phase
     double total_susceptible = sevirds.precision_divider(sevirds.get_total_susceptible(true));
     double total_exposed     = sevirds.precision_divider(sevirds.get_total_exposed());
     double total_infected    = sevirds.precision_divider(sevirds.get_total_infections());
     double total_recovered   = sevirds.precision_divider(sevirds.get_total_recovered());
     double total_fatalities  = sevirds.precision_divider(sevirds.get_total_fatalities());
 
+    // Susceptible Vaccinated
     double total_vaccinatedD1 = 0.0, total_vaccinatedD2 = 0.0;
     if (sevirds.vaccines)
     {
@@ -343,12 +429,19 @@ ostream &operator<<(ostream& os, const sevirds& sevirds)
         total_vaccinatedD2 = sevirds.precision_divider(sevirds.get_total_vaccinatedD2());
     }
 
+    // Pipe all the data
     os << "<" << sevirds.population << "," << total_susceptible << "," << total_exposed << "," << total_vaccinatedD1
         << "," << total_vaccinatedD2 << "," << total_infected << "," << total_recovered << "," << new_exposed
         << "," << new_infections << "," << new_recoveries << "," << total_fatalities << ">";
     return os;
 }
 
+/**
+ * @brief Reads the data from the json under the "default" parameter
+ * 
+ * @param json Contains the json file
+ * @param current_sevirds Object to store the data
+ */
 void from_json(const nlohmann::json &json, sevirds &current_sevirds)
 {
     json.at("population").get_to(current_sevirds.population);
@@ -379,8 +472,9 @@ void from_json(const nlohmann::json &json, sevirds &current_sevirds)
     json.at("fatality_modifier").get_to(current_sevirds.fatality_modifier);
 
     json.at("immunityD1").get_to(current_sevirds.immunityD1_rate);
-    json.at("min_interval_between_doses").get_to(current_sevirds.min_interval_doses);
     json.at("immunityD2").get_to(current_sevirds.immunityD2_rate);
+    json.at("min_interval_between_doses").get_to(current_sevirds.min_interval_doses);
+    json.at("min_interval_between_recoverie_and_vaccine").get_to(current_sevirds.min_interval_recovery_to_vaccine);
 
     current_sevirds.num_age_groups = current_sevirds.age_group_proportions.size();
     unsigned int age_groups        = current_sevirds.num_age_groups;

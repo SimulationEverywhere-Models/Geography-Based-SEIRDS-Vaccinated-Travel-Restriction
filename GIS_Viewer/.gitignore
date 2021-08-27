@@ -1,2 +1,5 @@
-ottawa/simulation_runs
-ontario/simulation_runs
+*
+!settings/
+!settings/visualColorConfig
+!settings/visualColorConfig/*
+!README.md

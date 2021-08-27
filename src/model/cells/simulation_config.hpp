@@ -5,6 +5,7 @@
 #define PANDEMIC_HOYA_2002_SIMULATION_CONFIG_HPP
 
 #include <nlohmann/json.hpp>
+#include "../Helpers/Assert.hpp"
 
 struct simulation_config
 {
@@ -21,7 +22,7 @@ struct simulation_config
     phase_rates vac1_rates;
     phase_rates vac2_rates;
 
-    bool SIIRS_model, is_vaccination;
+    bool reSusceptibility, is_vaccination;
 };
 
 void from_json(const nlohmann::json& json, simulation_config& v)
@@ -32,7 +33,7 @@ void from_json(const nlohmann::json& json, simulation_config& v)
     json.at("recovery_rates").get_to(v.recovery_rates);
     json.at("mobility_rates").get_to(v.mobility_rates);
     json.at("fatality_rates").get_to(v.fatality_rates);
-    json.at("SIIRS_model").get_to(v.SIIRS_model);
+    json.at("Re-Susceptibility").get_to(v.reSusceptibility);
     json.at("Vaccinations").get_to(v.is_vaccination);
 
     if (v.is_vaccination)

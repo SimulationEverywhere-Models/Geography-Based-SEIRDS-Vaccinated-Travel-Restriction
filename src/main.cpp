@@ -25,7 +25,8 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
- // Modified by Glenn - 02/07/20
+// Modified by Glenn - 02/07/20
+// And Eric - Summer/2021
 
 #include <fstream>
 #include <cadmium/modeling/dynamic_coupled.hpp>
@@ -55,15 +56,15 @@ using logger_top        = logger::multilogger<state,                    log_mess
 
 int main(int argc, char** argv)
 {
-    if (argc < 2)
-    {
-        cout << "Program used with wrong parameters. The program must be invoked as follows:";
-        cout << argv[0] << " SCENARIO_CONFIG.json [MAX_SIMULATION_TIME (default: 500)]" << endl;
-        return -1;
-    }
+    // try
+    // {
+        if (argc < 2)
+        {
+            cerr << "\033[31mProgram used with wrong parameters. The program must be invoked as follows: "
+                << argv[0] << " SCENARIO_CONFIG.json [MAX_SIMULATION_TIME (default: 500)]\33[0m" << endl;
+            throw;
+        }
 
-    try
-    {
         // The C++ standard filesystem library is not used as it may require an additional linker flag (-std=c++17),
         // but more importantly that in certain versions of GCC the filesystem is contained in an experimental folder (GCC 7).
         // Newer versions of GCC doesn't have this problem (apparently GCC 8+ ?). As a result, depending on the version of GCC
@@ -87,52 +88,27 @@ int main(int argc, char** argv)
         shared_ptr<cadmium::dynamic::modeling::coupled <TIME>>
         t = make_shared<geographical_coupled<TIME>>(test);
 
-        // Lambda function that displays the loading animation
-        auto lm = [](bool* isDone)
-        {
-            if (! *isDone)
-            {
-                cout << "\033[33m-" << flush;
-                // Loop till bool changes
-                while(! *isDone)
-                {
-                    // Loop through all the different animation cycles
-                    for (char loading : {'\\', '|', '/', '-'})
-                    {
-                        this_thread::sleep_for(0.1s);
-                        // '\r' replaces the last printed line in the terminal
-                        cout << "\rcomputing " << loading << flush;
-                    }
-                }
-            }
-        };
-
-        bool noProgress = argc > 3 && *(argv[3]) == 'N';
-
-        // Start the thread
-        thread th_obj(lm, &noProgress);
+        // Has the 'no progress' flag been set?
+        bool noProgress = (argc > 3) && strcmp((argv[3]), "-np") == 0;
 
         cadmium::dynamic::engine::runner<TIME, logger_top> r(t, {0});
+
+        // Turn on the progress meter
+        if (!noProgress)
+            r.turn_progress_on();
+
         float sim_time = (argc > 2) ? atof(argv[2]) : 500;
         r.run_until(sim_time);
-
-        // Stop the thread when the sim is done running
-        if (!noProgress)
-        {
-            noProgress = true;
-            th_obj.join();
-            cout << "\r";
-        }
-        cout << "\033[1;32mDone.       \033[0m" << endl;
-    } //try{}
-    catch(exception &e)
-    {
-        // With cygwin, an exception that terminates the program may not be printed to the screen, making it unclear
-        // if an error occurred. Thus an explicit print is done, along with a rethrowing of the exception to keep
-        // the original termination logic the same.
-        cerr << "A fatal error occurred: " << e.what() << endl;
-        throw;
-    }
+        cout << "\r\033[1;32mDone.       \033[0m" << endl;
+    // } //try{}
+    // catch(exception &e)
+    // {
+    //     // With cygwin, an exception that terminates the program may not be printed to the screen, making it unclear
+    //     // if an error occurred. Thus an explicit print is done, along with a rethrowing of the exception to keep
+    //     // the original termination logic the same.
+    //     cerr << "\033[31mA fatal error occurred: " << e.what() << "\033[0m" << endl;
+    //     throw;
+    // }
 
     return 0;
 } //main()

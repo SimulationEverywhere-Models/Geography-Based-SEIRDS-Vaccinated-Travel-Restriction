@@ -12,7 +12,7 @@
 	"layers":	[{
 			"id":	"PHU",
 			"type":	"polygon",
-			"file":	"ontario_phu.geojson",
+			"file":	"ontario.geojson",
 			"label": "Ottawa PHUs SEIRD",
 			"style": "default",
 			"model": "pandemic",
@@ -31,6 +31,34 @@
 				"type":	"static",
 				"width":	1,
 				"color":	"rgba(0,0,0,1)"
+			}
+		},
+		{
+			"name": "VaccinatedD1",
+			"layer": "PHU",
+			"fill": {
+				"type":"equivalent",
+				"property": "VaccinatedD1",
+				"colors":["rgba(200, 81, 229, 0.6)","rgba(200, 81, 229, 0.85)","rgba(200, 81, 229, 0.85)","rgba(200, 81, 229, 0.85)","rgba(200, 81, 229, 0.85)","rgba(200, 81, 229, 0.85)","rgba(200, 81, 229, 0.85)","rgba(200, 81, 229, 0.90)"]
+			},
+			"stroke": {
+				"type": "static",
+				"width": 1,
+				"color": "rgba(0,0,0,1)"
+			}
+		},
+		{
+			"name": "VaccinatedD2",
+			"layer": "PHU",
+			"fill": {
+				"type":"equivalent",
+				"property": "VaccinatedD1",
+				"colors":["rgba(104, 13, 90,0.6)","rgba(104, 13, 90,0.85)","rgba(104, 13, 90, 0.85)","rgba(104, 13, 90, 0.85)","rgba(104, 13, 90, 0.85)","rgba(104, 13, 90, 0.85)","rgba(104, 13, 90, 0.85)","rgba(104, 13, 90, 0.90)"]
+			},
+			"stroke": {
+				"type": "static",
+				"width": 1,
+				"color": "rgba(0,0,0,1)"
 			}
 		},
 		{

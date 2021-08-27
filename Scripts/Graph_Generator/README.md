@@ -12,3 +12,6 @@ python3 graph_aggregates.py
 _Note_: python 3 is required and the scripts should be run in this order because the first script creates the stats folder
 
 The output graphs will be written to logs/stats
+
+Flags
+- `--no-progress, -np` => Turns off loading animation
