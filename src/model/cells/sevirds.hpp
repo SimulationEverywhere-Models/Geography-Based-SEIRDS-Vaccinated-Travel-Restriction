@@ -474,7 +474,7 @@ void from_json(const nlohmann::json &json, sevirds &current_sevirds)
     json.at("immunityD1").get_to(current_sevirds.immunityD1_rate);
     json.at("immunityD2").get_to(current_sevirds.immunityD2_rate);
     json.at("min_interval_between_doses").get_to(current_sevirds.min_interval_doses);
-    json.at("min_interval_between_recoverie_and_vaccine").get_to(current_sevirds.min_interval_recovery_to_vaccine);
+    json.at("min_interval_between_recovery_and_vaccine").get_to(current_sevirds.min_interval_recovery_to_vaccine);
 
     current_sevirds.num_age_groups = current_sevirds.age_group_proportions.size();
     unsigned int age_groups        = current_sevirds.num_age_groups;

@@ -11,6 +11,7 @@ Understanding the Fields
 default.json
 ---
 default
+* **area**: The area this config will run in (ex: ontario, ottawa...)
 * **delay**: How many days each simulation step represents
 * **cell_type**: The type of cell used for simulating regions. Best to leave this as _zhong_ unless you know what you're doing
 * **population**: _N/A_
@@ -32,8 +33,9 @@ default
 * **hospital_capacity**: Proportion of population that can be housed in hospitals
 * **fatality_modifiers**: Comes into effect when the hospitals are full and increases fatality rates
 * **immunityD1**: Immunity received from 1 dose per age group. Length represents weeks (i.e., each week the immunity rises)
-* **immunityD2**: Immunity received from 2 doses per age group. Lenght represents weeks
+* **immunityD2**: Immunity received from 2 doses per age group. Length of each vector represents number of weeks (always round up)
 * **min_interval_between_doses**: Minimum time between dose 1 and dose 2. The average interval is longer due to supply shortage but a small proportion of the population are eligible to receive their second shot sooner (ex: elderly, public health workers...) yet there is still a recommended wait time before the first and second dose
+* **min_interval_between_recovery_and_vaccine**: Minimum time after recovering (first index of recovery phase) and getting a dose
 
 config
 * **precision**: Used to get cleaner decimal points. Best not to touch this unless you know what you're doing
@@ -43,7 +45,11 @@ config
 * **incubation_rates_dose2**: Incubation rates for those with their second dose of the vaccine
 * **mobility_rates**: Same as the prvious but the length represents the days of infection. The proportion of population moving around may change as the time in the infected state carries on
 * **recovery_rates**: Same as previous but handles the chance of recoveries
+* **recovery_rates_dose1**: Recovery rates for those with their first dose of the vaccine
+* **recovery_rates_dose2**: Recovery rates for those with their second dose of the vaccine
 * **fatality_rates**: Same as previous but with the chance of fatalities
+* **fatality_rates_dose1**: Recovery rates for those with their first dose of the vaccine
+* **fatality_rates_dose2**: Recovery rates for those with their second dose of the vaccine
 * **vaccinaterd_rates_dose1** : Rate at which each age group is being vaccinated daily
 * **vaccinaterd_rates_dose2** : Rate at which each age group is being vaccinated, varying on a daily basis as some people are eligible to get their second dose sooner. The length of each list represents the length of days set in **vaccinatedD1** minus the **min_interval_between_doses** (the first index in the list is the minimal interval and the last index is the interval of those with dose 1)
 * **Re-Susceptibility**: Can recovered individuals become re-susceptible? ```true``` or ```false```
