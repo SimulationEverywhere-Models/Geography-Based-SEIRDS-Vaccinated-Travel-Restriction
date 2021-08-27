@@ -257,7 +257,7 @@ Main()
     # Run the model
     cd bin
     echo; echo "Executing Model for $DAYS Days"
-    $VALGRIND ./pandemic-geographical_model ../config/scenario_${INPUT_DIR}.json $DAYS $PROGRESS
+    ./pandemic-geographical_model ../config/scenario_${INPUT_DIR}.json $DAYS $PROGRESS
     ErrorCheck $? # Check for build errors
     cd $HOME_DIR
     echo
@@ -447,7 +447,7 @@ else
             BuildTime "Profiling"
             echo -e "Check ${GREEN}bin\callgrind.out${RESET} for profiler results"
         elif [[ $VALGRIND != "" ]]; then
-            if [[ `valgrind--version` == *"valgrind-"* ]]; then
+            if [[ `valgrind --version` == *"valgrind-"* ]]; then
                 echo -e "Valgrind ${GREEN}[FOUND]${RESET}"
             else
                 echo -e "Valgrind ${RED}[NOT FOUND]${RESET}"
