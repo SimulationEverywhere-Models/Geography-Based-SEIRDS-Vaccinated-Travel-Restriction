@@ -494,21 +494,21 @@ void from_json(const nlohmann::json &json, sevirds &current_sevirds)
 
     for (unsigned int a = 0; a < age_groups; ++a)
     {
-        long pop = current_sevirds.susceptible.at(a).front()
-                    ;pop+= accumulate(current_sevirds.exposed.at(a).begin(),   current_sevirds.exposed.at(a).end(),   0.0)
-                    ;pop+= accumulate(current_sevirds.infected.at(a).begin(),  current_sevirds.infected.at(a).end(),  0.0)
-                    ;pop+= accumulate(current_sevirds.recovered.at(a).begin(), current_sevirds.recovered.at(a).end(), 0.0)
-                    ;pop+= current_sevirds.fatalities.at(a)
-                    ;pop+= accumulate(current_sevirds.vaccinatedD1.at(a).begin(), current_sevirds.vaccinatedD1.at(a).end(), 0.0)
-                    ;pop+= accumulate(current_sevirds.vaccinatedD2.at(a).begin(), current_sevirds.vaccinatedD2.at(a).end(), 0.0)
-                    ;pop+= accumulate(current_sevirds.exposedD1.at(a).begin(),    current_sevirds.exposedD1.at(a).end(),    0.0)
-                    ;pop+= accumulate(current_sevirds.exposedD2.at(a).begin(),    current_sevirds.exposedD2.at(a).end(),    0.0)
-                    ;pop+= accumulate(current_sevirds.infectedD1.at(a).begin(),   current_sevirds.infectedD1.at(a).end(),   0.0)
-                    ;pop+= accumulate(current_sevirds.infectedD2.at(a).begin(),   current_sevirds.infectedD2.at(a).end(),   0.0)
-                    ;pop+= accumulate(current_sevirds.recoveredD1.at(a).begin(),  current_sevirds.recoveredD1.at(a).end(),  0.0)
-                    ;pop+= accumulate(current_sevirds.recoveredD2.at(a).begin(),  current_sevirds.recoveredD2.at(a).end(),  0.0);
+        double pop = current_sevirds.susceptible.at(a).front()
+                    + accumulate(current_sevirds.exposed.at(a).begin(),   current_sevirds.exposed.at(a).end(),   0.0)
+                    + accumulate(current_sevirds.infected.at(a).begin(),  current_sevirds.infected.at(a).end(),  0.0)
+                    + accumulate(current_sevirds.recovered.at(a).begin(), current_sevirds.recovered.at(a).end(), 0.0)
+                    + current_sevirds.fatalities.at(a)
+                    + accumulate(current_sevirds.vaccinatedD1.at(a).begin(), current_sevirds.vaccinatedD1.at(a).end(), 0.0)
+                    + accumulate(current_sevirds.vaccinatedD2.at(a).begin(), current_sevirds.vaccinatedD2.at(a).end(), 0.0)
+                    + accumulate(current_sevirds.exposedD1.at(a).begin(),    current_sevirds.exposedD1.at(a).end(),    0.0)
+                    + accumulate(current_sevirds.exposedD2.at(a).begin(),    current_sevirds.exposedD2.at(a).end(),    0.0)
+                    + accumulate(current_sevirds.infectedD1.at(a).begin(),   current_sevirds.infectedD1.at(a).end(),   0.0)
+                    + accumulate(current_sevirds.infectedD2.at(a).begin(),   current_sevirds.infectedD2.at(a).end(),   0.0)
+                    + accumulate(current_sevirds.recoveredD1.at(a).begin(),  current_sevirds.recoveredD1.at(a).end(),  0.0)
+                    + accumulate(current_sevirds.recoveredD2.at(a).begin(),  current_sevirds.recoveredD2.at(a).end(),  0.0);
 
-        AssertLong(pop <= 1.000000001 && pop >= 0.999999999, __FILE__, __LINE__, "The vectors don't add up to 1! " + to_string(pop) + " Double check the values in default.json AND infectedCell.json");
+                    AssertLong(pop == 1.0, __FILE__, __LINE__, "The vectors don't add up to 1! " + to_string(pop) + " Double check the values in default.json AND infectedCell.json");
     }
 
     for (unsigned int i = 0; i < age_groups; ++i)
