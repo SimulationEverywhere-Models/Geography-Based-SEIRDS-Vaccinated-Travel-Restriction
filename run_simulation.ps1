@@ -374,10 +374,11 @@ foreach($Param in $Params) { if ($PSBoundParameters.keys -like "*"+$Param+"*") {
             Write-Verbose "${YELLOW}Building Model as $BLUE$BuildType${YELLOW}"
             cmake -DCMAKE_EXPORT_COMPILE_COMMANDS:BOOL=TRUE -DCMAKE_BUILD_TYPE:STRING=$BuildType -DVERBOSE=$Verbose -B"${HomeDir}\bin" -G "MinGW Makefiles"
             ErrorCheck
-            cmake --build .\bin
-            ErrorCheck
-            Write-Verbose "${GREEN}Done.`n"
         }
+
+        cmake --build .\bin
+        ErrorCheck
+        Write-Verbose "${GREEN}Done.`n"
     }
 
     <#
