@@ -37,7 +37,9 @@ void from_json(const nlohmann::json& json, simulation_config& v)
 
     if (v.is_vaccination)
     {
-        json.at("vaccination_rates_dose1").get_to(v.vac1_rates);
+        try { json.at("vaccination_rates_dose1").get_to(v.vac1_rates); }
+        catch(nlohmann::detail::type_error &e) { AssertLong(false, __FILE__, __LINE__, "Error reading the vaccination_rates_dose1 vector from default.json.\nVerify the format is [[#], [#], ...] and NOT [#, #, ...]"); }
+
         json.at("vaccination_rates_dose2").get_to(v.vac2_rates);
         json.at("incubation_rates_dose1").get_to(v.incubationD1_rates);
         json.at("incubation_rates_dose2").get_to(v.incubationD2_rates);
@@ -53,10 +55,10 @@ void from_json(const nlohmann::json& json, simulation_config& v)
 
         for (unsigned int k = 0; k < recovery_days; ++k)
             // A sum of greater than one refers to more than the entire population of an infection stage.
-            assert(v_recovery_rates.at(k) + v_fatality_rates.at(k) <= 1.0f && "The recovery rate + fatality rate cannot exceed 1!");
+            Assert::AssertLong(v_recovery_rates.at(k) + v_fatality_rates.at(k) <= 1.0, __FILE__, __LINE__, "The recovery rate + fatality rate cannot exceed 1!");
 
-        assert(v_fatality_rates.back() <= 1.0f && "The fatality rate cannot exceed one!"); // Assert because the recovery rate has
-                                                                                           // one less entry than the fatality rates.
+        // Assert because the the recovery and fatality rates must add up to 1 on the last day
+        Assert::AssertLong(v_fatality_rates.back() + v_recovery_rates.back() == 1.0, __FILE__, __LINE__, "The fatality and recovery rates on the last day must add up to 1!");
     }
 }
 

@@ -354,7 +354,9 @@ void from_json(const nlohmann::json &json, sevirds &current_sevirds)
     json.at("population").get_to(current_sevirds.population);
     json.at("age_group_proportions").get_to(current_sevirds.age_group_proportions);
 
-    json.at("susceptible").get_to(current_sevirds.susceptible);
+    try { json.at("susceptible").get_to(current_sevirds.susceptible); }
+    catch(nlohmann::detail::type_error &e) { AssertLong(false, __FILE__, __LINE__, "Error reading the susceptible vector from either default.json OR infectedCell.json\nVerify the format is [[#], [#], ...] and NOT [#, #, ...]"); }
+
     json.at("vaccinatedD1").get_to(current_sevirds.vaccinatedD1);
     json.at("vaccinatedD2").get_to(current_sevirds.vaccinatedD2);
 
@@ -381,18 +383,51 @@ void from_json(const nlohmann::json &json, sevirds &current_sevirds)
     json.at("immunityD2").get_to(current_sevirds.immunityD2_rate);
 
     current_sevirds.num_age_groups = current_sevirds.age_group_proportions.size();
+    unsigned int age_groups        = current_sevirds.num_age_groups;
 
-    assert(current_sevirds.age_group_proportions.size() == current_sevirds.susceptible.size() && current_sevirds.age_group_proportions.size() == current_sevirds.exposed.size() &&
-            current_sevirds.age_group_proportions.size() == current_sevirds.infected.size() && current_sevirds.age_group_proportions.size() == current_sevirds.recovered.size() &&
-            "There must be an equal number of age groups between age_group_proportions, susceptible, exposed, infected, and recovered!\n");
+    AssertLong(accumulate(current_sevirds.age_group_proportions.begin(), current_sevirds.age_group_proportions.end(), 0.0) == 1,
+                __FILE__, __LINE__,
+                "The age group proportions need to add up to 1");
 
-    // Three options: unvaccinated, dose 1 or dose 2. Can only be in one of those groups
-    for (unsigned int i = 0; i < current_sevirds.num_age_groups; ++i)
-        if ( current_sevirds.vaccines && current_sevirds.get_total_vaccinatedD1() + current_sevirds.get_total_vaccinatedD2() > 1.0f )
-        {
-            cout << "\033[1;31mASSERT: \033[0;31mPeople can only be in one of three groups: Unvaccinated, Vaccinated-Dose1, or Vaccinated-Dose2. The proportion of people with dose 1 plus those with dose 2 cannot be greater then 1\033[0m" << endl;
-            assert(false);
-        }
+    // Checks if the phases have the correct number of age groups
+    AssertLong(age_groups <= current_sevirds.susceptible.size() && age_groups <= current_sevirds.exposed.size() && age_groups <= current_sevirds.infected.size() &&
+                    age_groups <= current_sevirds.recovered.size() && age_groups <= current_sevirds.fatalities.size() && age_groups <= current_sevirds.vaccinatedD1.size() &&
+                    age_groups <= current_sevirds.vaccinatedD2.size() && age_groups <= current_sevirds.immunityD1_rate.size() && age_groups <= current_sevirds.immunityD2_rate.size() &&
+                    age_groups <= current_sevirds.exposedD1.size() && age_groups <= current_sevirds.infectedD2.size() && age_groups <= current_sevirds.recoveredD2.size() &&
+                    age_groups <= current_sevirds.exposedD2.size() && age_groups <= current_sevirds.infectedD2.size() && age_groups <= current_sevirds.recoveredD2.size(),
+                __FILE__, __LINE__,
+                "There must be at least " + to_string(age_groups) + " age groups for each of the lists under the 'states' parameter in default.json as well as in infectedCell.json");
+
+    for (unsigned int a = 0; a < age_groups; ++a)
+    {
+        long pop = current_sevirds.susceptible.at(a).front()
+                    ;pop+= accumulate(current_sevirds.exposed.at(a).begin(),   current_sevirds.exposed.at(a).end(),   0.0)
+                    ;pop+= accumulate(current_sevirds.infected.at(a).begin(),  current_sevirds.infected.at(a).end(),  0.0)
+                    ;pop+= accumulate(current_sevirds.recovered.at(a).begin(), current_sevirds.recovered.at(a).end(), 0.0)
+                    ;pop+= current_sevirds.fatalities.at(a)
+                    ;pop+= accumulate(current_sevirds.vaccinatedD1.at(a).begin(), current_sevirds.vaccinatedD1.at(a).end(), 0.0)
+                    ;pop+= accumulate(current_sevirds.vaccinatedD2.at(a).begin(), current_sevirds.vaccinatedD2.at(a).end(), 0.0)
+                    ;pop+= accumulate(current_sevirds.exposedD1.at(a).begin(),    current_sevirds.exposedD1.at(a).end(),    0.0)
+                    ;pop+= accumulate(current_sevirds.exposedD2.at(a).begin(),    current_sevirds.exposedD2.at(a).end(),    0.0)
+                    ;pop+= accumulate(current_sevirds.infectedD1.at(a).begin(),   current_sevirds.infectedD1.at(a).end(),   0.0)
+                    ;pop+= accumulate(current_sevirds.infectedD2.at(a).begin(),   current_sevirds.infectedD2.at(a).end(),   0.0)
+                    ;pop+= accumulate(current_sevirds.recoveredD1.at(a).begin(),  current_sevirds.recoveredD1.at(a).end(),  0.0)
+                    ;pop+= accumulate(current_sevirds.recoveredD2.at(a).begin(),  current_sevirds.recoveredD2.at(a).end(),  0.0);
+
+        AssertLong(pop <= 1.000000001 && pop >= 0.999999999, __FILE__, __LINE__, "The vectors don't add up to 1! " + to_string(pop) + " Double check the values in default.json AND infectedCell.json");
+    }
+
+    for (unsigned int i = 0; i < age_groups; ++i)
+    {
+        AssertLong(current_sevirds.get_total_vaccinatedD1() + current_sevirds.get_total_vaccinatedD2() <= 1.0f,
+                    __FILE__, __LINE__,
+                    "People can only be in one of three groups: Unvaccinated, Vaccinated-Dose1, or Vaccinated-Dose2.\nThe proportion of people with dose 1 plus those with dose 2 cannot be greater then 1");
+    }
+
+    // Recovered Dose 1 can't be smaller then Susceptible Vaccinated Dose 1
+    AssertLong(current_sevirds.recoveredD1.front().size() >= current_sevirds.vaccinatedD1.front().size(),
+                __FILE__, __LINE__,
+                "The recovery phase for those vaccinated with their first dose needs to be smaller then vaccinatedD1!");
 }
 
 #endif //PANDEMIC_HOYA_2002_SEIRD_HPP
