@@ -447,7 +447,9 @@ void from_json(const nlohmann::json &json, sevirds &current_sevirds)
     json.at("population").get_to(current_sevirds.population);
     json.at("age_group_proportions").get_to(current_sevirds.age_group_proportions);
 
-    json.at("susceptible").get_to(current_sevirds.susceptible);
+    try { json.at("susceptible").get_to(current_sevirds.susceptible); }
+    catch(nlohmann::detail::type_error &e) { AssertLong(false, __FILE__, __LINE__, "Error reading the susceptible vector from either default.json OR infectedCell.json\nVerify the format is [[#], [#], ...] and NOT [#, #, ...]"); }
+
     json.at("vaccinatedD1").get_to(current_sevirds.vaccinatedD1);
     json.at("vaccinatedD2").get_to(current_sevirds.vaccinatedD2);
 
@@ -475,8 +477,7 @@ void from_json(const nlohmann::json &json, sevirds &current_sevirds)
     json.at("min_interval_between_recoverie_and_vaccine").get_to(current_sevirds.min_interval_recovery_to_vaccine);
 
     current_sevirds.num_age_groups = current_sevirds.age_group_proportions.size();
-
-    unsigned int age_groups = current_sevirds.num_age_groups;
+    unsigned int age_groups        = current_sevirds.num_age_groups;
 
     AssertLong(accumulate(current_sevirds.age_group_proportions.begin(), current_sevirds.age_group_proportions.end(), 0.0) == 1,
                 __FILE__, __LINE__,
@@ -491,20 +492,36 @@ void from_json(const nlohmann::json &json, sevirds &current_sevirds)
                 __FILE__, __LINE__,
                 "There must be at least " + to_string(age_groups) + " age groups for each of the lists under the 'states' parameter in default.json as well as in infectedCell.json");
 
-    if (current_sevirds.min_interval_doses != 0)
+    for (unsigned int a = 0; a < age_groups; ++a)
     {
-        for (unsigned int i = 0; i < age_groups; ++i)
-        {
-            AssertLong(current_sevirds.get_total_vaccinatedD1() + current_sevirds.get_total_vaccinatedD2() <= 1.0f,
-                        __FILE__, __LINE__,
-                        "People can only be in one of three groups: Unvaccinated, Vaccinated-Dose1, or Vaccinated-Dose2.\nThe proportion of people with dose 1 plus those with dose 2 cannot be greater then 1");
-        }
+        double pop = current_sevirds.susceptible.at(a).front()
+                    + accumulate(current_sevirds.exposed.at(a).begin(),   current_sevirds.exposed.at(a).end(),   0.0)
+                    + accumulate(current_sevirds.infected.at(a).begin(),  current_sevirds.infected.at(a).end(),  0.0)
+                    + accumulate(current_sevirds.recovered.at(a).begin(), current_sevirds.recovered.at(a).end(), 0.0)
+                    + current_sevirds.fatalities.at(a)
+                    + accumulate(current_sevirds.vaccinatedD1.at(a).begin(), current_sevirds.vaccinatedD1.at(a).end(), 0.0)
+                    + accumulate(current_sevirds.vaccinatedD2.at(a).begin(), current_sevirds.vaccinatedD2.at(a).end(), 0.0)
+                    + accumulate(current_sevirds.exposedD1.at(a).begin(),    current_sevirds.exposedD1.at(a).end(),    0.0)
+                    + accumulate(current_sevirds.exposedD2.at(a).begin(),    current_sevirds.exposedD2.at(a).end(),    0.0)
+                    + accumulate(current_sevirds.infectedD1.at(a).begin(),   current_sevirds.infectedD1.at(a).end(),   0.0)
+                    + accumulate(current_sevirds.infectedD2.at(a).begin(),   current_sevirds.infectedD2.at(a).end(),   0.0)
+                    + accumulate(current_sevirds.recoveredD1.at(a).begin(),  current_sevirds.recoveredD1.at(a).end(),  0.0)
+                    + accumulate(current_sevirds.recoveredD2.at(a).begin(),  current_sevirds.recoveredD2.at(a).end(),  0.0);
 
-        // Recovered Dose 1 can't be smaller then Susceptible Vaccinated Dose 1
-        AssertLong(current_sevirds.recoveredD1.front().size() >= current_sevirds.vaccinatedD1.front().size(),
-                    __FILE__, __LINE__,
-                    "The recovery phase for those vaccinated with their first dose needs to be smaller then vaccinatedD1!");
+                    AssertLong(pop == 1.0, __FILE__, __LINE__, "The vectors don't add up to 1! " + to_string(pop) + " Double check the values in default.json AND infectedCell.json");
     }
+
+    for (unsigned int i = 0; i < age_groups; ++i)
+    {
+        AssertLong(current_sevirds.get_total_vaccinatedD1() + current_sevirds.get_total_vaccinatedD2() <= 1.0f,
+                    __FILE__, __LINE__,
+                    "People can only be in one of three groups: Unvaccinated, Vaccinated-Dose1, or Vaccinated-Dose2.\nThe proportion of people with dose 1 plus those with dose 2 cannot be greater then 1");
+    }
+
+    // Recovered Dose 1 can't be smaller then Susceptible Vaccinated Dose 1
+    AssertLong(current_sevirds.recoveredD1.front().size() >= current_sevirds.vaccinatedD1.front().size(),
+                __FILE__, __LINE__,
+                "The recovery phase for those vaccinated with their first dose needs to be smaller then vaccinatedD1!");
 }
 
 #endif //PANDEMIC_HOYA_2002_SEIRD_HPP
