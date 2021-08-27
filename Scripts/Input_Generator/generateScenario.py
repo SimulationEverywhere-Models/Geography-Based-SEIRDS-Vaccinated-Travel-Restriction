@@ -20,7 +20,7 @@ if (len(sys.argv) < 2):
 no_progress = len(sys.argv) > 2 and sys.argv[2] == "-np"
 
 # Setup variables that handle the area
-input_dir          = str(sys.argv[1]).lower()
+input_dir          = str(sys.argv[1])
 input_area         = json.loads( open(input_dir + "/default.json", "r").read() )["default"]["area"]
 cadmium_dir        = "../../cadmium_gis/"
 cadmium_dir       += input_area + "/"
