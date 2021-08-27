@@ -164,7 +164,8 @@
             if [[ $1 == "Y" ]]; then
                 # Check for Cadmium
                 if [[ ${cadmium} == "" && ! -d "../cadmium" ]]; then
-                    echo -e "${RED}Could not find Cadmium. Make sure it's in the parent folder${RESET}"
+                    echo -e "Cadmium ${RED}[NOT FOUND]${RESET}"
+                    echo -e "${YELLOW}Make sure the Cadmium directory is in the parent folder of the SEVIRDS directory${RESET}"
                     exit -1
                 else echo -e "Cadmium ${GREEN}[FOUND]${RESET}";
                 fi
@@ -219,6 +220,8 @@
                         echo -e "$lib ${GREEN}[FOUND]${RESET}"
                     else
                         echo -e "$lib ${RED}[NOT FOUND]${RESET}"
+                        export PyCheck=0
+                        exit -1
                     fi
                 done
             fi
