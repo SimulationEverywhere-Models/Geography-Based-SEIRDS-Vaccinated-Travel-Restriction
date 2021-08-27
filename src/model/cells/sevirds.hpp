@@ -508,7 +508,7 @@ void from_json(const nlohmann::json &json, sevirds &current_sevirds)
                     + accumulate(current_sevirds.recoveredD1.at(a).begin(),  current_sevirds.recoveredD1.at(a).end(),  0.0)
                     + accumulate(current_sevirds.recoveredD2.at(a).begin(),  current_sevirds.recoveredD2.at(a).end(),  0.0);
 
-                    AssertLong(pop == 1.0, __FILE__, __LINE__, "The vectors don't add up to 1! " + to_string(pop) + " Double check the values in default.json AND infectedCell.json");
+        AssertLong(pop == 1.0, __FILE__, __LINE__, "The vectors don't add up to 1! " + to_string(pop) + " Double check the values in default.json AND infectedCell.json");
     }
 
     for (unsigned int i = 0; i < age_groups; ++i)

@@ -48,8 +48,12 @@ class geographical_cell : public cell<T, string, sevirds, vicinity>
         phase_rates incubationD2_rates;
         phase_rates incubation_rates;
         phase_rates recovery_rates;
+        phase_rates recoveryD1_rates;
+        phase_rates recoveryD2_rates;
         phase_rates mobility_rates;
         phase_rates fatality_rates;
+        phase_rates fatalityD1_rates;
+        phase_rates fatalityD2_rates;
         phase_rates vac1_rates;
         phase_rates vac2_rates;
 
@@ -97,14 +101,13 @@ class geographical_cell : public cell<T, string, sevirds, vicinity>
 
                 incubationD1_rates = move(config.incubationD1_rates);
                 incubationD2_rates = move(config.incubationD2_rates);
-            }
 
-            // Checks if the rates vectors have the correct number of age groups
-            AssertLong(virulence_rates.size() == recovery_rates.size() && virulence_rates.size() == mobility_rates.size() &&
-                        virulence_rates.size() == incubation_rates.size(),
-                        __FILE__,
-                        __LINE__,
-                        "There must be an equal number of age segments between all configuration rates");
+                recoveryD1_rates = move(config.recovery_ratesD1);
+                recoveryD2_rates = move(config.recovery_ratesD2);
+
+                fatalityD1_rates = move(config.fatality_ratesD1);
+                fatalityD2_rates = move(config.fatality_ratesD2);
+            }
         }
 
         /**
@@ -156,12 +159,12 @@ class geographical_cell : public cell<T, string, sevirds, vicinity>
                 {
                     // Init the vac object for the current age group
                     age_data_vac1.reset(new AgeData(age_segment_index, res.vaccinatedD1, res.exposedD1, res.infectedD1,
-                                                    res.recoveredD1, incubation_rates, recovery_rates,
-                                                    fatality_rates, vac1_rates.at(age_segment_index),
+                                                    res.recoveredD1, incubationD1_rates, recoveryD1_rates,
+                                                    fatalityD1_rates, vac1_rates.at(age_segment_index),
                                                     res.immunityD1_rate.at(age_segment_index), AgeData::PopType::DOSE1));
                     age_data_vac2.reset(new AgeData(age_segment_index, res.vaccinatedD2, res.exposedD2, res.infectedD2,
-                                                    res.recoveredD2, incubation_rates, recovery_rates,
-                                                    fatality_rates, vac2_rates.at(age_segment_index),
+                                                    res.recoveredD2, incubationD2_rates, recoveryD2_rates,
+                                                    fatalityD2_rates, vac2_rates.at(age_segment_index),
                                                     res.immunityD2_rate.at(age_segment_index), AgeData::PopType::DOSE2));
 
                     // Equations for Vaccinated population (eg. EV1, RV2...)
