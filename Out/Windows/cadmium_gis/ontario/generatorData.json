@@ -1,9 +1,0 @@
-{
-    "area_id" :  "PHU_ID",
-
-    "_comment_": "Check the column name in the 'clean'.csv",
-    "population_column_name": "population",
-
-    "area_col": "area_epsg4326",
-    "progress_freq": 10
-}
