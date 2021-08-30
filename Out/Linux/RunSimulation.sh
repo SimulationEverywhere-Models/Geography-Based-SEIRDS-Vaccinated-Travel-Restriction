@@ -101,17 +101,53 @@
         fi
     }
 
+    # Dependency Check
+    DependencyCheck()
+    {
+        echo "Checking Dependencies..."
+
+        # Dependencies exclusive to the python scripts
+        if [[ `python --version` == *"Python 3"* ]]; then
+            echo -e "Python ${GREEN}[FOUND]${RESET}"
+        else
+            echo -e "Python ${RED}[NOT FOUND]${RESET}"
+            exit -1
+        fi
+
+        if [[ `conda --version` == *"conda 4"* ]]; then
+            echo -e "Conda ${GREEN}[FOUND]${RESET}"
+        else
+            echo -e "Conda ${RED}[NOT FOUND]${RESET}"
+            exit -1
+        fi
+
+        # Python dependencies
+        Libs=("numpy" "matplotlib" "geopandas")
+        condaList=`conda list`
+        for lib in "${Libs[@]}"; do
+            if [[ "${condaList}" == *"${lib}"* ]]; then
+                echo -e "$lib ${GREEN}[FOUND]${RESET}"
+            else
+                echo -e "$lib ${RED}[NOT FOUND]${RESET}"
+                export PyCheck=0
+                exit -1
+            fi
+        done
+
+        echo -e "${GREEN}Done.\n${RESET}"
+    }
+
     # Displays the help
     Help()
     {
         if [[ $1 == 1 ]]; then
             echo -e "${YELLOW}Flags:${RESET}"
-            echo -e " ${YELLOW}--area=*|-a=*${RESET} \t\t\t Sets the area to run a simulation on"
-            echo -e " ${YELLOW}--clean|-c|--clean=*|-c=*${RESET} \t Cleans all simulation runs for the selected area if no # is set, \n \t\t\t\t otherwise cleans the specified run using the folder name inputed such as 'clean=run1'"
+            echo -e " ${YELLOW}--area=*|-a=*${RESET} \t\t\t Sets the area to run a simulation"
+            echo -e " ${YELLOW}--clean|-c|--clean=*|-c=*${RESET} \t Cleans all simulation runs for the selected area if no name is set, \n \t\t\t\t otherwise cleans the specified run using the folder name inputed such as 'clean=run1'"
             echo -e " ${YELLOW}--days=#|-d=#${RESET} \t\t\t Sets the number of days to run a simulation (default=500)"
-            echo -e " ${YELLOW}--flags, -f${RESET}\t\t\t Displays all flags"
-            echo -e " ${YELLOW}--gen-region-graphs=*, -grg=*${RESET}\t Generates graphs per region for previously completed simulation. Folder name set after '=' and area flag needed"
-            echo -e " ${YELLOW}--graph-region, -gr${RESET}\t\t Generates graphs per region (default=off)"
+            echo -e " ${YELLOW}--flags, -f${RESET}\t\t\t Displays this message"
+            echo -e " ${YELLOW}--gen-region-graphs=*, -grg=*${RESET}\t Generates graphs per region for previously completed simulation. Folder name set after '=' and area flag needed \n \t\t\t\t ex: ./RunSimulation.sh -a=ontario -grg=run1"
+            echo -e " ${YELLOW}--graph-region, -gr${RESET}\t\t Generates graphs per region during the whole process (default=off). Essentially this is turned off by default because it really slows down the whole process, \n \t\t\t\t but this flag turns on the generator while the previous one only generates them on an already completed simulation"
             echo -e " ${YELLOW}--help, -h${RESET}\t\t\t Displays the help"
             echo -e " ${YELLOW}--no-progress, -np${RESET}\t\t Turns off the progress bars and loading animations"
         else
@@ -271,6 +307,8 @@ else
     if [[ $CLEAN == "Y" ]]; then Clean;
     elif [[ $GENERATE == "R" ]]; then
         VISUALIZATION_DIR="${VISUALIZATION_DIR}${NAME}"
+        if [[ ! -f "${VISUALIZATION_DIR}/messages.log" ]]; then echo -e "${RED}${BOLD}${NAME}${RESET}${RED} doesn't exist or is invalid${RESET}"; exit -1; fi
+        DependencyCheck
         GenerateGraphs "Y" "N" "$VISUALIZATION_DIR/logs";
     else
         if [[ $NAME != "" && -d ${VISUALIZATION_DIR}${NAME} ]]; then
@@ -278,6 +316,7 @@ else
             exit -1
         fi
 
+        DependencyCheck
         Main;
     fi
 

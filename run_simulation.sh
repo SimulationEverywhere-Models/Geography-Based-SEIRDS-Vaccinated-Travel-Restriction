@@ -416,7 +416,7 @@ else
     fi
 
     # If not are is set or is set incorrectly, then exit
-    if [[ $INPUT_DIR == "" ]]; then echo -e "${RED}Please set a valid area flag... ${RESET}Use ${YELLOW}--flags${RESET} to see them"; exit -1; fi
+    if [[ $INPUT_DIR == "" ]]; then echo -e "${RED}Please set a valid area flag"; exit -1; fi
 
     # Used both in Clean() and Main() so we set it here
     VISUALIZATION_DIR="GIS_Viewer/${INPUT_DIR}/"
@@ -426,8 +426,9 @@ else
         DependencyCheck "N" "Y"
         GenerateScenario;
     elif [[ $GENERATE == "R" ]]; then
-        DependencyCheck "N" "Y"
         VISUALIZATION_DIR="${VISUALIZATION_DIR}${NAME}"
+        if [[ ! -f "${VISUALIZATION_DIR}/messages.log" ]]; then echo -e "${RED}${BOLD}${NAME}${RESET}${RED} doesn't exist or is invalid${RESET}"; exit -1; fi
+        DependencyCheck "N" "Y"
         GenerateGraphs "Y" "N" "$VISUALIZATION_DIR/logs";
     else
         if [[ $NAME != "" && -d ${VISUALIZATION_DIR}${NAME} ]]; then
