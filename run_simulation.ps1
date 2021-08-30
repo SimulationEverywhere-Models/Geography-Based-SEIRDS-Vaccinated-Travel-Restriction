@@ -553,7 +553,7 @@ if ($ParamsNotNull) {
         if ($Config -eq "") { Write-Output "${RED}Config must be set${RESET}"; Quit(-1) }
         if ( !(Test-Path "${VisualizationDir}${GenRegionGraphs}") ) { Write-Output "${RED}${BOLD}${GenRegionGraphs}${RESET}${RED} does not exist!${RESET}"; Quit(-1) }
         DependencyCheck $False $True
-        GenerateGraphs  "${VisualizationDir}${GenRegionsGraphs}\logs" $False $True
+        GenerateGraphs  "${VisualizationDir}${GenRegionGraphs}\logs" $False $True
     } elseif ($Export) { Export }
     else {
         BuildSimulator $Rebuild $FullRebuild $BuildType $Verbose

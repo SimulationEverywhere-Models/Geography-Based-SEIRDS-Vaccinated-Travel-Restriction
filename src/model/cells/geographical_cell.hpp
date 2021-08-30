@@ -418,7 +418,6 @@ class geographical_cell : public cell<T, string, sevirds, vicinity>
             */
             for (unsigned int q = 1; q <= age_data.get()->GetExposedPhase(); ++q)
             {
-                // TODO: This math is being done in increment_exposed()
                 // Calculates those who move early to the infected phase
                 // and automatically moves those on the last day to the infected phase
                 inf += age_data.get()->GetIncubationRate(q) // ε(q), εV1(q), or εV2(q)
