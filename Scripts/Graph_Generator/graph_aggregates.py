@@ -238,7 +238,10 @@ try:
         axs[1].set_ylabel("Population (%)")
         axs[1].legend(loc="upper right")
 
-        plt.savefig(base_name + "SEIR+D.png")
+        if not (sum(df_vis['vaccinatedD1']) == 0 and sum(df_vis['vaccinatedD2']) == 0):
+            plt.savefig(base_name + "SEVIRD.png")
+        else:
+            plt.savefig(base_name + "SEIR+D.png")
 
         if not progress:
             print("\033[1;32mDone.\033[0m")
