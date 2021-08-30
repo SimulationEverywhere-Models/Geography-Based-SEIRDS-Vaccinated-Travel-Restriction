@@ -147,9 +147,10 @@
             echo -e " ${YELLOW}--Wall|-w${RESET}\t\t\t Displays build warnings"
         else
             echo -e "${BOLD}Usage:${RESET}"
-            echo -e " ./run_simulation.sh ${ITALIC}<area flag>${RESET}"
-            echo -e " where ${ITALIC}<area flag>${RESET} is either --Ottawa ${BOLD}OR${RESET} --Ontario"
-            echo -e " example: ./run_simulation.sh --Ottawa"
+            echo -e " ./run_simulation.sh --area=${ITALIC}<config dir name>${RESET}"
+            echo -e " where ${ITALIC}<config dir name>${RESET} is a valid config directory such as ontario ${BOLD}OR${RESET} ottawa"
+            echo -e " ${YELLOW}Check Scripts/Input_Generator/ontario to view an example of a valid config"
+            echo -e " example: ./run_simulation.sh --area=ottawa"
             echo -e "Use \033[1;33m--flags${RESET} to see a list of all the flags and their meanings"
         fi
     }
