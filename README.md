@@ -33,9 +33,10 @@ conda install geopandas numpy matplotlib
 ---
 If you see a lot of `←[033m` being printed in the shell, then PowerShell doesn't have terminal colors enabled and a good amount of colors are used to make it clearer to spot important information. Luckily it's pretty easy to turn on. Paste the following command in the shell:
 1. ```Set-ItemProperty HKCU:\Console VirtualTerminalLevel -Type DWORD 1```
-2. Now restart the shell.
-3. Navigate back to SEVIRDS. `conda activate geo_env`
-4. `.\run_simulation.ps1 -GenScenario ontario`
+2. Now restart the shell
+3. Navigate back to SEVIRDS.
+4. `conda activate geo_env`
+5. `.\RunRimulation.ps1 -GenScenario ontario`
 
 You should see the progress meters and loading animations in color and not like `←[033m`
 
@@ -47,7 +48,7 @@ Running a Simulation
    * `.\RunSimulation.ps1 ontario`
 4. If it completes you can view the results using the path displayed in the terminal
   
-On Windows use `Get-Help ./RunSimulation` and `./RunSimulation.sh -h` to get more details on flags and parameters
+On Windows use `Get-Help .\RunSimulation.ps1` and `./RunSimulation.sh -h` on Linux to get more details on flags and parameters
 
 Viewing Results in GIS Web Viewer V2
 ---
