@@ -113,7 +113,7 @@
     {
         # Catch any build errors
         if [[ "$1" -ne 0 ]]; then
-            if [[ "$2" == "log" ]]; then cat $2; fi # Print any error messages
+            if [[ "$2" == "log" ]]; then cat $2; rm -f log; fi # Print any error messages
             echo -e "${RED}Build Failed${RESET}"
             exit -1 # And exit if any exist
         fi
@@ -151,7 +151,7 @@
             echo -e " where ${ITALIC}<config dir name>${RESET} is a valid config directory such as ontario ${BOLD}OR${RESET} ottawa"
             echo -e " ${YELLOW}Check Scripts/Input_Generator/ontario to view an example of a valid config"
             echo -e " example: ./run_simulation.sh --area=ottawa"
-            echo -e "Use \033[1;33m--flags${RESET} to see a list of all the flags and their meanings"
+            echo -e "Use ${BOLD}--flags${RESET}${YELLOW} to see a list of all the flags and their meanings${RESET}"
         fi
     }
 
@@ -417,7 +417,7 @@ else
     fi
 
     # If not are is set or is set incorrectly, then exit
-    if [[ $INPUT_DIR == "" ]]; then echo -e "${RED}Please set a valid area flag"; exit -1; fi
+    if [[ $INPUT_DIR == "" ]]; then echo -e "${RED}Please set a valid area flag${RESET}"; exit -1; fi
 
     # Used both in Clean() and Main() so we set it here
     VISUALIZATION_DIR="GIS_Viewer/${INPUT_DIR}/"
