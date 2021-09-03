@@ -26,18 +26,18 @@
 .INPUTS
     None. Once you set the flags you want, everything is handled for you
 .EXAMPLE
-    .\run_simulation.ps1 -Area on
+    .\run_simulation.ps1 -Config ontario
         Runs a simulation on the Ontario config
 .EXAMPLE
-    .\run_simulation.ps1 -Area on -Rebuild
+    .\run_simulation.ps1 -Config ontario -Rebuild
         Re-compiles the simulator then runs a simulation on the Ontario config
 .EXAMPLE
-    .\run_simulation.ps1 -GenScenario -Area on
+    .\run_simulation.ps1 -GenScenario -Confg ontario
         Generates the scenario file used by the simulator using the Ontario config. Running a sim
         like in examples 1 and 2 does this automatically and this is for when you just want the
         scenario file re-done (useful when debugging)
 .EXAMPLE
-    .\run_simulation.ps1 -GraphRegion -Area on
+    .\run_simulation.ps1 -GraphPerRegions -Config ontario
         Runs a simulation on the Ontario config and generates graphs per region since
         by default this is turned off (it takes a longer time to do then Aggregated graphs)
         and isn't always that useful)
