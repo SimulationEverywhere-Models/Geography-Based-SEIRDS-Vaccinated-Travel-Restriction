@@ -89,12 +89,12 @@
 
         cd Out
         zip -r SEVIRDS-LinuxDebianx64.zip Linux/*
+        cd ..
 
         rm -rf $LINUX_OUT/Scripts/
         rm -rf $LINUX_OUT/cadmium_gis/
         rm -rf $LINUX_OUT/bin/
         rm -rf $LINUX_OUT/Results/
-        cd ..
         echo -e "${GREEN}Done.${RESET}"
     }
 
