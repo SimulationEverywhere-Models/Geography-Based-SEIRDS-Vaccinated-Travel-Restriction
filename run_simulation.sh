@@ -69,6 +69,7 @@
         echo -e "]${RESET}"
     }
 
+    # Creates a zip archive containing everything required to run a simulation
     Export()
     {
         LINUX_OUT=Out/Linux
@@ -88,6 +89,11 @@
 
         cd Out
         zip -r SEVIRDS-LinuxDebianx64.zip Linux/*
+
+        rm -rf $LINUX_OUT/Scripts/
+        rm -rf $LINUX_OUT/cadmium_gis/
+        rm -rf $LINUX_OUT/bin/
+        rm -rf $LINUX_OUT/Results/
         cd ..
         echo -e "${GREEN}Done.${RESET}"
     }
