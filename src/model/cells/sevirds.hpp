@@ -442,7 +442,7 @@ ostream &operator<<(ostream& os, const sevirds& sevirds)
  * @param json Contains the json file
  * @param current_sevirds Object to store the data
  */
-void from_json(const nlohmann::json &json, sevirds &current_sevirds)
+void from_json(const nlohmann::json& json, sevirds& current_sevirds)
 {
     json.at("population").get_to(current_sevirds.population);
     json.at("age_group_proportions").get_to(current_sevirds.age_group_proportions);

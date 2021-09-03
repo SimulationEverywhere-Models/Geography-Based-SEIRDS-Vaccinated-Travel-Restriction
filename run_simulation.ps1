@@ -83,6 +83,7 @@ param(
     # Builds a debug version of the siomulator
     [switch]$DebugSim = $False,
 
+    # Set to true to create a zipped simulator package
     [switch]$Export = $False
 ) #params()
 
@@ -418,7 +419,7 @@ foreach($Param in $Params) { if ($PSBoundParameters.keys -like "*"+$Param+"*") {
     <#
         .SYNOPSIS
         Creates a .zip file with all the required files for just running simulations (no compiling required)
-        and is uplaoded to the releases page on Git: https://github.com/SimulationEverywhere-Models/Geography-Based-SEIRDS-Vaccinated/releases
+        and is uploaded to the releases page on Git: https://github.com/SimulationEverywhere-Models/Geography-Based-SEIRDS-Vaccinated/releases
     #>
     function Export()
     {
@@ -439,15 +440,23 @@ foreach($Param in $Params) { if ($PSBoundParameters.keys -like "*"+$Param+"*") {
 
         # Compress it to a .zip
         Compress-Archive .\Out\Windows -DestinationPath .\Out\SEVIRDS-Windowsx64.zip -Update
+
+        # Clean setup folder
+        Remove-Item ".\Out\Windows\Scripts\"     -Recurse
+        Remove-Item ".\Out\Windows\cadmium_gis\" -Recurse
+        Remove-Item ".\Out\Windows\bin\"         -Recurse
+        if (Test-Path ".\Out\Windows\Results") { Remove-Item ".\Out\Windows\Results\" -Recurse }
+
         Write-Verbose "${GREEN}Done.${RESET}"
     }
 # </Helpers> #
 
 function Main()
 {
-    # Used for execution time at the end of Main 
+    # Used for execution time at the end of Main()
     $Local:Stopwatch = [System.Diagnostics.Stopwatch]::StartNew()
 
+    # Create out directory
     if ($Name -ne "") { $VisualizationDir=$VisualizationDir+$Name }
     else {
         $i = 1
@@ -477,6 +486,8 @@ function Main()
     # Generate SEVIRDS graphs
     GenerateGraphs "" $True $GraphPerRegions
 
+    # Currently the GIS Viewer is dependent on Java
+    # But this will change at some point
     try { $private:Version = java --version }
     catch { $Version = "" }
     if ( ($Version -clike "*java 16*") ) {
@@ -526,6 +537,9 @@ if ($ParamsNotNull) {
     # Setup Config variables
     if (Test-Path ".\Scripts\Input_Generator\${Config}") {
         $VisualizationDir = ".\GIS_Viewer\${Config}\"
+
+        # Retrieve the area from the config variable
+        # Ex: ontario_booster2 -> $Area = 'ontario'
         $Area = $Config.Split("_")[0]
     } else {
         Write-Output "${RED}Could not find ${BOLD}'${Config}'${RESET}${RED}. Check the spelling and verify that the directory is under ${YELLOW}'Scripts\Input_Generator\'${RESET}"

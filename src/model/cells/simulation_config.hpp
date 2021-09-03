@@ -41,7 +41,7 @@ void from_json(const nlohmann::json& json, simulation_config& v)
     json.at("Vaccinations").get_to(v.is_vaccination);
 
     try { json.at("vaccination_rates_dose1").get_to(v.vac1_rates); }
-    catch(nlohmann::detail::type_error &e) { AssertLong(false, __FILE__, __LINE__, "Error reading the vaccination_rates_dose1 vector from default.json.\nVerify the format is [[#], [#], ...] and NOT [#, #, ...]"); }
+    catch(nlohmann::detail::type_error& e) { AssertLong(false, __FILE__, __LINE__, "Error reading the vaccination_rates_dose1 vector from default.json.\nVerify the format is [[#], [#], ...] and NOT [#, #, ...]"); }
 
     json.at("vaccination_rates_dose2").get_to(v.vac2_rates);
     json.at("incubation_rates_dose1").get_to(v.incubationD1_rates);

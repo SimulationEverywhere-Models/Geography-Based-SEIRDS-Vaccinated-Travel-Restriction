@@ -1,4 +1,4 @@
-// Created by Eric - Jun/2021
+// Created by Eric - Summer/2021
 
 #ifndef AGE_DATA_HPP
 #define AGE_DATA_HPP
@@ -10,7 +10,8 @@ using namespace std;
 using vecDouble = vector<double>;
 using vecVecDouble = vector<vecDouble>;
 
-static vecDouble EMPTY_VEC; // Used as a null
+// Used as a null object for vectors that aren't needed
+static vecDouble EMPTY_VEC;
 
 /**
  * Wrapper class that holds important simulation data
@@ -80,7 +81,6 @@ class AgeData
         unsigned int m_recoveredPhase;
 
         PopType m_popType;
-
     public:
         AgeData(unsigned int age, vecVecDouble& susc, vecVecDouble& exp, vecVecDouble& inf,
                 vecVecDouble& rec, vecVecDouble const& incub_r, vecVecDouble const& rec_r,
@@ -143,10 +143,10 @@ class AgeData
         double GetTotalRecovered()   { return m_totalRecoveries;  }
         double GetTotalFatalities()  { return m_totalFatalities;  }
 
-        double GetNewFatalities(int index)   { return m_newFatalities.at(index);       }
-        double GetNewRecovered(int index)    { return m_newRecoveries.at(index);       }
-        double GetVacFromRec(int index)      { return m_newVacFromRec.at(index);       }
-        double GetNewExposed(int index)      { return m_newExposed.at(index);          }
+        double GetNewFatalities(int index) { return m_newFatalities.at(index); }
+        double GetNewRecovered(int index)  { return m_newRecoveries.at(index); }
+        double GetVacFromRec(int index)    { return m_newVacFromRec.at(index); }
+        double GetNewExposed(int index)    { return m_newExposed.at(index);    }
 
         double GetOrigSusceptible(int index) { return m_OriginalSusceptible.at(index); }
         double GetOrigExposed(int index)     { return m_OriginalExposed.at(index);     }

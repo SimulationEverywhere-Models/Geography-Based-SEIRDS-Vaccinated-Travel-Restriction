@@ -1,12 +1,11 @@
 #ifndef ASSERT_HPP
 #define ASSERT_HPP
 
-
 using namespace std;
 
 namespace Assert
 {
-    void AssertLong(bool condition, string file, unsigned int line, string message = "")
+    void AssertLong(bool condition, string file, unsigned int line, string message="")
     {
         if (!condition)
         {

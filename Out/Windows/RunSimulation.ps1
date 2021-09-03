@@ -13,6 +13,7 @@
         6. Clean ups
 
     This script is dependent on:
+        - Python 3
         - geopandas (Python library installed through Conda)
         - matplotlib (Python library installed through Conda)
         - numpy (Python library installed through Conda)
@@ -22,15 +23,15 @@
 .INPUTS
     None. Once you set the flags you want, everything is handled for you
 .EXAMPLE
-    .\run_simulation.ps1 -Config ontario
+    .\RunSimulation.ps1 -Config ontario
         Runs a simulation on the Ontario config
 .EXAMPLE
-    .\run_simulation.ps1 -GenScenario -Config ontario
+    .\RunSimulation.ps1 -GenScenario -Config ontario
         Generates the scenario file used by the simulator using the Ontario config. Running a sim
         like in examples 1 and 2 does this automatically and this is for when you just want the
         scenario file re-done (useful when debugging)
 .EXAMPLE
-    .\run_simulation.ps1 -GraphRegion -Config ontario
+    .\RunSimulation.ps1 -GraphRegion -Config ontario
         Runs a simulation on the Ontario config and generates graphs per region since
         by default this is turned off (it takes a longer time to do then Aggregated graphs)
         and isn't always that useful)
@@ -197,13 +198,13 @@ $Script:HomeDir   = Split-Path -Parent $Script:MyInvocation.MyCommand.Path
     }
 
     <#
-            .SYNOPSIS
-            Checks if any errors have been returned and stops scripts if so.
-            Should be placed directly after a program call.
-            .EXAMPLE
-            python generate_scenario.py
-            ErrorCheck
-                If the generate_scenario returns an error the script will exit.
+        .SYNOPSIS
+        Checks if any errors have been returned and stops scripts if so.
+        Should be placed directly after a program call.
+        .EXAMPLE
+        python generate_scenario.py
+        ErrorCheck
+            If the generate_scenario returns an error the script will exit.
     #>
     function ErrorCheck() {
         # 0 -> All is good
@@ -228,7 +229,7 @@ $Script:HomeDir   = Split-Path -Parent $Script:MyInvocation.MyCommand.Path
         python.exe generateScenario.py $Config $PROGRESS
         ErrorCheck
         Set-Location $HomeDir
-    } #GenerateScenario()
+    }
 
     <#
         .SYNOPSIS
@@ -299,6 +300,9 @@ if ($ParamsNotNull) {
     # Setup Config variables
     if (Test-Path ".\Scripts\Input_Generator\${Config}") {
         $VisualizationDir = ".\Results\${Config}\"
+
+        # Retrieve the area from the config variable
+        # Ex: ontario_booster2 -> $Area = 'ontario'
         $Area = $Config.Split("_")[0]
     }
     else {
@@ -356,6 +360,8 @@ if ($ParamsNotNull) {
     # Generate SEVIRDS graphs
     GenerateGraphs "" $True $GraphPerRegions
 
+    # Currently the GIS Viewer is dependent on Java
+    # But this will change at some point
     try { $Private:Version = java --version }
     catch { $Version = "" }
     if ( ($Version -clike "*java 16*") ) {

@@ -97,6 +97,9 @@ int main(int argc, char** argv)
 
     float sim_time = (argc > 2) ? atof(argv[2]) : 500;
     r.run_until(sim_time);
+
+    // The spaces at the the end are necessary to clear the terminal
+    // line that's being overwritten
     cout << "\r\033[1;32mDone.       \033[0m" << endl;
     return 0;
 } //main()
