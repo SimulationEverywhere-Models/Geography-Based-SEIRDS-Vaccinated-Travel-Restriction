@@ -1,4 +1,4 @@
-cmake_minimum_required (VERSION 3.18.4 FATAL_ERROR)
+cmake_minimum_required (VERSION 3.16 FATAL_ERROR)
 
 ### <GCC> ##
     set (CMAKE_CXX_STANDARD 17)
