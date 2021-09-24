@@ -241,7 +241,7 @@ foreach($Param in $Params) { if ($PSBoundParameters.keys -like "*"+$Param+"*") {
             $private:Dependencies = [Ordered]@{
                 # dependency=version, website
                 cmake="cmake version 3","https://cmake.org/download/";
-                gcc="x86_64-posix-seh-rev0", "http://mingw-w64.org/doku.php";
+                gcc="gcc", "http://mingw-w64.org/doku.php";
             }
 
             # Python Depedencies
