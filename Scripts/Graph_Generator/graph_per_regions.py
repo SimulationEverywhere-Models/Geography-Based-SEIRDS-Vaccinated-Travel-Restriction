@@ -78,11 +78,11 @@ try:
 
         psum = percent_S + percent_E + percent_VD1 + \
             percent_VD2 + percent_I + percent_R + percent_D
-        assert 0.995 <= psum < 1.005, ("at time " + str(curr_time))
+        # assert 0.995 <= psum < 1.005, ("at time " + str(curr_time))
 
         # Return the info in desired format
-        state_percentages = [int(sim_time), percent_S, percent_E, percent_VD1, percent_VD2, percent_I, percent_R, percent_new_E, percent_new_I, percent_new_R, percent_D]
-        state_totals      = [int(sim_time), total_S, total_E, total_VD1, total_VD2, total_I, total_R, total_new_E, total_new_I, total_new_R, total_D]
+        state_percentages = [int(sim_time),cell_population, percent_S, percent_E, percent_VD1, percent_VD2, percent_I, percent_R, percent_new_E, percent_new_I, percent_new_R, percent_D]
+        state_totals      = [int(sim_time), cell_population, total_S, total_E, total_VD1, total_VD2, total_I, total_R, total_new_E, total_new_I, total_new_R, total_D]
         return state_totals, state_percentages
     #state_to_percent_df
 
@@ -112,7 +112,7 @@ try:
         matplotlib.rc('font', **font)
         matplotlib.rc('lines', linewidth=2)
 
-        columns = ["time", "susceptible", "exposed", "vaccinatedD1", "vaccinatedD2",
+        columns = ["time","total", "susceptible", "exposed", "vaccinatedD1", "vaccinatedD2",
                 "infected", "recovered", "new_exposed", "new_infected", "new_recovered", "deaths"]
 
         # Make a folder for the region in that stats folder
@@ -132,13 +132,13 @@ try:
 
         # write the timeseries percent file inside stats/region_id
         with open(percentages_filepath, "w") as out_file:
-            out_file.write("sim_time, S, E, VD1, VD2, I, R, New_E, New_I, New_R, D\n")
+            out_file.write("sim_time,Total, S, E, VD1, VD2, I, R, New_E, New_I, New_R, D\n")
             for timestep in data_percents[region_key]:
                 out_file.write(str(timestep).strip("[]")+"\n")
 
         # write the timeseries cumulative file inside stats/region_id
         with open(totals_filepath, "w") as out_file:
-            out_file.write("sim_time, S, E, VD1, VD2, I, R, New_E, New_I, New_R, D\n")
+            out_file.write("sim_time, Total, S, E, VD1, VD2, I, R, New_E, New_I, New_R, D\n")
             for timestep in data_totals[region_key]:
                 out_file.write(str(timestep).strip("[]")+"\n")
 
@@ -170,7 +170,7 @@ try:
             axs.set_title('Epidemic SEVIRD Percentages for ' + foldername + " (pop=" + str(int(curr_states[region_key][0])) + ")")
         else:
             axs.set_title('Epidemic SEIRD Percentages for ' + foldername + " (pop=" + str(int(curr_states[region_key][0])) + ")")
-        axs.set_ylabel("Population (%)")
+        axs.set_ylabel("Population")
         axs.legend(loc="upper right")
 
         if vaccines:
@@ -181,11 +181,10 @@ try:
 
         # Deaths + Vaccinated
         fig, axs = plt.subplots(1, figsize=(15,6))
-
         axs.plot(t, 100*df_vis_p["exposed"],  label="Exposed",  color=COLOR_EXPOSED,  linestyle=STYLE_EXPOSED)
         axs.plot(t, 100*df_vis_p["infected"], label="Infected", color=COLOR_INFECTED, linestyle=STYLE_INFECTED)
         axs.plot(t, 100*df_vis_p["deaths"],   label="Deaths",   color=COLOR_DEAD,     linestyle=STYLE_DEAD)
-        axs.set_ylabel("Population (%)")
+        axs.set_ylabel("Population")
         axs.set_title("Epidemic EID Percentages for " + foldername + " (pop=" + str(int(curr_states[region_key][0])) + ")")
         axs.legend(loc="upper right")
 

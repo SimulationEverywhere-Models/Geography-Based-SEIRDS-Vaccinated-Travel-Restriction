@@ -37,10 +37,21 @@ gpkg_file          = input_area + "_" + area_id.lower() + ".gpkg"
 progress = 0
 
 def shared_boundaries(gdf, id1, id2):
-    g1 = gdf[gdf[area_id] == str(id1)].geometry.iloc[0]
-    g2 = gdf[gdf[area_id] == str(id2)].geometry.iloc[0]
-    return g1.length, g2.length, g1.boundary.intersection(g2.boundary).length
+    g1 = gdf[gdf[area_id] == id1].geometry.iloc[0]
+    g2 = gdf[gdf[area_id] == id2].geometry.iloc[0]
+    shared = g1.boundary.intersection(g2.boundary).length
+    correlation = (shared/g1.length + shared/g2.length) / 2
+    return correlation
 #shared_boundaries()
+
+def distance_correlation(gdf, id1, id2):
+    g1 = gdf[gdf[area_id] == id1].geometry.iloc[0]
+    g2 = gdf[gdf[area_id] == id2].geometry.iloc[0]
+    dist = g1.boundary.distance(g2.boundary)
+    if(dist==0):
+        return shared_boundaries(gdf, id1, id2)
+    return 1e5/dist
+#distance_correlation
 
 def get_boundary_length(gdf, id1):
     g1 = gdf[gdf[area_id] == str(id1)].geometry.iloc[0]
@@ -81,7 +92,7 @@ for ind, row, in df_adj.iterrows():
     elif row_region_id_str not in adj_full:
         rel_row = df[ df[area_id_clean_csv] == row["region_id"] ].iloc[0, :]
         pop     = int(rel_row[population])
-        area    = rel_row[area_col]
+        # area    = rel_row[area_col]
 
         state = deepcopy(default_state)
         state["population"] = pop
@@ -90,14 +101,14 @@ for ind, row, in df_adj.iterrows():
         adj_full[row_region_id_str] = expr
     #elif
 
-    l1, l2, shared  = shared_boundaries(gdf, row_region_id, row_neighborhood_id)
-    correlation     = (shared/l1 + shared/l2) / 2  # Equation extracted from Zhong paper (boundaries only, we don't have roads info for now)
-    if correlation == 0:
-        continue
+    # l1, l2, shared  = shared_boundaries(gdf, row_region_id, row_neighborhood_id)
+    # correlation     = (shared/l1 + shared/l2) / 2  # Equation extracted from Zhong paper (boundaries only, we don't have roads info for now)
+    correlation = distance_correlation(gdf, row_region_id, row_neighborhood_id)
 
     expr = {"correlation": correlation, "infection_correction_factors": default_correction_factors}
     adj_full[row_region_id_str][row_region_id_str]["neighborhood"][row_neighborhood_id_str]=expr
-
+    # dist = gdf[area_id][row_region_id-1].distance(gdf[area_id][row_neighborhood_id-1])
+    # print(dist)
     if not(no_progress) and ind % progress_freq == 0:
         progress = (int)(70*ind/len(df_adj))
         sys.stdout.write("\r\033[33m" + str(progress) + "%" + "\033[0m")

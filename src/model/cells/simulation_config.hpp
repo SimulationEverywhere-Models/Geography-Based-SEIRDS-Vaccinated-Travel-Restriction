@@ -27,6 +27,7 @@ struct simulation_config
     phase_rates vac2_rates;
 
     bool reSusceptibility, is_vaccination;
+    string travel_restriction;
 };
 
 void from_json(const nlohmann::json& json, simulation_config& v)
@@ -39,6 +40,7 @@ void from_json(const nlohmann::json& json, simulation_config& v)
     json.at("fatality_rates").get_to(v.fatality_rates);
     json.at("Re-Susceptibility").get_to(v.reSusceptibility);
     json.at("Vaccinations").get_to(v.is_vaccination);
+    json.at("travel_restriction").get_to(v.travel_restriction);
 
     try { json.at("vaccination_rates_dose1").get_to(v.vac1_rates); }
     catch(nlohmann::detail::type_error& e) { AssertLong(false, __FILE__, __LINE__, "Error reading the vaccination_rates_dose1 vector from default.json.\nVerify the format is [[#], [#], ...] and NOT [#, #, ...]"); }

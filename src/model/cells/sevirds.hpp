@@ -79,12 +79,13 @@ struct sevirds
         one_over_prec_divider = 0;
     };
 
-    sevirds(proportionVector sus, proportionVector vac1, proportionVector vac2,
+    sevirds(double pop, proportionVector sus, proportionVector vac1, proportionVector vac2,
             proportionVector exp, proportionVector exp1, proportionVector exp2,
             proportionVector inf, proportionVector inf1, proportionVector inf2,
             proportionVector rec, proportionVector rec1, proportionVector rec2,
             vector<double> fat, double dis, double hcap, double fatm, proportionVector immuD1, unsigned int min_interval,
             proportionVector immuD2, double divider, bool vac=false) :
+                population{pop},
                 susceptible{move(sus)},
                 vaccinatedD1{move(vac1)},
                 vaccinatedD2{move(vac2)},

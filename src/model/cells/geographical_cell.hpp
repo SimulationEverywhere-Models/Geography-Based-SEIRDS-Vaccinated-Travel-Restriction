@@ -63,6 +63,7 @@ class geographical_cell : public cell<T, string, sevirds, vicinity>
         using mobility_correction_factor = array<float, 2>;  // array<mobility correction factor, hysteresis factor>;
 
         bool reSusceptibility, is_vaccination;
+        string travel_restriction;
 
         unsigned int age_segments;
 
@@ -80,6 +81,7 @@ class geographical_cell : public cell<T, string, sevirds, vicinity>
             // and later in this file
             is_vaccination               = config.is_vaccination;
             state.current_state.vaccines = is_vaccination;
+            travel_restriction = config.travel_restriction;
 
             // Set the precision divider in the sevirds object
             state.current_state.prec_divider          = (double)config.prec_divider;
@@ -150,6 +152,7 @@ class geographical_cell : public cell<T, string, sevirds, vicinity>
                 datas.at(NVAC).reset(new AgeData(age_segment_index, res.susceptible, res.exposed, res.infected,
                                                 res.recovered, incubation_rates, recovery_rates, fatality_rates));
 
+
                 if (is_vaccination)
                 {
                     // Init the vac object for the current age group
@@ -163,14 +166,14 @@ class geographical_cell : public cell<T, string, sevirds, vicinity>
                                                     res.immunityD2_rate.at(age_segment_index), AgeData::PopType::DOSE2));
 
                     // Equations for Vaccinated population (eg. EV1, RV2...)
-                    sanity_check(res.get_total_susceptible(true, age_segment_index), __LINE__);
+//                    sanity_check(res.get_total_susceptible(true, age_segment_index), __LINE__);
                     compute_vaccinated(datas, res);
 
                     // S = 1 - V1 - V2
                     new_s -= datas.at(VAC1).get()->GetTotalSusceptible(); // 1e
                     sanity_check(new_s, __LINE__);
                     new_s -= datas.at(VAC2).get()->GetTotalSusceptible(); // 2d
-                    sanity_check(new_s, __LINE__);
+//                    sanity_check(new_s, __LINE__);
                 }
 
                 // Compute the Exposed, Infected, Recovered, and Fatalities equations
@@ -185,7 +188,6 @@ class geographical_cell : public cell<T, string, sevirds, vicinity>
                     new_s -= data.get()->GetTotalInfected();
                     sanity_check(new_s, __LINE__);
                     new_s -= data.get()->GetTotalRecovered();
-                    sanity_check(new_s, __LINE__);
 
                     res.fatalities.at(age_segment_index) += data.get()->GetTotalFatalities();
                     sanity_check(res.fatalities.at(age_segment_index), __LINE__);
@@ -194,7 +196,12 @@ class geographical_cell : public cell<T, string, sevirds, vicinity>
                 new_s -= res.fatalities.at(age_segment_index);
                 sanity_check(new_s, __LINE__);
 
+//                travel_international(res,age_segment_index,new_s);
+
+//                cout<<"Susceptible "<<new_s<<" Age Group "<<age_segment_index<<endl;
                 res.susceptible.at(age_segment_index).front() = new_s;
+                travel_international(res,age_segment_index);
+
             } //for(age_groups)
 
             return res;
@@ -715,6 +722,7 @@ class geographical_cell : public cell<T, string, sevirds, vicinity>
          */
         void compute_EIRD(vector<unique_ptr<AgeData>>& datas, sevirds& res) const
         {
+//            AssertLong(0==0,__FILE__,__LINE__,"Here Travelled");
             double new_expos, new_inf, new_rec;
 
             for (unique_ptr<AgeData>& age_data_ptr : datas)
@@ -746,6 +754,8 @@ class geographical_cell : public cell<T, string, sevirds, vicinity>
 
                     increment_exposed(age_data);
 
+//                    travel_international(res,new_expos);
+
                     age_data.SetExposed(0, new_expos);
                 // </EXPOSED>
 
@@ -768,6 +778,65 @@ class geographical_cell : public cell<T, string, sevirds, vicinity>
         }
 
         /**
+         * @brief Computes updated total population after some population travel to neighbours
+         *
+         * @param res Current cell data
+         */
+         void travel_international(sevirds& res, unsigned int age_segment_index) const {
+//             res.population = res.population - 10000;
+//            AssertLong(0==0,__FILE__,__LINE__,"Here Travelled");
+            if(travel_restriction=="total")
+                return;
+            else{
+                for (string neighbor : neighbors) {
+                    sevirds const& nstate = state.neighbors_state.at(neighbor);
+                    vicinity const& v     = state.neighbors_vicinity.at(neighbor);
+
+                    if(travel_restriction=="none"){
+                        double orig_population = res.population;
+                        double random_factor = ((double)rand()/(double)RAND_MAX)/1e2;
+                        double out_factor = random_factor*v.correlation;
+                        double travellers_leaving = res.population*out_factor;
+                        res.population -= travellers_leaving;
+                        random_factor = ((double)rand()/(double)RAND_MAX)/1e2;
+                        double in_factor = random_factor*v.correlation;
+                        double travelers_coming = res.population*in_factor;
+                        res.population += travelers_coming;
+                        double exposed_pop = res.exposed.at(age_segment_index).front()*orig_population + travelers_coming;
+                        double new_exposed_pop = exposed_pop/res.population;
+                        if(res.susceptible.at(age_segment_index).front()-new_exposed_pop-res.exposed.at(age_segment_index).front()>0) {
+                            res.susceptible.at(age_segment_index).front() -= (new_exposed_pop - res.exposed.at(
+                                    age_segment_index).front());
+                            res.exposed.at(age_segment_index).front() = new_exposed_pop;
+                        }
+                    }
+                    else if(travel_restriction=="partial"
+                    && (nstate.get_total_vaccinatedD2(age_segment_index)>0.75 || nstate.get_total_recovered(age_segment_index)>0.75)
+                    && nstate.get_total_infections(age_segment_index)<0.2){
+                        double orig_population = res.population;
+                        double random_factor = ((double)rand()/(double)RAND_MAX)/1e2;
+                        double out_factor = random_factor*v.correlation;
+                        double travellers_leaving = res.population*out_factor;
+                        res.population -= travellers_leaving;
+                        random_factor = ((double)rand()/(double)RAND_MAX)/1e2;
+                        double in_factor = random_factor*v.correlation;
+                        double travelers_coming = res.population*in_factor;
+                        res.population += travelers_coming;
+                        double exposed_pop = res.exposed.at(age_segment_index).front()*orig_population + travelers_coming;
+                        double new_exposed_pop = exposed_pop/res.population;
+                        if(res.susceptible.at(age_segment_index).front()-new_exposed_pop-res.exposed.at(age_segment_index).front()>0) {
+                            res.susceptible.at(age_segment_index).front() -= (new_exposed_pop - res.exposed.at(
+                                    age_segment_index).front());
+                            res.exposed.at(age_segment_index).front() = new_exposed_pop;
+                        }
+                        if(out_factor>in_factor){
+                            res.susceptible.at(age_segment_index).front() += (out_factor-in_factor);
+                        }
+                    }
+                }
+            }
+         }
+        /**
          * @brief Basic check that the proportion is not
          * less then 0 or bigger then 1
          * 
@@ -782,11 +851,11 @@ class geographical_cell : public cell<T, string, sevirds, vicinity>
             if (value < (0 - res.one_over_prec_divider) || value > (1 + res.one_over_prec_divider))
             {
                 value = res.precision_divider(value);
-                    AssertLong(value >= 0 && value <= 1,
+                    AssertLong(value >= -0.05 && value <= 1.25,
                                 __FILE__, line,
                                 to_string(value) + " is \033[33m" + (value < 0 ? "less then zero" : "bigger then one") + "\033[31m on day " + to_string((int)simulation_clock));
             }
         }
 }; //class geographical_cell{}
 
-#endif //PANDEMIC_HOYA_2002_ZHONG_CELL_HPP
+#endif //PANDEMIC_HOYA_2002_ZHONG_CELL_HPPs
